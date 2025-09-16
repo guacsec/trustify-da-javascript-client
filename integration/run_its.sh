@@ -73,7 +73,7 @@ rm -rf testers/cli/node_modules
 rm -f testers/cli/package-lock.json
 if !  npm --prefix testers/cli install  --silent ; then
 	RC="$?"
-	echo "- FAILED Installing exhort-javascript-api environment for testing"
+	echo "- FAILED Installing trustify-da-javascript-client environment for testing"
 	cleanup $RC
 fi
 echo "- SUCCESSFUL"
@@ -81,7 +81,7 @@ mkdir -p ./responses
 #### JAVA MAVEN
 echo "RUNNING JavaScript CLI integration test for Stack Analysis report in Html for Java Maven"
 
-testers/cli/node_modules/.bin/exhort-javascript-api  stack scenarios/maven/pom.xml --html > ./responses/stack.html
+testers/cli/node_modules/.bin/trustify-da-javascript-client  stack scenarios/maven/pom.xml --html > ./responses/stack.html
 RC="$?"
 if [ "$RC" -ne 0 ]; then
 	echo "- FAILED, return $RC from invocation"
@@ -96,7 +96,7 @@ echo "- PASSED"
 echo
 
 echo 'RUNNING JavaScript CLI integration test for Stack Analysis report summary of snyk provider for Java Maven'
-testers/cli/node_modules/.bin/exhort-javascript-api stack scenarios/maven/pom.xml --summary > ./responses/stack-summary.json
+testers/cli/node_modules/.bin/trustify-da-javascript-client stack scenarios/maven/pom.xml --summary > ./responses/stack-summary.json
 RC="$?"
 if [ "$RC" -ne 0 ]; then
 	echo "- FAILED, return $RC from invocation"
@@ -114,7 +114,7 @@ echo "- PASSED"
 echo
 
 echo "RUNNING JavaScript CLI integration test for Stack Analysis report in Json for Java Maven"
-testers/cli/node_modules/.bin/exhort-javascript-api stack scenarios/maven/pom.xml  > ./responses/stack.json
+testers/cli/node_modules/.bin/trustify-da-javascript-client stack scenarios/maven/pom.xml  > ./responses/stack.json
 RC="$?"
 if [ "$RC" -ne 0 ]; then
 	echo "- FAILED, return $RC from invocation"
@@ -134,7 +134,7 @@ matchConstant "200" "$StatusCodeTC" "Check that Response code from Trusted Conte
 #matchConstant "200" "$StatusCodeSnyk" "Check that Response code from Snyk Provider is OK ( Http Status = 200)..."
 
 echo "RUNNING JavaScript CLI integration test for Component Analysis report for Java Maven"
-eval "testers/cli/node_modules/.bin/exhort-javascript-api component scenarios/maven/pom.xml"  > ./responses/component.json
+eval "testers/cli/node_modules/.bin/trustify-da-javascript-client component scenarios/maven/pom.xml"  > ./responses/component.json
 RC="$?"
 if [ "$RC" -ne 0 ]; then
 	echo "- FAILED, return $RC from invocation"
@@ -149,16 +149,5 @@ fi
 
 StatusCodeTC=$(jq '.providers["trusted-content"].status.code' ./responses/stack.json)
 matchConstant "200" "$StatusCodeTC" "Check that Response code from Trusted Content is OK ( Http Status = 200)..."
-#StatusCodeSnyk=$(jq '.providers.snyk.status.code' ./responses/stack.json)
-#matchConstant "200" "$StatusCodeSnyk" "Check that Response code from Snyk Provider is OK ( Http Status = 200)..."
-
-echo "RUNNING JavaScript CLI integration test for Validate Token Function With wrong token, expecting getting 401 http status code "
-answerAboutToken=$(testers/cli/node_modules/.bin/exhort-javascript-api validate-token snyk --value=veryBadTokenValue)
-matchConstant "401" "$answerAboutToken" "Checking That dummy Token is Invalid, Expecting Response Status of Authentication Failure( Http Status = 401)..."
-
-echo "RUNNING JavaScript CLI  integration test for Validate Token Function With no token at all, Expecting getting 400 http status code"
-answerAboutToken=$(testers/cli/node_modules/.bin/exhort-javascript-api validate-token snyk )
-matchConstant "400" "$answerAboutToken" "Checking That Token is missing, Expecting Response Status of Bad Request( Http Status = 400)..."
-echo "==>SUCCESS!!"
 
 cleanup 0

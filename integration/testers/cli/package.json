@@ -1,11 +1,11 @@
 {
 	"name": "cli-it",
 	"version": "0.0.1",
-	"description": "exhort-javascript-api cli integration tests",
+	"description": "trustify-da-javascript-client cli integration tests",
 	"private": true,
 	"type": "module",
 	"license": "Apache-2.0",
 	"dependencies": {
-		"@trustification/exhort-javascript-api": "file:../../../"
+		"@trustify-da/trustify-da-javascript-client": "file:../../../"
 	}
 }

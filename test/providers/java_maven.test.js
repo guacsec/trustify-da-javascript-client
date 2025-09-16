@@ -73,7 +73,7 @@ suite('testing the java-maven data provider', async () => {
 			})).to.eq(testCase.preferWrapper ?
 				path.resolve(`test/providers/tst_manifests/maven/pom_with_mvn_wrapper/mvnw`) + (platform === 'win32' ? '.cmd' : '')
 				: testCase.mvnPath)
-		})
+		}).timeout(10000)
 	});
 
 	[

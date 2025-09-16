@@ -1,14 +1,11 @@
 {
-	"name": "@trustification/exhort-javascript-api",
+	"name": "@trustify-da/trustify-da-javascript-client",
 	"version": "0.2.4-ea.12",
 	"description": "Code-Ready Dependency Analytics JavaScript API.",
 	"license": "Apache-2.0",
-	"homepage": "https://github.com/trustification/exhort-javascript-api#README.md",
-	"bugs": "https://github.com/trustification/exhort-javascript-api/issues",
-	"repository": "github:trustification/exhort-javascript-api",
-	"publishConfig": {
-		"registry": "https://npm.pkg.github.com"
-	},
+	"homepage": "https://github.com/guacsec/trustify-da-javascript-client#README.md",
+	"bugs": "https://github.com/guacsec/trustify-da-javascript-client/issues",
+	"repository": "github:guacsec/trustify-da-javascript-client",
 	"keywords": [
 		"analysis",
 		"codeready",
@@ -56,7 +53,7 @@
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
-		"@trustification/exhort-api-spec": "^1.0.18",
+		"@trustify-da/trustify-da-api-model": "^2.0.1",
 		"@types/node": "^20.17.30",
 		"@types/which": "^3.0.4",
 		"babel-plugin-rewire": "^1.2.0",

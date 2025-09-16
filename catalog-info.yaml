@@ -2,15 +2,15 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   annotations:
-    backstage.io/kubernetes-id: exhort-javascript-api
-    github.com/project-slug: trustification/exhort-javascript-api
+    backstage.io/kubernetes-id: trustify-da-javascript-client
+    github.com/project-slug: guacsec/trustify-da-javascript-client
     github.com/project-readme-path: README.md
-    backstage.io/view-url: https://github.com/trustification/exhort-javascript-api/blob/main/catalog-info.yaml
-    backstage.io/edit-url: https://github.com/trustification/exhort-javascript-api/blob/main/catalog-info.yaml
-    backstage.io/source-location: url:https://github.com/trustification/exhort-javascript-api
+    backstage.io/view-url: https://github.com/guacsec/trustify-da-javascript-client/blob/main/catalog-info.yaml
+    backstage.io/edit-url: https://github.com/guacsec/trustify-da-javascript-client/blob/main/catalog-info.yaml
+    backstage.io/source-location: url:https://github.com/guacsec/trustify-da-javascript-client
     rhda/manifest-file-path: package.json
     backstage.io/techdocs-ref: dir:README.md
-  name: exhort-javascript-api
+  name: trustify-da-javascript-client
 spec:
   lifecycle: production
   owner: ecosystem-appeng

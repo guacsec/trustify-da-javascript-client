@@ -3,7 +3,7 @@ name: Stage
 
 env:
   # 🖊️ EDIT to change the image build settings.
-  IMAGE_NAME: exhort-javascript-api
+  IMAGE_NAME: trustify-da-javascript-client
   IMAGE_REGISTRY: quay.io/ecosystem-appeng
   DOCKERFILE_PATH: ./docker-image/Dockerfiles/Dockerfile
 
@@ -29,7 +29,7 @@ jobs:
   stage:
     runs-on: ubuntu-latest
 #    Branches that starts with `release/` shouldn't trigger this workflow, as these are triggering the release workflow.
-    if: github.repository_owner == 'trustification' && github.event.pull_request.merged == true && !startsWith(github.head_ref, 'release/')
+    if: github.repository_owner == 'guacsec' && github.event.pull_request.merged == true && !startsWith(github.head_ref, 'release/')
     environment: staging
     name: Stage the project
     steps:

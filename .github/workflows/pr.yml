@@ -104,6 +104,8 @@ jobs:
       - name: Run integration tests cli
         working-directory: integration
         run: bash ./run_its.sh
+        env:
+          EXHORT_DEV_MODE: 'true'
 
       - name: Upload coverage reports
         if: ${{ matrix.node == env.MAIN_NODE_VER }}

@@ -1,8 +1,8 @@
 # Exhort JavaScript API<br/>![latest-no-snapshot][0] ![latest-snapshot][1]
 
-* Looking for the OpenAPI Spec? Try [Exhort API Spec](https://github.com/trustification/exhort-api-spec)
-* Looking for our Java API? Try [Exhort Java API](https://github.com/trustification/exhort-java-api).
-* Looking for our Backend implementation? Try [Exhort](https://github.com/trustification/exhort).
+* Looking for the OpenAPI Spec? Try [Exhort API Spec](https://github.com/trustify-da/trustify-da-api-model)
+* Looking for our Java API? Try [Exhort Java API](https://github.com/guacsec/exhort-java-api).
+* Looking for our Backend implementation? Try [Exhort](https://github.com/guacsec/exhort).
 
 The _Exhort JavaScript API_ module is deployed to _GitHub Package Registry_.
 
@@ -31,10 +31,11 @@ See [GH Docs](https://docs.github.com/en/packages/working-with-a-github-packages
 
 <h3>Usage</h3>
 <p>
-Configuring <em>NPM</em> to look in <em>GHPR</em> for the <em>trustification</em> namespace is done by adding
-<code>@trustification:registry=https://npm.pkg.github.com</code> to <em>.npmrc</em> in the project root or user home.
+Configuring <em>NPM</em> to look in <em>GHPR</em> for the <em>trustify-da</em> namespace is done by adding
+<code>@trustify-da:registry=https://npm.pkg.github.com</code> to <em>.npmrc</em> in the project root or user home.
 
 ```shell
+echo "@trustify-da:registry=https://npm.pkg.github.com" >> .npmrc
 echo "@trustification:registry=https://npm.pkg.github.com" >> .npmrc
 ```
 </p>
@@ -44,11 +45,11 @@ echo "@trustification:registry=https://npm.pkg.github.com" >> .npmrc
 Use as ESM Module from an ESM module
 
 ```shell
-npm install @trustification/exhort-javascript-api
+npm install @trustify-da/trustify-da-javascript-client
 ```
 
 ```javascript
-import exhort from '@trustification/exhort-javascript-api'
+import exhort from '@trustify-da/trustify-da-javascript-client'
 import fs from 'node:fs'
 
 // Get stack analysis in JSON format
@@ -65,14 +66,14 @@ let componentAnalysis = await exhort.componentAnalysis('/path/to/pom.xml')
 Use as ESM Module from Common-JS module
 
 ```shell
-npm install @trustification/exhort-javascript-api
+npm install @trustify-da/trustify-da-javascript-client
 ```
 
 ```javascript
 async function loadExhort()
 {
 // dynamic import is the only way to import ESM module into commonJS module
-  const { default: exhort } = await import('@trustification/exhort-javascript-api');
+  const { default: exhort } = await import('@trustify-da/trustify-da-javascript-client');
   return exhort
 }
 const runExhort = (manifestPath) => {
@@ -98,13 +99,13 @@ Use as CLI Script
 <summary>Click for help menu</summary>
 
 ```shell
-$ npx @trustification/exhort-javascript-api help
+$ npx @trustify-da/trustify-da-javascript-client help
 
-Usage: exhort-javascript-api {component|stack}
+Usage: trustify-da-javascript-client {component|stack}
 
 Commands:
-  exhort-javascript-api stack </path/to/manifest> [--html|--summary]               produce stack report for manifest path
-  exhort-javascript-api component <path/to/manifest> [--summary]   produce component report for a manifest type and content
+  trustify-da-javascript-client stack </path/to/manifest> [--html|--summary]               produce stack report for manifest path
+  trustify-da-javascript-client component <path/to/manifest> [--summary]   produce component report for a manifest type and content
 
 Options:
   --help  Show help                                                    [boolean]
@@ -113,16 +114,16 @@ Options:
 
 ```shell
 # get stack analysis in json format
-$ npx @trustification/exhort-javascript-api stack /path/to/pom.xml
+$ npx @trustify-da/trustify-da-javascript-client stack /path/to/pom.xml
 
 # get stack analysis in json format (summary only)
-$ npx @trustification/exhort-javascript-api stack /path/to/pom.xml --summary
+$ npx @trustify-da/trustify-da-javascript-client stack /path/to/pom.xml --summary
 
 # get stack analysis in html format format
-$ npx @trustification/exhort-javascript-api stack /path/to/pom.xml --html
+$ npx @trustify-da/trustify-da-javascript-client stack /path/to/pom.xml --html
 
 # get component analysis
-$ npx @trustification/exhort-javascript-api component /path/to/pom.xml
+$ npx @trustify-da/trustify-da-javascript-client component /path/to/pom.xml
 ```
 </li>
 
@@ -130,21 +131,21 @@ $ npx @trustification/exhort-javascript-api component /path/to/pom.xml
 Use as Global Binary
 
 ```shell
-npm install --global @trustification/exhort-javascript-api
+npm install --global @trustify-da/trustify-da-javascript-client
 ```
 
 ```shell
 # get stack analysis in json format
-$ exhort-javascript-api stack /path/to/pom.xml
+$ trustify-da-javascript-client stack /path/to/pom.xml
 
 # get stack analysis in json format (summary only)
-$ exhort-javascript-api stack /path/to/pom.xml --summary
+$ trustify-da-javascript-client stack /path/to/pom.xml --summary
 
 # get stack analysis in html format format
-$ exhort-javascript-api stack /path/to/pom.xml --html
+$ trustify-da-javascript-client stack /path/to/pom.xml --html
 
 # get component analysis
-$ exhort-javascript-api component /path/to/pom.xml
+$ trustify-da-javascript-client component /path/to/pom.xml
 ```
 </li>
 </ul>
@@ -206,7 +207,7 @@ Excluding a package from any analysis can be achieved by marking the package for
 
 <em>Golang</em> users can add in go.mod a comment with //exhortignore next to the package to be ignored, or to "piggyback" on existing comment ( e.g - //indirect) , for example:
 ```go
-module github.com/trustification/SaaSi/deployer
+module github.com/trustify-da/SaaSi/deployer
 
 go 1.19
 
@@ -295,7 +296,7 @@ for various customization.
 However, <em>ESM Module</em> users, can opt for customizing programmatically:
 
 ```javascript
-import exhort from '@trustification/exhort-javascript-api'
+import exhort from '@trustify-da/trustify-da-javascript-client'
 import fs from 'node:fs'
 
 let options = {
@@ -446,7 +447,7 @@ Two possible values for this setting:
 
 #### Golang Support
 
-By default, Golang dependency resolution follows the [Minimal Version Selection (MVS) Algorithm](https://go.dev/ref/mod#minimal-version-selection).  
+By default, Golang dependency resolution follows the [Minimal Version Selection (MVS) Algorithm](https://go.dev/ref/mod#minimal-version-selection).
 This means that when analyzing a project, only the module versions that would actually be included in the final executable are considered.
 
 For example, if your `go.mod` file declares two modules, `a` and `b`, and both depend on the same package `c` (same major version `v1`) but with different minor versions:
@@ -454,10 +455,10 @@ For example, if your `go.mod` file declares two modules, `a` and `b`, and both d
 - `namespace/c/v1@v1.1`
 - `namespace/c/v1@v1.2`
 
-Only one of these versions — the minimal version selected by MVS — will be included in the generated SBOM and analysis results.  
+Only one of these versions — the minimal version selected by MVS — will be included in the generated SBOM and analysis results.
 This mirrors the behavior of a real Go build, where only one minor version of a given major version can be present in the executable (since Go treats packages with the same name and major version as identical).
 
-The MVS-based resolution is **enabled by default**.  
+The MVS-based resolution is **enabled by default**.
 If you want to disable this behavior and instead include **all transitive module versions** (as listed in `go.mod` dependencies), set the system property or environment variable:
 
 ```bash
@@ -499,8 +500,8 @@ For some ecosystems we support passing additional CLI arguments to the underlyin
 
 
 <!-- Badge links -->
-[0]: https://img.shields.io/github/v/release/trustification/exhort-javascript-api?color=green&label=latest
-[1]: https://img.shields.io/github/v/release/trustification/exhort-javascript-api?color=yellow&include_prereleases&label=early-access
+[0]: https://img.shields.io/github/v/release/guacsec/trustify-da-javascript-client?color=green&label=latest
+[1]: https://img.shields.io/github/v/release/guacsec/trustify-da-javascript-client?color=yellow&include_prereleases&label=early-access
 
 ### Known Issues
 

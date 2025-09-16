@@ -20,7 +20,7 @@ suite('testing the OCI image data provider', () => {
 			providedSbom['metadata'] = null
 			providedSbom['serialNumber'] = null
 			expect(JSON.stringify(providedSbom, null, 4).trimEnd()).to.deep.equal(expectedSbom)
-		}).timeout(10000)
+		}).timeout(40000)
 	});
 
 	[

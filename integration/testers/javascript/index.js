@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import exhort from '@trustification/exhort-javascript-api'
+import exhort from '@trustify-da/trustify-da-javascript-client'
 import process from 'node:process'
 
 const [,, ...args] = process.argv

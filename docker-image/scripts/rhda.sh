@@ -6,7 +6,7 @@ output_file_path="$2"
 printf "Analyzing the stack. Please wait..\n\n"
 
 # Getting RHDA stack analysis report using Exhort Javascript CLI.
-report=$(exhort-javascript-api stack $manifest_file_path 2>error.log)
+report=$(trustify-da-javascript-client stack $manifest_file_path 2>error.log)
 
 exit_code=$?
 

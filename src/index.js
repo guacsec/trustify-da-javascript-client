@@ -12,11 +12,6 @@ export { ImageRef } from "./oci_image/images.js";
 
 export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken }
 
-export const exhortDevDefaultUrl = 'https://exhort.stage.devshift.net';
-
-/** @type {string} The default production URL for the Exhort backend. */
-export const exhortDefaultUrl = "https://rhda.rhcloud.com";
-
 /**
  * @typedef {{
  * EXHORT_DOCKER_PATH?: string | undefined,
@@ -86,8 +81,10 @@ function readAndPrintVersionFromPackageJson() {
 	}
 
 	let packageJson = JSON.parse(fs.readFileSync(path.join(dirName, "..", "package.json")).toString())
-	logOptionsAndEnvironmentsVariables("exhort-javascript-api analysis started, version: ", packageJson.version)
+	logOptionsAndEnvironmentsVariables("trustify-da-javascript-client analysis started, version: ", packageJson.version)
 }
+
+export const exhortDevUrl = 'https://exhort.stage.devshift.net';
 
 /**
  * This function is used to determine exhort theUrl backend according to the following logic:
@@ -98,26 +95,29 @@ function readAndPrintVersionFromPackageJson() {
  * 1. Environment Variable
  * 2. (key,value) from opts object
  * 3. Default False ( points to production URL )
- * @param {{}} [opts={}] - optional various options to override default EXHORT_DEV_MODE and DEV_EXHORT_BACKEND_URL.
+ * @param {{EXHORT_DEBUG?: string | undefined; EXHORT_BACKEND_URL?: string | undefined}} [opts={}]
  * @return {string} - The selected exhort backend
  * @private
  */
 function selectExhortBackend(opts = {}) {
-	let result
-	if (process.env["EXHORT_DEBUG"] === "true") {
-		let packageJson = readAndPrintVersionFromPackageJson();
+	if (getCustom("EXHORT_DEBUG", "false", opts) === "true") {
+		readAndPrintVersionFromPackageJson();
 	}
-	let exhortDevModeBundled = "false"
-	let exhortDevMode = getCustom("EXHORT_DEV_MODE", exhortDevModeBundled, opts)
-	if(exhortDevMode !== null && exhortDevMode.toString() === "true") {
-		result = getCustom('DEV_EXHORT_BACKEND_URL', exhortDevDefaultUrl, opts);
+
+	let url;
+	if (getCustom('EXHORT_DEV_MODE', 'false', opts) === 'true') {
+		url = getCustom('DEV_EXHORT_BACKEND_URL', exhortDevUrl, opts);
 	} else {
-		result = exhortDefaultUrl
+		url = getCustom('EXHORT_BACKEND_URL', undefined, opts);
 	}
 
-	logOptionsAndEnvironmentsVariables("Chosen exhort backend URL:", result)
+	if (!url) {
+		throw new Error(`EXHORT_BACKEND_URL is unset`)
+	}
 
-	return result;
+	logOptionsAndEnvironmentsVariables("Chosen exhort backend URL:", url)
+
+	return url;
 }
 
 /**
@@ -129,12 +129,6 @@ function selectExhortBackend(opts = {}) {
 export function testSelectExhortBackend(opts) {
 	return selectExhortBackend(opts)
 }
-
-/**
- * @type {string} The URL of the Exhort backend to send requests to.
- * @private
- */
-let theUrl
 
 /**
  * @overload
@@ -150,7 +144,7 @@ let theUrl
  * @param {string} manifest
  * @param {false} html
  * @param {Options} [opts={}]
- * @returns {Promise<import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>}
+ * @returns {Promise<import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>}
  * @throws {Error}
  */
 
@@ -160,12 +154,12 @@ let theUrl
  * @param {string} manifest - path for the manifest
  * @param {boolean} [html=false] - true will return a html string, false will return AnalysisReport object.
  * @param {Options} [opts={}] - optional various options to pass along the application
- * @returns {Promise<string|import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>}
+ * @returns {Promise<string|import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>}
  * @throws {Error} if manifest inaccessible, no matching provider, failed to get create content,
  * 		or backend request failed
  */
 async function stackAnalysis(manifest, html = false, opts = {}) {
-	theUrl = selectExhortBackend(opts)
+	const theUrl = selectExhortBackend(opts)
 	fs.accessSync(manifest, fs.constants.R_OK) // throws error if file unreadable
 	let provider = match(manifest, availableProviders) // throws error if no matching provider
 	return await analysis.requestStack(provider, manifest, theUrl, html, opts) // throws error request sending failed
@@ -175,11 +169,11 @@ async function stackAnalysis(manifest, html = false, opts = {}) {
  * Get component analysis report for a manifest content.
  * @param {string} manifest - path to the manifest
  * @param {Options} [opts={}] - optional various options to pass along the application
- * @returns {Promise<import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>}
+ * @returns {Promise<import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>}
  * @throws {Error} if no matching provider, failed to get create content, or backend request failed
  */
 async function componentAnalysis(manifest, opts = {}) {
-	theUrl = selectExhortBackend(opts)
+	const theUrl = selectExhortBackend(opts)
 	fs.accessSync(manifest, fs.constants.R_OK)
 	opts["manifest-type"] = path.basename(manifest)
 	let provider = match(manifest, availableProviders) // throws error if no matching provider
@@ -200,7 +194,7 @@ async function componentAnalysis(manifest, opts = {}) {
  * @param {Array<string>} imageRefs
  * @param {false} html
  * @param {Options} [opts={}]
- * @returns {Promise<Object.<string, import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>>}
+ * @returns {Promise<Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>>}
  * @throws {Error}
  */
 
@@ -210,12 +204,12 @@ async function componentAnalysis(manifest, opts = {}) {
  * @param {Array<string>} imageRefs - OCI image references
  * @param {boolean} [html=false] - true will return a html string, false will return AnalysisReport
  * @param {Options} [opts={}] - optional various options to pass along the application
- * @returns {Promise<string|Object.<string, import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>>}
+ * @returns {Promise<string|Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>>}
  * @throws {Error} if manifest inaccessible, no matching provider, failed to get create content,
  * 		or backend request failed
  */
 async function imageAnalysis(imageRefs, html = false, opts = {}) {
-	theUrl = selectExhortBackend(opts)
+	const theUrl = selectExhortBackend(opts)
 	return await analysis.requestImages(imageRefs, theUrl, html, opts)
 }
 
@@ -226,6 +220,6 @@ async function imageAnalysis(imageRefs, html = false, opts = {}) {
  * @throws {Error} if the backend request failed.
  */
 async function validateToken(opts = {}) {
-	theUrl = selectExhortBackend(opts)
+	const theUrl = selectExhortBackend(opts)
 	return await analysis.validateToken(theUrl, opts) // throws error request sending failed
 }

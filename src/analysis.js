@@ -36,7 +36,7 @@ function addProxyAgent(options, opts) {
  * @param {string} url - the backend url to send the request to
  * @param {boolean} [html=false] - true will return 'text/html', false will return 'application/json'
  * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
- * @returns {Promise<string|import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>}
+ * @returns {Promise<string|import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>}
  */
 async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	opts["source-manifest"] = Buffer.from(fs.readFileSync(manifest).toString()).toString('base64')
@@ -100,7 +100,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
  * @param {string} manifest - path for the manifest
  * @param {string} url - the backend url to send the request to
  * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
- * @returns {Promise<import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>}
+ * @returns {Promise<import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>}
  */
 async function requestComponent(provider, manifest, url, opts = {}) {
 	opts["source-manifest"] = Buffer.from(fs.readFileSync(manifest).toString()).toString('base64')
@@ -155,7 +155,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  * @param {Array<string>} imageRefs
  * @param {string} url
  * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
- * @returns {Promise<string|Object.<string, import('@trustification/exhort-api-spec/model/v4/AnalysisReport').AnalysisReport>>}
+ * @returns {Promise<string|Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>>}
  */
 async function requestImages(imageRefs, url, html = false, opts = {}) {
 	const imageSboms = {}
