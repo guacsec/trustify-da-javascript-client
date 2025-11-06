@@ -32,8 +32,6 @@
 		"lint": "eslint src test --ext js",
 		"lint:fix": "eslint src test --ext js --fix",
 		"test": "c8 npm run tests",
-		"localtest": "EXHORT_PIP3_PATH=/home/zgrinber/python3.9/bin/pip3 EXHORT_PYTHON3_PATH=/home/zgrinber/python3.9/bin/python3 c8 npm run tests",
-		"postlocaltest": " git status | grep src/providers/ | grep rewire | xargs -i git clean -f {}",
 		"tests": "mocha --config .mocharc.json --grep \"Integration Tests|.*analysis module.*\" --invert",
 		"tests:rep": "mocha --reporter-option maxDiffSize=0 --reporter json > unit-tests-result.json",
 		"integration-tests": "mocha --grep \"Integration Tests\"",

@@ -20,7 +20,7 @@
 
 ### Good to know
 
-* You can override the default backend url by setting another one in the _EXHORT_URL_ environment variable.
+* You can override the default backend url by setting another one in the _TRUSTIFY_DA_URL_ environment variable.
 
 ### OpenAPI Specifications
 
@@ -100,10 +100,10 @@ Run integration tests from the project's root:
 ```
 
 Integration tests are executed against a mocked _Backend_ server.<br/>
-If you need to run against the actual _Backend_ server, use the _EXHORT_ITS_USE_REAL_API_ environment variable:
+If you need to run against the actual _Backend_ server, use the _TRUSTIFY_DA_ITS_USE_REAL_API_ environment variable:
 
 ```shell
-(cd integration/ && EXHORT_ITS_USE_REAL_API=true bash ./run_its.sh)
+(cd integration/ && TRUSTIFY_DA_ITS_USE_REAL_API=true bash ./run_its.sh)
 ```
 
 The mocked server implementation is [integration/server/mock_server.js](integration/server/mock_server.js). See the

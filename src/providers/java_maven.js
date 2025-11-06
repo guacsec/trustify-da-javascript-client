@@ -75,7 +75,7 @@ export default class Java_maven extends Base_java {
 	#createSbomStackAnalysis(manifest, opts = {}) {
 		const manifestDir = path.dirname(manifest)
 		const mvn = this.selectToolBinary(manifest, opts)
-		const mvnArgs = JSON.parse(getCustom('EXHORT_MVN_ARGS', '[]', opts));
+		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
 		if (!Array.isArray(mvnArgs)) {
 			throw new Error(`configured maven args is not an array, is a ${typeof mvnArgs}`)
 		}
@@ -116,7 +116,7 @@ export default class Java_maven extends Base_java {
 		}
 		// read dependency tree from temp file
 		let content = fs.readFileSync(tmpDepTree)
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.error("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content.toString())
 		}
 		let sbom = this.createSbomFileFromTextFormat(content.toString(), ignoredDeps, opts);
@@ -151,7 +151,7 @@ export default class Java_maven extends Base_java {
 	 */
 	#getSbomForComponentAnalysis(manifestPath, opts = {}) {
 		const mvn = this.selectToolBinary(manifestPath, opts)
-		const mvnArgs = JSON.parse(getCustom('EXHORT_MVN_ARGS', '[]', opts));
+		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
 		if (!Array.isArray(mvnArgs)) {
 			throw new Error(`configured maven args is not an array, is a ${typeof mvnArgs}`)
 		}

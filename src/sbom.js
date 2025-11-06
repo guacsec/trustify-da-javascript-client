@@ -5,7 +5,7 @@ export default class Sbom {
 	#startTime
 	#endTime
 	constructor() {
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			this.#startTime = new Date()
 			console.log("Starting time to create sbom = " + this.#startTime)
 		}
@@ -57,7 +57,7 @@ export default class Sbom {
 	 * @return String sbom json in a string format
 	 */
 	getAsJsonString(opts = {}){
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			this.#endTime = new Date()
 			console.log("Ending time to create sbom = " + this.#endTime)
 			let time = (this.#endTime - this.#startTime) / 1000

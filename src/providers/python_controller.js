@@ -6,7 +6,7 @@ import {environmentVariableIsPopulated,getCustom, invokeCommand} from "../tools.
 
 function getPipFreezeOutput() {
 	try {
-		return environmentVariableIsPopulated("EXHORT_PIP_FREEZE")  ? new Buffer.from(process.env["EXHORT_PIP_FREEZE"], 'base64').toString('ascii') : invokeCommand(this.pathToPipBin, ['freeze', '--all']).toString();
+		return environmentVariableIsPopulated("TRUSTIFY_DA_PIP_FREEZE")  ? new Buffer.from(process.env["TRUSTIFY_DA_PIP_FREEZE"], 'base64').toString('ascii') : invokeCommand(this.pathToPipBin, ['freeze', '--all']).toString();
 	} catch (error) {
 		throw new Error('Failed invoking \'pip freeze\' to list all installed packages in environment', {cause: error})
 	}
@@ -14,7 +14,7 @@ function getPipFreezeOutput() {
 
 function getPipShowOutput(depNames) {
 	try {
-		return environmentVariableIsPopulated("EXHORT_PIP_SHOW")  ? new Buffer.from(process.env["EXHORT_PIP_SHOW"], 'base64').toString('ascii')  : invokeCommand(this.pathToPipBin, ['show', ...depNames]).toString();
+		return environmentVariableIsPopulated("TRUSTIFY_DA_PIP_SHOW")  ? new Buffer.from(process.env["TRUSTIFY_DA_PIP_SHOW"], 'base64').toString('ascii')  : invokeCommand(this.pathToPipBin, ['show', ...depNames]).toString();
 	} catch (error) {
 		throw new Error('fail invoking \'pip show\' to fetch metadata for all installed packages in environment', {cause: error})
 	}
@@ -102,12 +102,12 @@ export default class Python_controller {
 	getDependencies(includeTransitive) {
 		let startingTime
 		let endingTime
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			startingTime = new Date()
 			console.log("Starting time to get requirements.txt dependency tree = " + startingTime)
 		}
 		if(!this.realEnvironment) {
-			let installBestEfforts = getCustom("EXHORT_PYTHON_INSTALL_BEST_EFFORTS","false",this.options);
+			let installBestEfforts = getCustom("TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS","false",this.options);
 			if(installBestEfforts === "false") {
 				try {
 					invokeCommand(this.pathToPipBin, ['install', '-r', this.pathToRequirements])
@@ -121,14 +121,14 @@ export default class Python_controller {
 			else {
 				let matchManifestVersions = getCustom("MATCH_MANIFEST_VERSIONS","true",this.options);
 				if(matchManifestVersions === "true") {
-					throw new Error("Conflicting settings, EXHORT_PYTHON_INSTALL_BEST_EFFORTS=true can only work with MATCH_MANIFEST_VERSIONS=false")
+					throw new Error("Conflicting settings, TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS=true can only work with MATCH_MANIFEST_VERSIONS=false")
 				}
 				this.#installingRequirementsOneByOne()
 			}
 		}
 		let dependencies = this.#getDependenciesImpl(includeTransitive)
 		this.#cleanEnvironment()
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			endingTime = new Date()
 			console.log("Ending time to get requirements.txt dependency tree = " + endingTime)
 			let time = ( endingTime - startingTime ) / 1000
@@ -164,7 +164,7 @@ export default class Python_controller {
 
 	#getDependenciesImpl(includeTransitive) {
 		let dependencies = new Array()
-		let usePipDepTree = getCustom("EXHORT_PIP_USE_DEP_TREE","false",this.options);
+		let usePipDepTree = getCustom("TRUSTIFY_DA_PIP_USE_DEP_TREE","false",this.options);
 		let freezeOutput
 		let lines
 		let depNames
@@ -336,7 +336,7 @@ function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDep
 	}
 	let record = cachedEnvironmentDeps[dependencyName.toLowerCase()]
 	if(record == null) {
-		throw new Error(`Package ${dependencyName} is not installed in your python environment, either install it (better to install requirements.txt altogether) or set the setting EXHORT_PYTHON_VIRTUAL_ENV=true to automatically install it in virtual environment (please note that this may slow down the analysis)`)
+		throw new Error(`Package ${dependencyName} is not installed in your python environment, either install it (better to install requirements.txt altogether) or set the setting TRUSTIFY_DA_PYTHON_VIRTUAL_ENV=true to automatically install it in virtual environment (please note that this may slow down the analysis)`)
 	}
 	let depName
 	let version;

@@ -17,8 +17,8 @@ import Base_java, { ecosystem_gradle } from "./base_java.js";
 const ROOT_PROJECT_KEY_NAME = "root-project";
 
 
-const EXHORT_IGNORE_REGEX_LINE = /.*\s?exhortignore\s*$/g
-const EXHORT_IGNORE_REGEX = /\/\/\s?exhortignore/
+const TRUSTIFY_DA_IGNORE_REGEX_LINE = /.*\s?exhortignore\s*$/g
+const TRUSTIFY_DA_IGNORE_REGEX = /\/\/\s?exhortignore/
 
 /**
  * Check if the dependency marked for exclusion has libs notation , so if it's true the rest of coordinates( GAV) should be fetched from TOML file.
@@ -215,7 +215,7 @@ export default class Java_gradle extends Base_java {
 		let content = this.#getDependencies(manifest, opts)
 		let properties = this.#extractProperties(manifest, opts)
 		// read dependency tree from temp file
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.log("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content)
 		}
 		let sbom = this.#buildSbom(content, properties, manifest, opts)
@@ -381,9 +381,9 @@ export default class Java_gradle extends Base_java {
 	#getIgnoredDeps(manifestPath) {
 		let buildGradleLines = fs.readFileSync(manifestPath).toString().split(EOL)
 		let ignored =
-			buildGradleLines.filter(line => line && line.match(EXHORT_IGNORE_REGEX_LINE))
+			buildGradleLines.filter(line => line && line.match(TRUSTIFY_DA_IGNORE_REGEX_LINE))
 				.map(line => line.indexOf("/*") === -1 ? line : line.substring(0, line.indexOf("/*")))
-				.map(line => line.trim().substring(0, line.trim().search(EXHORT_IGNORE_REGEX)))
+				.map(line => line.trim().substring(0, line.trim().search(TRUSTIFY_DA_IGNORE_REGEX)))
 
 		let depsToIgnore = new Array
 		ignored.forEach(depToBeIgnored => {

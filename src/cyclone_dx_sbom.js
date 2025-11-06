@@ -159,7 +159,7 @@ export default class CycloneDxSbom {
 			delete this.sbomObject.metadata.properties
 		}
 
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.log("SBOM Generated for manifest, to be sent to exhort service:" + EOL + JSON.stringify(this.sbomObject, null, 4))
 		}
 		return JSON.stringify(this.sbomObject)

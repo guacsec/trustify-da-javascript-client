@@ -22,7 +22,7 @@ if ('component' === args[0]) {
 if ('validateToken' === args[0]) {
 	// args[1] - the token passed
 	let tokens = {
-		"EXHORT_SNYK_TOKEN" : args[1]
+		"TRUSTIFY_DA_SNYK_TOKEN" : args[1]
 	}
 	let res = await exhort.validateToken(tokens)
 	console.log(res)

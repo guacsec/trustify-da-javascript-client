@@ -14,30 +14,30 @@ export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken 
 
 /**
  * @typedef {{
- * EXHORT_DOCKER_PATH?: string | undefined,
- * EXHORT_GO_MVS_LOGIC_ENABLED?: string | undefined,
- * EXHORT_GO_PATH?: string | undefined,
- * EXHORT_GRADLE_PATH?: string | undefined,
- * EXHORT_IMAGE_PLATFORM?: string | undefined,
- * EXHORT_MVN_PATH?: string | undefined,
- * EXHORT_PIP_PATH?: string | undefined,
- * EXHORT_PIP_USE_DEP_TREE?: string | undefined,
- * EXHORT_PIP3_PATH?: string | undefined,
- * EXHORT_PNPM_PATH?: string | undefined,
- * EXHORT_PODMAN_PATH?: string | undefined,
- * EXHORT_PREFER_GRADLEW?: string | undefined,
- * EXHORT_PREFER_MVNW?: string | undefined,
- * EXHORT_PROXY_URL?: string | undefined,
- * EXHORT_PYTHON_INSTALL_BEST_EFFORTS?: string | undefined,
- * EXHORT_PYTHON_PATH?: string | undefined,
- * EXHORT_PYTHON_VIRTUAL_ENV?: string | undefined,
- * EXHORT_PYTHON3_PATH?: string | undefined,
- * EXHORT_RECOMMENDATIONS_ENABLED?: string | undefined,
- * EXHORT_SKOPEO_CONFIG_PATH?: string | undefined,
- * EXHORT_SKOPEO_PATH?: string | undefined,
- * EXHORT_SYFT_CONFIG_PATH?: string | undefined,
- * EXHORT_SYFT_PATH?: string | undefined,
- * EXHORT_YARN_PATH?: string | undefined,
+ * TRUSTIFY_DA_DOCKER_PATH?: string | undefined,
+ * TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED?: string | undefined,
+ * TRUSTIFY_DA_GO_PATH?: string | undefined,
+ * TRUSTIFY_DA_GRADLE_PATH?: string | undefined,
+ * TRUSTIFY_DA_IMAGE_PLATFORM?: string | undefined,
+ * TRUSTIFY_DA_MVN_PATH?: string | undefined,
+ * TRUSTIFY_DA_PIP_PATH?: string | undefined,
+ * TRUSTIFY_DA_PIP_USE_DEP_TREE?: string | undefined,
+ * TRUSTIFY_DA_PIP3_PATH?: string | undefined,
+ * TRUSTIFY_DA_PNPM_PATH?: string | undefined,
+ * TRUSTIFY_DA_PODMAN_PATH?: string | undefined,
+ * TRUSTIFY_DA_PREFER_GRADLEW?: string | undefined,
+ * TRUSTIFY_DA_PREFER_MVNW?: string | undefined,
+ * TRUSTIFY_DA_PROXY_URL?: string | undefined,
+ * TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS?: string | undefined,
+ * TRUSTIFY_DA_PYTHON_PATH?: string | undefined,
+ * TRUSTIFY_DA_PYTHON_VIRTUAL_ENV?: string | undefined,
+ * TRUSTIFY_DA_PYTHON3_PATH?: string | undefined,
+ * TRUSTIFY_DA_RECOMMENDATIONS_ENABLED?: string | undefined,
+ * TRUSTIFY_DA_SKOPEO_CONFIG_PATH?: string | undefined,
+ * TRUSTIFY_DA_SKOPEO_PATH?: string | undefined,
+ * TRUSTIFY_DA_SYFT_CONFIG_PATH?: string | undefined,
+ * TRUSTIFY_DA_SYFT_PATH?: string | undefined,
+ * TRUSTIFY_DA_YARN_PATH?: string | undefined,
  * MATCH_MANIFEST_VERSIONS?: string | undefined,
  * RHDA_SOURCE?: string | undefined,
  * RHDA_TOKEN?: string | undefined,
@@ -48,13 +48,13 @@ export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken 
 
 
 /**
- * Logs messages to the console if the EXHORT_DEBUG environment variable is set to "true".
+ * Logs messages to the console if the TRUSTIFY_DA_DEBUG environment variable is set to "true".
  * @param {string} alongsideText - The text to prepend to the log message.
  * @param {any} valueToBePrinted - The value to log.
  * @private
  */
 function logOptionsAndEnvironmentsVariables(alongsideText,valueToBePrinted) {
-	if (process.env["EXHORT_DEBUG"] === "true") {
+	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log(`${alongsideText}: ${valueToBePrinted} ${EOL}`)
 	}
 }
@@ -88,31 +88,31 @@ export const exhortDevUrl = 'https://exhort.stage.devshift.net';
 
 /**
  * This function is used to determine exhort theUrl backend according to the following logic:
- * If EXHORT_DEV_MODE = true, then take the value of the EXHORT BACKEND URL of dev/staging environment in such a way:
+ * If TRUSTIFY_DA_DEV_MODE = true, then take the value of the EXHORT BACKEND URL of dev/staging environment in such a way:
  * take it as environment variable if exists, otherwise, take it from opts object if exists, otherwise, use the hardcoded default of DEV environment.
- * If EXHORT_DEV_MODE = false , then select the production theUrl of EXHORT Backend, which is hardcoded.
- * EXHORT_DEV_MODE evaluated in the following order and selected when it finds it first:
+ * If TRUSTIFY_DA_DEV_MODE = false , then select the production theUrl of EXHORT Backend, which is hardcoded.
+ * TRUSTIFY_DA_DEV_MODE evaluated in the following order and selected when it finds it first:
  * 1. Environment Variable
  * 2. (key,value) from opts object
  * 3. Default False ( points to production URL )
- * @param {{EXHORT_DEBUG?: string | undefined; EXHORT_BACKEND_URL?: string | undefined}} [opts={}]
+ * @param {{TRUSTIFY_DA_DEBUG?: string | undefined; TRUSTIFY_DA_BACKEND_URL?: string | undefined}} [opts={}]
  * @return {string} - The selected exhort backend
  * @private
  */
 function selectExhortBackend(opts = {}) {
-	if (getCustom("EXHORT_DEBUG", "false", opts) === "true") {
+	if (getCustom("TRUSTIFY_DA_DEBUG", "false", opts) === "true") {
 		readAndPrintVersionFromPackageJson();
 	}
 
 	let url;
-	if (getCustom('EXHORT_DEV_MODE', 'false', opts) === 'true') {
-		url = getCustom('DEV_EXHORT_BACKEND_URL', exhortDevUrl, opts);
+	if (getCustom('TRUSTIFY_DA_DEV_MODE', 'false', opts) === 'true') {
+		url = getCustom('DEV_TRUSTIFY_DA_BACKEND_URL', exhortDevUrl, opts);
 	} else {
-		url = getCustom('EXHORT_BACKEND_URL', undefined, opts);
+		url = getCustom('TRUSTIFY_DA_BACKEND_URL', undefined, opts);
 	}
 
 	if (!url) {
-		throw new Error(`EXHORT_BACKEND_URL is unset`)
+		throw new Error(`TRUSTIFY_DA_BACKEND_URL is unset`)
 	}
 
 	logOptionsAndEnvironmentsVariables("Chosen exhort backend URL:", url)

@@ -174,9 +174,9 @@ function getPythonPipBinaries(binaries,opts) {
  */
 function handlePythonEnvironment(binaries, opts) {
 	let createVirtualPythonEnv
-	if (!environmentVariableIsPopulated("EXHORT_PIP_SHOW") && !environmentVariableIsPopulated("EXHORT_PIP_FREEZE")) {
+	if (!environmentVariableIsPopulated("TRUSTIFY_DA_PIP_SHOW") && !environmentVariableIsPopulated("TRUSTIFY_DA_PIP_FREEZE")) {
 		getPythonPipBinaries(binaries, opts)
-		createVirtualPythonEnv = getCustom("EXHORT_PYTHON_VIRTUAL_ENV", "false", opts);
+		createVirtualPythonEnv = getCustom("TRUSTIFY_DA_PYTHON_VIRTUAL_ENV", "false", opts);
 	}
 	// bypass invoking python and pip, as we get all information needed to build the dependency tree from these Environment variables.
 	else {

@@ -91,8 +91,8 @@ jobs:
 
       - name: Run unit tests
         env:
-          EXHORT_PYTHON3_PATH: "${{steps.python-location.outputs.python-bin-location}}/python3"
-          EXHORT_PIP3_PATH: "${{steps.python-location.outputs.python-bin-location}}/pip3"
+          TRUSTIFY_DA_PYTHON3_PATH: "${{steps.python-location.outputs.python-bin-location}}/python3"
+          TRUSTIFY_DA_PIP3_PATH: "${{steps.python-location.outputs.python-bin-location}}/pip3"
         run: npm run test
 
       - name: Compile project
@@ -105,7 +105,7 @@ jobs:
         working-directory: integration
         run: bash ./run_its.sh
         env:
-          EXHORT_DEV_MODE: 'true'
+          TRUSTIFY_DA_DEV_MODE: 'true'
 
       - name: Upload coverage reports
         if: ${{ matrix.node == env.MAIN_NODE_VER }}

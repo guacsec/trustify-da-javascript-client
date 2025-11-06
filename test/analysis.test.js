@@ -121,7 +121,7 @@ suite('testing the analysis module for sending api requests', () => {
 			}),
 			async () => {
 				let options = {
-					'EXHORT_SNYK_TOKEN': 'good-dummy-token'
+					'TRUSTIFY_DA_SNYK_TOKEN': 'good-dummy-token'
 				}
 				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
@@ -136,7 +136,7 @@ suite('testing the analysis module for sending api requests', () => {
 			}),
 			async () => {
 				let options = {
-					'EXHORT_SNYK_TOKEN': 'bad-dummy-token'
+					'TRUSTIFY_DA_SNYK_TOKEN': 'bad-dummy-token'
 				}
 				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
@@ -172,7 +172,7 @@ suite('testing the analysis module for sending api requests', () => {
 			isSupported: () => {} // not required for this test
 		};
 
-		afterEach(() => delete process.env['EXHORT_SNYK_TOKEN'])
+		afterEach(() => delete process.env['TRUSTIFY_DA_SNYK_TOKEN'])
 
 		test('when the relevant token environment variables are set, verify corresponding headers are included', interceptAndRun(
 			// interception route, will return ok response if found the expected token
@@ -183,7 +183,7 @@ suite('testing the analysis module for sending api requests', () => {
 				return res(ctx.status(400))
 			}),
 			async () => {
-				process.env['EXHORT_SNYK_TOKEN'] = 'dummy-snyk-token'
+				process.env['TRUSTIFY_DA_SNYK_TOKEN'] = 'dummy-snyk-token'
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ok: 'ok'})
 			}
@@ -215,7 +215,7 @@ suite('testing the analysis module for sending api requests', () => {
 		};
 
 		afterEach(() => {
-			delete process.env['EXHORT_PROXY_URL']
+			delete process.env['TRUSTIFY_DA_PROXY_URL']
 		})
 
 		test('when HTTP proxy is configured, verify agent is set correctly', interceptAndRun(
@@ -226,7 +226,7 @@ suite('testing the analysis module for sending api requests', () => {
 			async () => {
 				const httpProxyUrl = 'http://proxy.example.com:8080'
 				const options = {
-					'EXHORT_PROXY_URL': httpProxyUrl
+					'TRUSTIFY_DA_PROXY_URL': httpProxyUrl
 				}
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, false, options)
 				expect(res).to.deep.equal({ok: 'ok'})
@@ -241,7 +241,7 @@ suite('testing the analysis module for sending api requests', () => {
 			async () => {
 				const httpsProxyUrl = 'https://proxy.example.com:8080'
 				const options = {
-					'EXHORT_PROXY_URL': httpsProxyUrl
+					'TRUSTIFY_DA_PROXY_URL': httpsProxyUrl
 				}
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, false, options)
 				expect(res).to.deep.equal({ok: 'ok'})
@@ -254,7 +254,7 @@ suite('testing the analysis module for sending api requests', () => {
 				return res(ctx.json({ok: 'ok'}))
 			}),
 			async () => {
-				process.env['EXHORT_PROXY_URL'] = 'http://proxy.example.com:8080'
+				process.env['TRUSTIFY_DA_PROXY_URL'] = 'http://proxy.example.com:8080'
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ok: 'ok'})
 			}

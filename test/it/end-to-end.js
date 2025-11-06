@@ -46,11 +46,11 @@ suite('Integration Tests', () => {
 	].forEach(packageManager => {
 		test(`Stack Analysis json for ${packageManager}`, async () => {
 			if(packageManager === "pip") {
-				process.env["EXHORT_PYTHON_VIRTUAL_ENV"] = "true"
+				process.env["TRUSTIFY_DA_PYTHON_VIRTUAL_ENV"] = "true"
 			} else {
-				process.env["EXHORT_PYTHON_VIRTUAL_ENV"] = ""
+				process.env["TRUSTIFY_DA_PYTHON_VIRTUAL_ENV"] = ""
 			}
-			process.env["EXHORT_DEV_MODE"] = "true"
+			process.env["TRUSTIFY_DA_DEV_MODE"] = "true"
 			let manifestName = packageManagersDict[packageManager]
 			let pomPath = `test/it/test_manifests/${packageManager}/${manifestName}`
 			let providedDataForStack = await index.stackAnalysis(pomPath)
@@ -70,9 +70,9 @@ suite('Integration Tests', () => {
 			let pomPath = `test/it/test_manifests/${packageManager}/${manifestName}`
 			let html = await index.stackAnalysis(pomPath,true)
 			if(packageManager === "pip") {
-				process.env["EXHORT_PYTHON_VIRTUAL_ENV"] = "true"
+				process.env["TRUSTIFY_DA_PYTHON_VIRTUAL_ENV"] = "true"
 			} else {
-				process.env["EXHORT_PYTHON_VIRTUAL_ENV"] = ""
+				process.env["TRUSTIFY_DA_PYTHON_VIRTUAL_ENV"] = ""
 			}
 			let reportParsedFromHtml
 			let parsedSummaryFromHtml
@@ -111,4 +111,4 @@ suite('Integration Tests', () => {
 
 
 	});
-}).beforeAll(() => process.env["EXHORT_DEV_MODE"] = "true");
+}).beforeAll(() => process.env["TRUSTIFY_DA_DEV_MODE"] = "true");

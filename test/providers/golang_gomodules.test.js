@@ -68,7 +68,7 @@ suite('testing the golang-go-modules data provider', () => {
 			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/expected_sbom_stack_analysis.json`,).toString()
 			// expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
 			// invoke sut stack analysis for scenario manifest
-			let providedDataForStack = golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`,{"EXHORT_GO_MVS_LOGIC_ENABLED" : "true"})
+			let providedDataForStack = golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`,{"TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED" : "true"})
 			// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
 
 			// providedDataForStack.content = providedDataForStack.content.replaceAll("\"timestamp\":\"[a-zA-Z0-9\\-\\:]+\"","")

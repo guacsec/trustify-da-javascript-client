@@ -48,7 +48,7 @@ const validateToken = {
 		let opts={}
 		if(args['tokenValue'] !== undefined && args['tokenValue'].trim() !=="" ) {
 			let tokenValue = args['tokenValue'].trim()
-			opts[`EXHORT_${tokenProvider}_TOKEN`] = tokenValue
+			opts[`TRUSTIFY_DA_${tokenProvider}_TOKEN`] = tokenValue
 		}
 		let res = await exhort.validateToken(opts)
 		console.log(res)

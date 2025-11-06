@@ -3,7 +3,7 @@ import { EOL } from "os";
 
 import { PackageURL } from "packageurl-js";
 
-export const RegexNotToBeLogged = /EXHORT_.*_TOKEN|ex-.*-token/
+export const RegexNotToBeLogged = /TRUSTIFY_DA_.*_TOKEN|ex-.*-token/
 /**
  *
  * @param {string} key to log its value from environment variables and from opts, if it exists
@@ -35,7 +35,7 @@ export function logValueFromObjects(key,opts, defValue) {
  * 		default supplied
  */
 export function getCustom(key, def = null, opts = {}) {
-	if (process.env["EXHORT_DEBUG"] === "true" && !key.match(RegexNotToBeLogged)) {
+	if (process.env["TRUSTIFY_DA_DEBUG"] === "true" && !key.match(RegexNotToBeLogged)) {
 		logValueFromObjects(key, opts, def)
 	}
 	return key in process.env ? process.env[key] : key in opts && typeof opts[key] === 'string' ? opts[key] : def
@@ -43,7 +43,7 @@ export function getCustom(key, def = null, opts = {}) {
 
 /**
  * Utility function for looking up custom variable for a binary path.
- * Will look in the environment variables (1) or in opts (2) for a key with EXHORT_x_PATH, x is an
+ * Will look in the environment variables (1) or in opts (2) for a key with TRUSTIFY_DA_x_PATH, x is an
  * uppercase version of passed name to look for. The name will also be returned if nothing else was
  * found.
  * @param name the binary name to look for, will be returned as value in nothing else found
@@ -52,7 +52,7 @@ export function getCustom(key, def = null, opts = {}) {
  * 		original name supplied
  */
 export function getCustomPath(name, opts = {}) {
-	return getCustom(`EXHORT_${name.toUpperCase()}_PATH`, name, opts)
+	return getCustom(`TRUSTIFY_DA_${name.toUpperCase()}_PATH`, name, opts)
 }
 
 /**
@@ -63,7 +63,7 @@ export function getCustomPath(name, opts = {}) {
  * @returns {boolean} whether to prefer the wrapper if exists or not
  */
 export function getWrapperPreference(name, opts = {}) {
-	return getCustom(`EXHORT_PREFER_${name.toUpperCase()}W`, 'true', opts) === 'true'
+	return getCustom(`TRUSTIFY_DA_PREFER_${name.toUpperCase()}W`, 'true', opts) === 'true'
 }
 
 export function environmentVariableIsPopulated(envVariableName) {

@@ -22,7 +22,7 @@ const rhdaPackageManagerHeader = "rhda-pkg-manager"
  * @returns {RequestInit} The fetch options with proxy agent if applicable
  */
 function addProxyAgent(options, opts) {
-	const proxyUrl = getCustom('EXHORT_PROXY_URL', null, opts);
+	const proxyUrl = getCustom('TRUSTIFY_DA_PROXY_URL', null, opts);
 	if (proxyUrl) {
 		options.agent = new HttpsProxyAgent(proxyUrl);
 	}
@@ -46,7 +46,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	opts[rhdaOperationTypeHeader.toUpperCase().replaceAll("-", "_")] = "stack-analysis"
 	let startTime = new Date()
 	let endTime
-	if (process.env["EXHORT_DEBUG"] === "true") {
+	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log("Starting time of sending stack analysis request to exhort server= " + startTime)
 	}
 	opts[rhdaPackageManagerHeader.toUpperCase().replaceAll("-", "_")] = provided.ecosystem
@@ -62,7 +62,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v4/analysis`);
-	if (opts['EXHORT_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -74,7 +74,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 		} else {
 			result = await resp.text()
 		}
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			let exRequestId = resp.headers.get("ex-request-id");
 			if (exRequestId) {
 				console.log("Unique Identifier associated with this request - ex-request-id=" + exRequestId)
@@ -108,7 +108,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	let provided = provider.provideComponent(manifest, opts) // throws error if content providing failed
 	opts["source-manifest"] = ""
 	opts[rhdaOperationTypeHeader.toUpperCase().replaceAll("-", "_")] = "component-analysis"
-	if (process.env["EXHORT_DEBUG"] === "true") {
+	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log("Starting time of sending component analysis request to exhort server= " + new Date())
 	}
 	opts[rhdaPackageManagerHeader.toUpperCase().replaceAll("-", "_")] = provided.ecosystem
@@ -124,7 +124,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v4/analysis`);
-	if (opts['EXHORT_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -132,7 +132,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	let result
 	if (resp.status === 200) {
 		result = await resp.json()
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			let exRequestId = resp.headers.get("ex-request-id");
 			if (exRequestId) {
 				console.log("Unique Identifier associated with this request - ex-request-id=" + exRequestId)
@@ -165,7 +165,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 	}
 
 	const finalUrl = new URL(`${url}/api/v4/batch-analysis`);
-	if (opts['EXHORT_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -186,7 +186,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 		} else {
 			result = await resp.text()
 		}
-		if (process.env["EXHORT_DEBUG"] === "true") {
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			let exRequestId = resp.headers.get("ex-request-id");
 			if (exRequestId) {
 				console.log("Unique Identifier associated with this request - ex-request-id=" + exRequestId)
@@ -216,7 +216,7 @@ async function validateToken(url, opts = {}) {
 	}, opts);
 
 	let resp = await fetch(`${url}/api/v4/token`, fetchOptions)
-	if (process.env["EXHORT_DEBUG"] === "true") {
+	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		let exRequestId = resp.headers.get("ex-request-id");
 		if (exRequestId) {
 			console.log("Unique Identifier associated with this request - ex-request-id=" + exRequestId)
@@ -248,11 +248,11 @@ function getTokenHeaders(opts = {}) {
 	let supportedTokens = ['snyk', 'oss-index']
 	let headers = {}
 	supportedTokens.forEach(vendor => {
-		let token = getCustom(`EXHORT_${vendor.replace("-", "_").toUpperCase()}_TOKEN`, null, opts);
+		let token = getCustom(`TRUSTIFY_DA_${vendor.replace("-", "_").toUpperCase()}_TOKEN`, null, opts);
 		if (token) {
 			headers[`ex-${vendor}-token`] = token
 		}
-		let user = getCustom(`EXHORT_${vendor.replace("-", "_").toUpperCase()}_USER`, null, opts);
+		let user = getCustom(`TRUSTIFY_DA_${vendor.replace("-", "_").toUpperCase()}_USER`, null, opts);
 		if (user) {
 			headers[`ex-${vendor}-user`] = user
 		}
@@ -263,7 +263,7 @@ function getTokenHeaders(opts = {}) {
 	setRhdaHeader(rhdaPackageManagerHeader, headers, opts)
 	setRhdaHeader(rhdaTelemetryId, headers, opts);
 
-	if (process.env["EXHORT_DEBUG"] === "true") {
+	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log("Headers Values to be sent to exhort:" + EOL)
 		for (const headerKey in headers) {
 			if (!headerKey.match(RegexNotToBeLogged)) {

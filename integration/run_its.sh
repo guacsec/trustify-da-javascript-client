@@ -2,8 +2,8 @@
 
 #!!!!! DO NOT FORGET 'npm run compile' on root prior to running this script !!!!#
 
-# set EXHORT_ITS_USE_REAL_API=true to use the real backend
-EXHORT_ITS_USE_REAL_API="${EXHORT_ITS_USE_REAL_API:=false}"
+# set TRUSTIFY_DA_ITS_USE_REAL_API=true to use the real backend
+TRUSTIFY_DA_ITS_USE_REAL_API="${TRUSTIFY_DA_ITS_USE_REAL_API:=false}"
 
 # utility function for wrapping up and exiting
 # takes an exit code

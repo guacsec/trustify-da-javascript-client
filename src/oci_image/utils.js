@@ -6,14 +6,14 @@ import { ImageRef } from './images.js';
 import { Platform } from './platform.js';
 
 // Constants
-const EXHORT_SYFT_CONFIG_PATH = "EXHORT_SYFT_CONFIG_PATH";
-const EXHORT_SYFT_IMAGE_SOURCE = "EXHORT_SYFT_IMAGE_SOURCE";
-const EXHORT_IMAGE_PLATFORM = "EXHORT_IMAGE_PLATFORM";
-const EXHORT_IMAGE_OS = "EXHORT_IMAGE_OS";
-const EXHORT_IMAGE_ARCH = "EXHORT_IMAGE_ARCH";
-const EXHORT_IMAGE_VARIANT = "EXHORT_IMAGE_VARIANT";
-const EXHORT_SKOPEO_CONFIG_PATH = "EXHORT_SKOPEO_CONFIG_PATH";
-const EXHORT_IMAGE_SERVICE_ENDPOINT = "EXHORT_IMAGE_SERVICE_ENDPOINT";
+const TRUSTIFY_DA_SYFT_CONFIG_PATH = "TRUSTIFY_DA_SYFT_CONFIG_PATH";
+const TRUSTIFY_DA_SYFT_IMAGE_SOURCE = "TRUSTIFY_DA_SYFT_IMAGE_SOURCE";
+const TRUSTIFY_DA_IMAGE_PLATFORM = "TRUSTIFY_DA_IMAGE_PLATFORM";
+const TRUSTIFY_DA_IMAGE_OS = "TRUSTIFY_DA_IMAGE_OS";
+const TRUSTIFY_DA_IMAGE_ARCH = "TRUSTIFY_DA_IMAGE_ARCH";
+const TRUSTIFY_DA_IMAGE_VARIANT = "TRUSTIFY_DA_IMAGE_VARIANT";
+const TRUSTIFY_DA_SKOPEO_CONFIG_PATH = "TRUSTIFY_DA_SKOPEO_CONFIG_PATH";
+const TRUSTIFY_DA_IMAGE_SERVICE_ENDPOINT = "TRUSTIFY_DA_IMAGE_SERVICE_ENDPOINT";
 const MEDIA_TYPE_DOCKER2_MANIFEST = "application/vnd.docker.distribution.manifest.v2+json";
 const MEDIA_TYPE_DOCKER2_MANIFEST_LIST = "application/vnd.docker.distribution.manifest.list.v2+json";
 const MEDIA_TYPE_OCI1_MANIFEST = "application/vnd.oci.image.manifest.v1+json";
@@ -98,8 +98,8 @@ function execSyft(imageRef, opts = {}) {
 	const docker = getCustomPath("docker", opts);
 	const podman = getCustomPath("podman", opts);
 
-	const syftConfigPath = getCustom(EXHORT_SYFT_CONFIG_PATH, "", opts);
-	const imageSource = getCustom(EXHORT_SYFT_IMAGE_SOURCE, "", opts);
+	const syftConfigPath = getCustom(TRUSTIFY_DA_SYFT_CONFIG_PATH, "", opts);
+	const imageSource = getCustom(TRUSTIFY_DA_SYFT_IMAGE_SOURCE, "", opts);
 	// Confirm image source exists, this will throw an error if not
 	getImageSource(imageSource);
 
@@ -173,19 +173,19 @@ function getSyftEnvs(dockerPath, podmanPath) {
  * @returns {Platform|null} - The platform information or null
  */
 export function getImagePlatform(opts = {}) {
-	const platform = getCustom(EXHORT_IMAGE_PLATFORM, null, opts);
+	const platform = getCustom(TRUSTIFY_DA_IMAGE_PLATFORM, null, opts);
 	if (platform) {
 		return Platform.fromString(platform)
 	}
 
-	const imageSource = getCustom(EXHORT_SYFT_IMAGE_SOURCE, "", opts);
+	const imageSource = getCustom(TRUSTIFY_DA_SYFT_IMAGE_SOURCE, "", opts);
 	const source = getImageSource(imageSource);
 
-	let os = getCustom(EXHORT_IMAGE_OS, null, opts);
+	let os = getCustom(TRUSTIFY_DA_IMAGE_OS, null, opts);
 	if (!os) {
 		os = source.getOs(opts);
 	}
-	let arch = getCustom(EXHORT_IMAGE_ARCH, null, opts);
+	let arch = getCustom(TRUSTIFY_DA_IMAGE_ARCH, null, opts);
 	if (!arch) {
 		arch = source.getArch(opts);
 	}
@@ -194,7 +194,7 @@ export function getImagePlatform(opts = {}) {
 			return Platform.fromComponents(os, arch, null);
 		}
 
-		let variant = getCustom(EXHORT_IMAGE_VARIANT, null, opts);
+		let variant = getCustom(TRUSTIFY_DA_IMAGE_VARIANT, null, opts);
 		if (!variant) {
 			variant = source.getVariant(opts);
 		}
@@ -443,8 +443,8 @@ function getSingleImageDigest(imageRef, opts = {}) {
 function execSkopeoInspect(imageRef, raw, opts = {}) {
 	const skopeo = getCustomPath("skopeo", opts);
 
-	const configPath = getCustom(EXHORT_SKOPEO_CONFIG_PATH, null, opts);
-	const daemonHost = getCustom(EXHORT_IMAGE_SERVICE_ENDPOINT, null, opts);
+	const configPath = getCustom(TRUSTIFY_DA_SKOPEO_CONFIG_PATH, null, opts);
+	const daemonHost = getCustom(TRUSTIFY_DA_IMAGE_SERVICE_ENDPOINT, null, opts);
 
 	const args = [
 		"inspect",

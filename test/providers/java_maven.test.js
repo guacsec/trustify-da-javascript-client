@@ -68,8 +68,8 @@ suite('testing the java-maven data provider', async () => {
 		test(`verify tool selection with "${testCase.mvnPath}" and${testCase.preferWrapper ? ' ' : ' not '}preferring wrapper`, () => {
 			let javaMvnProvider = new Java_maven()
 			expect(javaMvnProvider.selectToolBinary(`test/providers/tst_manifests/maven/pom_with_mvn_wrapper/pom.xml`, {
-				'EXHORT_PREFER_MVNW': testCase.preferWrapper.toString(),
-				'EXHORT_MVN_PATH': testCase.mvnPath,
+				'TRUSTIFY_DA_PREFER_MVNW': testCase.preferWrapper.toString(),
+				'TRUSTIFY_DA_MVN_PATH': testCase.mvnPath,
 			})).to.eq(testCase.preferWrapper ?
 				path.resolve(`test/providers/tst_manifests/maven/pom_with_mvn_wrapper/mvnw`) + (platform === 'win32' ? '.cmd' : '')
 				: testCase.mvnPath)

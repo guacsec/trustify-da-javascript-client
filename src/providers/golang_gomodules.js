@@ -282,7 +282,7 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 
 	const mainModule = toPurl(root, "@")
 	sbom.addRoot(mainModule)
-	const exhortGoMvsLogicEnabled = getCustom("EXHORT_GO_MVS_LOGIC_ENABLED", "true", opts)
+	const exhortGoMvsLogicEnabled = getCustom("TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED", "true", opts)
 	if(includeTransitive && exhortGoMvsLogicEnabled === "true") {
 		rows = getFinalPackagesVersionsForModule(rows, manifest, goBin)
 	}

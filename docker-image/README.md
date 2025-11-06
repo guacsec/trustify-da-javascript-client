@@ -20,7 +20,7 @@ Maven, NPM, Golang   | mvn 3.9.6, <br>npm 10.2.4, <br>go 1.21.5, <br>python \<an
 
 ## Usage Notes
 
-To perform RHDA analysis on a **Python** ecosystem, the data from both `pip freeze --all` and `pip show` commands should be generated for all packages listed in the requirements.txt manifest. This data should be encoded in base64 and passed through the `EXHORT_PIP_FREEZE` and `EXHORT_PIP_SHOW` environment variables, respectively.
+To perform RHDA analysis on a **Python** ecosystem, the data from both `pip freeze --all` and `pip show` commands should be generated for all packages listed in the requirements.txt manifest. This data should be encoded in base64 and passed through the `TRUSTIFY_DA_PIP_FREEZE` and `TRUSTIFY_DA_PIP_SHOW` environment variables, respectively.
 Code example:
 ``` shell
 # Install requirements.txt
@@ -34,6 +34,6 @@ SHOW_LIST=$(awk -F '==' '{print $1}' < pip_freeze.txt)
 pip3 show $(echo "$SHOW_LIST") > pip_show.txt
 
 # Encode data using base64 and export to environment variables
-export EXHORT_PIP_FREEZE=$(cat pip_freeze.txt | base64 -w 0)
-export EXHORT_PIP_SHOW=$(cat pip_show.txt | base64 -w 0)
+export TRUSTIFY_DA_PIP_FREEZE=$(cat pip_freeze.txt | base64 -w 0)
+export TRUSTIFY_DA_PIP_SHOW=$(cat pip_show.txt | base64 -w 0)
 ```

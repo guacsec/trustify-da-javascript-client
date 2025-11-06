@@ -13,7 +13,7 @@ function sharedComponentAnalysisTestFlow(testCase, usePipDepTreeUtility) {
 	let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_component_sbom.json`).toString().trim()
 	expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
 	// invoke sut stack analysis for scenario manifest
-	let opts = { "EXHORT_PIP_USE_DEP_TREE" : usePipDepTreeUtility }
+	let opts = { "TRUSTIFY_DA_PIP_USE_DEP_TREE" : usePipDepTreeUtility }
 	let providedDatForComponent = pythonPip.provideComponent(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, opts)
 	// verify returned data matches expectation
 	expect(providedDatForComponent).to.deep.equal({
@@ -34,7 +34,7 @@ function sharedStackAnalysisTestFlow(testCase, usePipDepTreeUtility) {
 	} catch (error) {
 		throw new Error('fail installing requirements.txt manifest in created virtual python environment', {cause: error})
 	}
-	let opts = { "EXHORT_PIP_USE_DEP_TREE" : usePipDepTreeUtility }
+	let opts = { "TRUSTIFY_DA_PIP_USE_DEP_TREE" : usePipDepTreeUtility }
 	let providedDataForStack = pythonPip.provideStack(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, opts)
 	// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
 
@@ -94,8 +94,8 @@ suite('testing the python-pip data provider with virtual environment', () => {
 		test(`verify requirements.txt sbom provided for stack analysis using virutal python environment, with scenario ${scenario}`, () => {
 			// load the expected sbom stack analysis
 			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_stack_sbom.json`,).toString()
-			process.env["EXHORT_PYTHON_VIRTUAL_ENV"] = "true"
-			// process.env["EXHORT_DEBUG"] = "true"
+			process.env["TRUSTIFY_DA_PYTHON_VIRTUAL_ENV"] = "true"
+			// process.env["TRUSTIFY_DA_DEBUG"] = "true"
 			expectedSbom = JSON.stringify(JSON.parse(expectedSbom), null, 4)
 			// invoke sut stack analysis for scenario manifest
 			let providedDataForStack = pythonPip.provideStack(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`)

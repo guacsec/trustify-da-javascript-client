@@ -43,17 +43,17 @@ suite('testing the various tools and utility functions', () => {
 	})
 
 	suite('test the getCustomPath utility function', () => {
-		afterEach(() => delete process.env['EXHORT_DUMMY_PATH'])
+		afterEach(() => delete process.env['TRUSTIFY_DA_DUMMY_PATH'])
 
 		test('when exists as environment variable and opts, return environment variables value', () => {
-			process.env['EXHORT_DUMMY_PATH'] = 'dummy-env-value'
-			let opts = { 'EXHORT_DUMMY_PATH': 'dummy-opts-value' }
+			process.env['TRUSTIFY_DA_DUMMY_PATH'] = 'dummy-env-value'
+			let opts = { 'TRUSTIFY_DA_DUMMY_PATH': 'dummy-opts-value' }
 			let fetchedValue = getCustomPath('dummy', opts)
 			expect(fetchedValue).to.equal('dummy-env-value')
 		})
 
 		test('when no environment variable but exists as opts, return opts value', () => {
-			let opts = { 'EXHORT_DUMMY_PATH': 'dummy-opts-value' }
+			let opts = { 'TRUSTIFY_DA_DUMMY_PATH': 'dummy-opts-value' }
 			let fetchedValue = getCustomPath('dummy', opts)
 			expect(fetchedValue).to.equal('dummy-opts-value')
 		})
