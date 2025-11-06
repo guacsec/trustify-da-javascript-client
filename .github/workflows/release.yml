@@ -1,12 +1,6 @@
 ---
 name: Release
 
-env:
-  # 🖊️ EDIT to change the image build settings.
-  IMAGE_NAME: trustify-da-javascript-client
-  IMAGE_REGISTRY: quay.io/ecosystem-appeng
-  DOCKERFILE_PATH: ./docker-image/Dockerfiles/Dockerfile.alpha
-
 on:
   workflow_dispatch:
     inputs:

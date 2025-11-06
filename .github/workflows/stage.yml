@@ -1,12 +1,6 @@
 ---
 name: Stage
 
-env:
-  # 🖊️ EDIT to change the image build settings.
-  IMAGE_NAME: trustify-da-javascript-client
-  IMAGE_REGISTRY: quay.io/ecosystem-appeng
-  DOCKERFILE_PATH: ./docker-image/Dockerfiles/Dockerfile
-
 on:
   pull_request_target:
     types:
@@ -162,25 +156,3 @@ jobs:
               prerelease: true,
               generate_release_notes: true
             })
-
-      - name: Build Image With buildah
-        id: build-image
-        uses: redhat-actions/buildah-build@v2
-        with:
-          image: ${{ env.IMAGE_NAME }}
-          tags: ${{ steps.bump.outputs.version }}
-          dockerfiles: |
-            ${{ env.DOCKERFILE_PATH }}
-          build-args: |
-            PACKAGE_REGISTRY_ACCESS_TOKEN=${{ secrets.PACKAGE_REGISTRY_ACCESS_TOKEN }}
-            EXHORT_JAVASCRIPT_API_VERSION=${{ steps.bump.outputs.version }}
-          context: docker-image
-
-      - name: Push Image To Registry
-        uses: redhat-actions/push-to-registry@v2
-        with:
-          image: ${{ steps.build-image.outputs.image }}
-          tags: ${{ steps.build-image.outputs.tags }}
-          registry: ${{ env.IMAGE_REGISTRY }}
-          username: ${{ secrets.IMAGE_REGISTRY_USER }}
-          password: ${{ secrets.IMAGE_REGISTRY_PASSWORD }}
