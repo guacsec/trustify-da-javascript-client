@@ -120,6 +120,8 @@ jobs:
         if: steps.test-check.outputs.retest-is-needed == 'true'
         env:
           TRIGGERING_FILE: ${{ steps.test-check.outputs.triggering-file}}
+          TRUSTIFY_DA_DEV_MODE: 'true'
+          DEV_TRUSTIFY_DA_BACKEND_URL: 'https://exhort.stage.devshift.net'
         run: |
           echo "Re-test was triggered!!, triggering changed file - $TRIGGERING_FILE"
           echo "Running Again Unit-tests =>"

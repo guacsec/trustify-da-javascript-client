@@ -84,8 +84,6 @@ function readAndPrintVersionFromPackageJson() {
 	logOptionsAndEnvironmentsVariables("trustify-da-javascript-client analysis started, version: ", packageJson.version)
 }
 
-export const exhortDevUrl = 'https://exhort.stage.devshift.net';
-
 /**
  * This function is used to determine exhort theUrl backend according to the following logic:
  * If TRUSTIFY_DA_DEV_MODE = true, then take the value of the EXHORT BACKEND URL of dev/staging environment in such a way:
@@ -99,14 +97,14 @@ export const exhortDevUrl = 'https://exhort.stage.devshift.net';
  * @return {string} - The selected exhort backend
  * @private
  */
-function selectExhortBackend(opts = {}) {
+export function selectExhortBackend(opts = {}) {
 	if (getCustom("TRUSTIFY_DA_DEBUG", "false", opts) === "true") {
 		readAndPrintVersionFromPackageJson();
 	}
 
 	let url;
 	if (getCustom('TRUSTIFY_DA_DEV_MODE', 'false', opts) === 'true') {
-		url = getCustom('DEV_TRUSTIFY_DA_BACKEND_URL', exhortDevUrl, opts);
+		url = getCustom('DEV_TRUSTIFY_DA_BACKEND_URL', undefined, opts);
 	} else {
 		url = getCustom('TRUSTIFY_DA_BACKEND_URL', undefined, opts);
 	}
@@ -118,16 +116,6 @@ function selectExhortBackend(opts = {}) {
 	logOptionsAndEnvironmentsVariables("Chosen exhort backend URL:", url)
 
 	return url;
-}
-
-/**
- * Test function for selecting the Exhort backend URL.
- * Primarily used for testing the backend selection logic.
- * @param {object} [opts={}] - Optional configuration, similar to `selectExhortBackend`.
- * @return {string} The selected exhort backend URL.
- */
-export function testSelectExhortBackend(opts) {
-	return selectExhortBackend(opts)
 }
 
 /**

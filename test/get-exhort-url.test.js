@@ -1,8 +1,9 @@
 import { expect } from 'chai'
 
-import { exhortDevUrl, testSelectExhortBackend } from '../src/index.js'
+import { selectExhortBackend } from '../src/index.js'
 
 const testProdUrl = 'https://exhort.example.com';
+const testDevUrl = 'https://dev.exhort.example.com';
 
 suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environment variable is True', () => {
 
@@ -10,31 +11,35 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 		let testOpts = {
 			'TRUSTIFY_DA_DEV_MODE': 'true'
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
+		let selectedUrl = selectExhortBackend(testOpts);
 		expect(selectedUrl).not.to.be.equals(testProdUrl)
-		expect(selectedUrl).to.be.equals(exhortDevUrl)
+		expect(selectedUrl).to.be.equals(testDevUrl)
 	});
 
 	test('When Dev Mode environment Variable= true, and despite option Dev Mode = false, default DEV Exhort Backend Selected', () => {
 		let testOpts = {
 			'TRUSTIFY_DA_DEV_MODE': 'false'
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
+		let selectedUrl = selectExhortBackend(testOpts);
 		expect(selectedUrl).not.to.be.equals(testProdUrl)
-		expect(selectedUrl).to.be.equals(exhortDevUrl)
+		expect(selectedUrl).to.be.equals(testDevUrl)
 	});
 
 	test('When Dev Mode environment Variable= true, And option DEV_TRUSTIFY_DA_BACKEND_URL contains some url route that client set, default DEV Exhort Backend Not Selected', () => {
 		const dummyRoute = 'http://dummy-exhort-route';
+		delete process.env['DEV_TRUSTIFY_DA_BACKEND_URL']
 		let testOpts = {
 			'DEV_TRUSTIFY_DA_BACKEND_URL': dummyRoute
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
-		expect(selectedUrl).not.to.be.equals(exhortDevUrl)
+		let selectedUrl = selectExhortBackend(testOpts);
 		expect(selectedUrl).to.be.equals(dummyRoute)
 	});
 
-}).beforeAll(() => { process.env['TRUSTIFY_DA_DEV_MODE'] = 'true'; process.env['TRUSTIFY_DA_BACKEND_URL'] = testProdUrl }).afterAll(() => delete process.env['TRUSTIFY_DA_DEV_MODE']);
+}).beforeAll(() => {
+	process.env['TRUSTIFY_DA_DEV_MODE'] = 'true'
+	process.env['TRUSTIFY_DA_BACKEND_URL'] = testProdUrl
+	process.env['DEV_TRUSTIFY_DA_BACKEND_URL'] = testDevUrl
+}).afterAll(() => delete process.env['TRUSTIFY_DA_DEV_MODE']);
 
 suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environment variable is false', () => {
 
@@ -43,8 +48,8 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 		let testOpts = {
 			'TRUSTIFY_DA_DEV_MODE': 'false'
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
-		expect(selectedUrl).not.to.be.equals(exhortDevUrl)
+		let selectedUrl = selectExhortBackend(testOpts);
+		expect(selectedUrl).not.to.be.equals(testDevUrl)
 		expect(selectedUrl).to.be.equals(testProdUrl)
 	});
 
@@ -54,7 +59,7 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 			'TRUSTIFY_DA_DEV_MODE': 'true',
 			'DEV_TRUSTIFY_DA_BACKEND_URL': dummyRoute
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
+		let selectedUrl = selectExhortBackend(testOpts);
 		expect(selectedUrl).not.to.be.equals(dummyRoute)
 		expect(selectedUrl).to.be.equals(testProdUrl)
 	});
@@ -66,13 +71,17 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 			'TRUSTIFY_DA_DEV_MODE': 'true',
 			'DEV_TRUSTIFY_DA_BACKEND_URL': dummyRoute
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
+		let selectedUrl = selectExhortBackend(testOpts);
 		delete process.env['DEV_TRUSTIFY_DA_BACKEND_URL']
 		expect(selectedUrl).not.to.be.equals(dummyRoute)
 		expect(selectedUrl).to.be.equals(testProdUrl)
 	});
 
-}).beforeAll(() => { process.env['TRUSTIFY_DA_DEV_MODE'] = 'false'; process.env['TRUSTIFY_DA_BACKEND_URL'] = testProdUrl }).afterAll(() => delete process.env['TRUSTIFY_DA_DEV_MODE']);
+}).beforeAll(() => {
+	process.env['TRUSTIFY_DA_DEV_MODE'] = 'false'
+	process.env['TRUSTIFY_DA_BACKEND_URL'] = testProdUrl
+	process.env['DEV_TRUSTIFY_DA_BACKEND_URL'] = testDevUrl
+}).afterAll(() => delete process.env['TRUSTIFY_DA_DEV_MODE']);
 
 suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environment variable is not set', () => {
 
@@ -81,8 +90,8 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 		let testOpts = {
 			'TRUSTIFY_DA_DEV_MODE': 'false'
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
-		expect(selectedUrl).not.to.be.equals(exhortDevUrl)
+		let selectedUrl = selectExhortBackend(testOpts);
+		expect(selectedUrl).not.to.be.equals(testDevUrl)
 		expect(selectedUrl).to.be.equals(testProdUrl)
 	});
 
@@ -90,9 +99,9 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 		let testOpts = {
 			'TRUSTIFY_DA_DEV_MODE': 'true'
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
+		let selectedUrl = selectExhortBackend(testOpts);
 		expect(selectedUrl).not.to.be.equals(testProdUrl)
-		expect(selectedUrl).to.be.equals(exhortDevUrl)
+		expect(selectedUrl).to.be.equals(testDevUrl)
 	});
 
 	test('When Dev Mode option = true, option DEV_TRUSTIFY_DA_BACKEND_URL=some dummy-url, then some dummy-url Selected', () => {
@@ -102,14 +111,17 @@ suite('testing Select Exhort Backend function when TRUSTIFY_DA_DEV_MODE environm
 			'TRUSTIFY_DA_DEV_MODE': 'true',
 			'DEV_TRUSTIFY_DA_BACKEND_URL': dummyRoute
 		}
-		let selectedUrl = testSelectExhortBackend(testOpts);
+		let selectedUrl = selectExhortBackend(testOpts);
 		expect(selectedUrl).not.to.be.equals(testProdUrl)
 		expect(selectedUrl).to.be.equals(dummyRoute)
 		delete process.env['DEV_TRUSTIFY_DA_BACKEND_URL']
 	});
 
 	test('When Nothing set, throw error', () => {
-		let selectedUrl = testSelectExhortBackend({});
+		let selectedUrl = selectExhortBackend({});
 		expect(selectedUrl).to.be.equals(testProdUrl)
 	})
-}).beforeAll(() => process.env['TRUSTIFY_DA_BACKEND_URL'] = testProdUrl);
+}).beforeAll(() => {
+	process.env['TRUSTIFY_DA_BACKEND_URL'] = testProdUrl;
+	process.env['DEV_TRUSTIFY_DA_BACKEND_URL'] = testDevUrl
+});

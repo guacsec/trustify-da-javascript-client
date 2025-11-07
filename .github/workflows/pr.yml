@@ -93,6 +93,8 @@ jobs:
         env:
           TRUSTIFY_DA_PYTHON3_PATH: "${{steps.python-location.outputs.python-bin-location}}/python3"
           TRUSTIFY_DA_PIP3_PATH: "${{steps.python-location.outputs.python-bin-location}}/pip3"
+          TRUSTIFY_DA_DEV_MODE: 'true'
+          DEV_TRUSTIFY_DA_BACKEND_URL: 'https://exhort.stage.devshift.net'
         run: npm run test
 
       - name: Compile project
@@ -100,12 +102,16 @@ jobs:
 
       - name: Run integration tests
         run: npm run integration-tests
+        env:
+          TRUSTIFY_DA_DEV_MODE: 'true'
+          DEV_TRUSTIFY_DA_BACKEND_URL: 'https://exhort.stage.devshift.net'
 
       - name: Run integration tests cli
         working-directory: integration
         run: bash ./run_its.sh
         env:
           TRUSTIFY_DA_DEV_MODE: 'true'
+          DEV_TRUSTIFY_DA_BACKEND_URL: 'https://exhort.stage.devshift.net'
 
       - name: Upload coverage reports
         if: ${{ matrix.node == env.MAIN_NODE_VER }}
