@@ -4,9 +4,7 @@ FROM registry.access.redhat.com/ubi9/nodejs-20 AS builder
 # use privilaged user
 USER root
 
-# assign token for reading packages from github package registry
-ARG PACKAGE_REGISTRY_ACCESS_TOKEN=''
-ARG TRUSTIFY_DA_JAVASCRIPT_API_VERSION='0.1.1-ea.55'
+ARG TRUSTIFY_DA_JAVASCRIPT_API_VERSION='0.2.4-ea.12'
 
 # install Java
 RUN curl -kL https://download.oracle.com/java/21/archive/jdk-21.0.1_linux-x64_bin.tar.gz -o /tmp/java-package.tar.gz \
@@ -23,10 +21,6 @@ RUN curl -kL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o /tmp/golang-packag
 # install jq JSON formating tool
 RUN curl -kL https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64 -o /usr/bin/jq
 
-# copy the .npmrc file
-COPY configs/.npmrc .
-# replace placeholder with the actual environment variable
-RUN sed -i "s/__PACKAGE_REGISTRY_ACCESS_TOKEN__/${PACKAGE_REGISTRY_ACCESS_TOKEN}/g" ./.npmrc
 # install Exhort javascript API
 RUN npm install --global @trustify-da/trustify-da-javascript-client@${TRUSTIFY_DA_JAVASCRIPT_API_VERSION}
 

@@ -4,41 +4,8 @@
 * Looking for our Java API? Try [Exhort Java API](https://github.com/guacsec/exhort-java-api).
 * Looking for our Backend implementation? Try [Exhort](https://github.com/guacsec/exhort).
 
-The _Exhort JavaScript API_ module is deployed to _GitHub Package Registry_.
-
-<details>
-<summary>Click here for configuring <em>GHPR</em> registry access.</summary>
-<h3>Configure Registry Access</h3>
-<p>
-Create a
-<a href="https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#authenticating-to-github-packages">token</a>
-with the <strong>read:packages</strong> scope<br/>
-
-> Based on
-> <a href="https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages">GitHub documentation</a>,
-> In <em>Actions</em> you can use <em>GITHUB_TOKEN</em>
-</p>
-<p>
-
-Add the following line to the <em>.npmrc</em> file in your user home (
-See [GH Docs](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-with-a-personal-access-token)):
-
-```text
-//npm.pkg.github.com/:_authToken=<your-ghp-token-goes-here>
-```
-</p>
-</details>
-
 <h3>Usage</h3>
 <p>
-Configuring <em>NPM</em> to look in <em>GHPR</em> for the <em>trustify-da</em> namespace is done by adding
-<code>@trustify-da:registry=https://npm.pkg.github.com</code> to <em>.npmrc</em> in the project root or user home.
-
-```shell
-echo "@trustify-da:registry=https://npm.pkg.github.com" >> .npmrc
-echo "@trustification:registry=https://npm.pkg.github.com" >> .npmrc
-```
-</p>
 
 <ul>
 <li>

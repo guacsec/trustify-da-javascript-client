@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
+---
 name: Validate PR
 
 on:
@@ -14,6 +16,7 @@ jobs:
       - uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   commit-message-validation:
     name: Validate commit messages
     runs-on: ubuntu-latest
@@ -27,13 +30,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: 'https://npm.pkg.github.com'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create .npmrc
-        run: |
-          echo "@trustification:registry=https://npm.pkg.github.com" >> .npmrc
 
       - name: Install commitlint
         run: |
