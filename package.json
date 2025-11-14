@@ -15,8 +15,8 @@
 		"vulnerability"
 	],
 	"engines": {
-		"node": ">= 18.0.0",
-		"npm": ">= 9.0.0"
+		"node": ">= 20.0.0",
+		"npm": ">= 11.5.1"
 	},
 	"type": "module",
 	"bin": "dist/src/cli.js",
