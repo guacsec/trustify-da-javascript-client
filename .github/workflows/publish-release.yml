@@ -30,11 +30,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm
         run: npm install -g npm@11.5.1
