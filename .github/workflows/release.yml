@@ -85,7 +85,7 @@ jobs:
         run: npm run compile
 
       - name: Publish package
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance ${{ inputs.version_type == 'prerelease' && '--tag prerelease' || '' }}
 
       - name: Commit and push package modifications
         run: |
