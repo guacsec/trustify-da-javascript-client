@@ -53,7 +53,7 @@ jobs:
       - name: Publish package
         env:
           NPM_CONFIG_PROVENANCE: true
-        run: npm publish --tag prerelease
+        run: npm publish --verbose --tag prerelease
 
       - name: Commit and push package modifications
         run: |
