@@ -121,6 +121,8 @@ jobs:
 
   publish-prerelease:
     needs: test
-    uses: ./.github/workflows/release.yml
+    uses: ./.github/workflows/publish-switch.yml
     with:
+      ref: ${{ github.sha }}
+      is_prerelease: true
       version_type: prerelease

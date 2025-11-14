@@ -3,13 +3,6 @@
 name: Release
 
 on:
-  workflow_call:
-    inputs:
-      version_type:
-        description: 'Type of version bump'
-        required: true
-        type: string
-
   workflow_dispatch:
     inputs:
       version_type:
@@ -22,116 +15,10 @@ on:
           - minor
           - major
 
-permissions:
-  contents: write
-  id-token: write
-
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    environment: staging
-    name: Release the project
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Update npm
-        run: npm install -g npm@11.5.1
-
-      - name: Configure git
-        run: |
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-
-      - name: get previous released annotated tag
-        id: last-release
-        run: |
-          echo "base-tag=$(git describe | awk -F '-' '{print $1}')" >> "$GITHUB_OUTPUT"
-          echo "full-tag=$(git describe)" >> "$GITHUB_OUTPUT"
-
-      - name: get first tag in current development iteration according to base
-        id: fetch-tag
-        if: ${{ contains(steps.last-release.outputs.full-tag , '-ea.') }}
-        run: |
-          echo "oldest-tag=$(git for-each-ref --sort=creatordate --format '%(refname:lstrip=2)' refs/tags | grep ${{ steps.last-release.outputs.base-tag }} | head -n 1)" >> "$GITHUB_OUTPUT"
-
-      - name: determine semver component to bump
-        id: bump-decision
-        run: |
-          echo "bump-part=${{ inputs.version_type }}" >> "$GITHUB_OUTPUT"
-
-      - name: Update package with new version
-        id: bump
-        run: |
-          if [[ "${{ inputs.version_type }}" == "prerelease" ]]; then
-            echo "version=$(npm version prerelease --no-git-tag-version --preid ea)" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=$(npm version ${{ steps.bump-decision.outputs.bump-part }} --no-git-tag-version )" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Install project modules
-        run: npm ci
-
-      - name: Compile project
-        run: npm run compile
-
-      - name: Publish package
-        run: npm publish --access public --provenance ${{ inputs.version_type == 'prerelease' && '--tag prerelease' || '' }}
-
-      - name: Commit and push package modifications
-        run: |
-          git add package.json
-          git add package-lock.json
-          git commit -m "build: updated package with ${{ steps.bump.outputs.version }} [skip ci]"
-          git push
-
-      - name: Create and push new tag
-        run: |
-          git tag ${{ steps.bump.outputs.version }} -m "${{ steps.bump.outputs.version }}"
-          git push origin ${{ steps.bump.outputs.version }}
-
-      - name: Create release notes for ${{ steps.bump.outputs.version }} release
-        if: inputs.version_type != 'prerelease'
-        uses: actions/github-script@v6
-        id: release-notes
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const repo_name = context.payload.repository.full_name
-            const response = await github.request('POST /repos/' + repo_name + '/releases/generate-notes', {
-              tag_name: '${{ steps.bump.outputs.version }}',
-              previous_tag_name: '${{ steps.fetch-tag.outputs.oldest-tag != ''  && steps.fetch-tag.outputs.oldest-tag  || steps.last-release.outputs.base-tag }}'
-            })
-            return response.data.body
-
-      - name: Create a release
-        uses: actions/github-script@v6.4.1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const repo_name = context.payload.repository.full_name
-            const isPrerelease = '${{ inputs.version_type }}' === 'prerelease';
-            const releaseConfig = {
-              tag_name: '${{ steps.bump.outputs.version }}',
-              name: '${{ steps.bump.outputs.version }}',
-              prerelease: isPrerelease
-            };
-
-            if (isPrerelease) {
-              releaseConfig.generate_release_notes = true;
-            } else {
-              releaseConfig.draft = false;
-              releaseConfig.body = ${{ steps.release-notes.outputs.result }};
-              releaseConfig.make_latest = 'true';
-            }
-
-            const response = await github.request('POST /repos/' + repo_name + '/releases', releaseConfig);
+  publish-release:
+    uses: ./.github/workflows/publish-switch.yml
+    with:
+      ref: ${{ github.ref }}
+      is_prerelease: false
+      version_type: ${{ inputs.version_type }}
