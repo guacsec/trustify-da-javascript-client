@@ -19,11 +19,11 @@ then
 
   # Print stderr message to console
   error_message=$(sed -n '/^Error:/p' error.log)
-  printf "\n[ERROR] Red Hat Dependency Analytics failed with exit code $exit_code.\n$error_message"
+  printf "\n[ERROR] Trustify Dependency Analytics failed with exit code $exit_code.\n$error_message"
   exit 1
 else
 # In case of success print report summary into console
-printf "\nRed Hat Dependency Analytics Report\n"
+printf "\nTrustify Dependency Analytics Report\n"
 printf "=%.0s" {1..50}
 printf "\n"
 printf "Dependencies\n"

@@ -196,7 +196,7 @@
             <th scope="col"># Transitive</th>
             <th scope="col">Highest CVSS</th>
             <th scope="col">Highest Severity</th>
-            <th scope="col">Red Hat remediation available</th>
+            <th scope="col">Remediation available</th>
         </tr>
         </thead>
         <tbody>
@@ -563,7 +563,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                Click either VEX or SBOM to download the corresponding file type. You can also click the package name to view more information in Red Hat's Maven repository.
+                Click either VEX or SBOM to download the corresponding file type. You can also click the package name to view more information in Trusted Content's Maven repository.
             </div>
             <div class="modal-footer" style="justify-content: space-around">
                 <span id="vex"><a href="" target="_blank">VEX</a></span>

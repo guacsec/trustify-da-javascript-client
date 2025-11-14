@@ -1,0 +1,219 @@
+{
+  "report": {
+    "scanned": {
+      "total": 1,
+      "direct": 1,
+      "transitive": 0
+    },
+    "providers": {
+      "trusted-content": {
+        "status": {
+          "ok": true,
+          "name": "trusted-content",
+          "code": 200,
+          "message": "OK"
+        },
+        "sources": {}
+      },
+      "osv": {
+        "status": {
+          "ok": true,
+          "name": "osv",
+          "code": 200,
+          "message": "OK"
+        },
+        "sources": {
+          "osv": {
+            "summary": {
+              "direct": 6,
+              "transitive": 0,
+              "total": 6,
+              "dependencies": 1,
+              "critical": 3,
+              "high": 3,
+              "medium": 0,
+              "low": 0,
+              "remediations": 0,
+              "recommendations": 0,
+              "unscanned": 0
+            },
+            "dependencies": [
+              {
+                "ref": "pkg:maven/log4j/log4j@1.2.17",
+                "issues": [
+                  {
+                    "id": "CVE-2022-23307",
+                    "title": "Deserialization of Untrusted Data in Apache Log4j",
+                    "source": "osv",
+                    "cvss": {
+                      "attackVector": "Network",
+                      "attackComplexity": "Low",
+                      "privilegesRequired": "None",
+                      "userInteraction": "None",
+                      "scope": "Unchanged",
+                      "confidentialityImpact": "High",
+                      "integrityImpact": "High",
+                      "availabilityImpact": "High",
+                      "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+                    },
+                    "cvssScore": 9.8,
+                    "severity": "CRITICAL",
+                    "cves": [
+                      "CVE-2022-23307"
+                    ],
+                    "unique": false,
+                    "remediation": {}
+                  },
+                  {
+                    "id": "CVE-2022-23305",
+                    "title": "SQL Injection in Log4j 1.2.x",
+                    "source": "osv",
+                    "cvss": {
+                      "attackVector": "Network",
+                      "attackComplexity": "Low",
+                      "privilegesRequired": "None",
+                      "userInteraction": "None",
+                      "scope": "Unchanged",
+                      "confidentialityImpact": "High",
+                      "integrityImpact": "High",
+                      "availabilityImpact": "High",
+                      "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+                    },
+                    "cvssScore": 9.8,
+                    "severity": "CRITICAL",
+                    "cves": [
+                      "CVE-2022-23305"
+                    ],
+                    "unique": false,
+                    "remediation": {}
+                  },
+                  {
+                    "id": "CVE-2019-17571",
+                    "title": "Deserialization of Untrusted Data in Log4j",
+                    "source": "osv",
+                    "cvss": {
+                      "attackVector": "Network",
+                      "attackComplexity": "Low",
+                      "privilegesRequired": "None",
+                      "userInteraction": "None",
+                      "scope": "Unchanged",
+                      "confidentialityImpact": "High",
+                      "integrityImpact": "High",
+                      "availabilityImpact": "High",
+                      "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+                    },
+                    "cvssScore": 9.8,
+                    "severity": "CRITICAL",
+                    "cves": [
+                      "CVE-2019-17571"
+                    ],
+                    "unique": false,
+                    "remediation": {}
+                  },
+                  {
+                    "id": "CVE-2022-23302",
+                    "title": "Deserialization of Untrusted Data in Log4j 1.x",
+                    "source": "osv",
+                    "cvss": {
+                      "attackVector": "Network",
+                      "attackComplexity": "Low",
+                      "privilegesRequired": "Low",
+                      "userInteraction": "None",
+                      "scope": "Unchanged",
+                      "confidentialityImpact": "High",
+                      "integrityImpact": "High",
+                      "availabilityImpact": "High",
+                      "cvss": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+                    },
+                    "cvssScore": 8.8,
+                    "severity": "HIGH",
+                    "cves": [
+                      "CVE-2022-23302"
+                    ],
+                    "unique": false,
+                    "remediation": {}
+                  },
+                  {
+                    "id": "CVE-2021-4104",
+                    "title": "JMSAppender in Log4j 1.2 is vulnerable to deserialization of untrusted data",
+                    "source": "osv",
+                    "cvss": {
+                      "attackVector": "Network",
+                      "attackComplexity": "High",
+                      "privilegesRequired": "Low",
+                      "userInteraction": "None",
+                      "scope": "Unchanged",
+                      "confidentialityImpact": "High",
+                      "integrityImpact": "High",
+                      "availabilityImpact": "High",
+                      "cvss": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H"
+                    },
+                    "cvssScore": 7.5,
+                    "severity": "HIGH",
+                    "cves": [
+                      "CVE-2021-4104"
+                    ],
+                    "unique": false,
+                    "remediation": {}
+                  },
+                  {
+                    "id": "CVE-2023-26464",
+                    "title": "Apache Log4j 1.x (EOL) allows Denial of Service (DoS)",
+                    "source": "osv",
+                    "cvss": {
+                      "attackVector": "Network",
+                      "attackComplexity": "Low",
+                      "privilegesRequired": "None",
+                      "userInteraction": "None",
+                      "scope": "Unchanged",
+                      "confidentialityImpact": "None",
+                      "integrityImpact": "None",
+                      "availabilityImpact": "High",
+                      "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+                    },
+                    "cvssScore": 7.5,
+                    "severity": "HIGH",
+                    "cves": [
+                      "CVE-2023-26464"
+                    ],
+                    "unique": false,
+                    "remediation": {
+                      "fixedIn": [
+                        "2.0"
+                      ]
+                    }
+                  }
+                ],
+                "transitive": [],
+                "highestVulnerability": {
+                  "id": "CVE-2022-23307",
+                  "title": "Deserialization of Untrusted Data in Apache Log4j",
+                  "source": "osv",
+                  "cvss": {
+                    "attackVector": "Network",
+                    "attackComplexity": "Low",
+                    "privilegesRequired": "None",
+                    "userInteraction": "None",
+                    "scope": "Unchanged",
+                    "confidentialityImpact": "High",
+                    "integrityImpact": "High",
+                    "availabilityImpact": "High",
+                    "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+                  },
+                  "cvssScore": 9.8,
+                  "severity": "CRITICAL",
+                  "cves": [
+                    "CVE-2022-23307"
+                  ],
+                  "unique": false,
+                  "remediation": {}
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "exit_code": "0"
+}

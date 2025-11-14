@@ -1,7 +1,7 @@
-# Exhort Javascript API Docker Images
+# Trustify Dependency Analytics Javascript Client Container Images
 
-These dockerfiles provides all nessesary components to generate images for Red Hat Dependency Analytics (RHDA).
-These images can be used as base images to set up the necessary environment and dependencies for running the Red Hat Dependency Analytics.
+These dockerfiles provides all nessesary components to generate images for Trustify Dependency Analytics.
+These images can be used as base images to set up the necessary environment and dependencies for running the Trustify Dependency Analytics.
 
 ## Prerequisites
 Before getting started, ensure that you have one of the following prerequisites installed on your system:
@@ -9,13 +9,13 @@ Before getting started, ensure that you have one of the following prerequisites 
 - Docker: [Installation Guide](https://docs.docker.com/get-docker/)
 - Podman: [Installation Guide](https://podman.io/docs/installation)
 
-Both Docker and Podman are container runtimes that can be used to build and run the Red Hat Dependency Analytics images. You can choose either Docker or Podman based on your preference and the compatibility with your operating system.
+Both Docker and Podman are container runtimes that can be used to build and run the Trustify Dependency Analytics images. You can choose either Docker or Podman based on your preference and the compatibility with your operating system.
 
-## Images generated for Exhort Javascript API
+## Images generated for Trustify Dependency Analytics Javascript Client
 
 Ecosystem                     | Version                                                            | IMAGE                                           | TAG               |
 ------------------------------| ------------------------------------------------------------------ | ----------------------------------------------- |-------------------|
-Maven, NPM, Golang   | mvn 3.9.6, <br>npm 10.2.4, <br>go 1.21.5, <br>python \<any\>                                                                                                  |  quay.io/ecosystem-appeng/trustify-da-javascript-client | 0.1.1-ea.26      |
+Maven, NPM, Golang   | mvn 3.9.6, <br>npm 10.2.4, <br>go 1.21.5, <br>python \<any\>                                                                                                  |  ghcr.io/guacsec/trustify-da-javascript-client | 0.2.4-ea.12      |
 
 
 ## Usage Notes
