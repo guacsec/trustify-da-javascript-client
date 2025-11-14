@@ -82,7 +82,7 @@ jobs:
         run: npm run compile
 
       - name: Publish package
-        run: npm publish
+        run: npm publish --access public --provenance
 
       - name: Commit and push package modifications
         run: |
