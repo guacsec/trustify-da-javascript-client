@@ -7,6 +7,8 @@ on:
     branches:
       - main
       - 'release/*'
+    tags:
+      - '*'
   workflow_dispatch:
 
 env:
@@ -39,7 +41,14 @@ jobs:
       - name: Get package version
         id: package-version
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          # Use git tag if available (for tag-triggered builds), otherwise use package.json
+          if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            # Remove 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Package version: $VERSION"
 
@@ -82,3 +91,5 @@ jobs:
             IMAGE_CREATED=${{ steps.image-meta.outputs.created }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
