@@ -15,10 +15,110 @@ on:
           - minor
           - major
 
+permissions:
+  contents: write
+
 jobs:
-  publish-release:
-    uses: ./.github/workflows/publish-switch.yml
-    with:
-      ref: ${{ github.ref }}
-      is_prerelease: false
-      version_type: ${{ inputs.version_type }}
+  create-release:
+    runs-on: ubuntu-latest
+    name: Create release
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Configure git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Get previous released annotated tag
+        id: last-release
+        run: |
+          # Get the latest tag that doesn't have -ea suffix (handles both -ea. and -ea- formats)
+          TAG=$(git tag -l --sort=-version:refname | grep -vE -- '-ea[.-]' | head -n 1)
+          if [ -z "$TAG" ]; then
+            # If no release tag exists, use the base version from package.json
+            BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
+            echo "base-tag=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+            echo "full-tag=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "base-tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "full-tag=$TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get first tag in current development iteration
+        id: fetch-tag
+        run: |
+          BASE_TAG="${{ steps.last-release.outputs.base-tag }}"
+          # Find the oldest EA tag for this base version (handles both -ea. and -ea- formats)
+          OLDEST_EA_TAG=$(git tag -l --sort=creatordate | grep -E "^${BASE_TAG}-ea[.-]" | head -n 1)
+          if [ -n "$OLDEST_EA_TAG" ]; then
+            echo "oldest-tag=$OLDEST_EA_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "oldest-tag=$BASE_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update package with new version
+        id: bump
+        run: |
+          # Get base version (remove -ea suffix if present, handles both -ea. and -ea- formats)
+          BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
+          # Bump the version
+          NEW_VERSION=$(npm version ${{ inputs.version_type }} --no-git-tag-version | sed 's/v//')
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install project modules
+        run: npm ci
+
+      - name: Commit and push package modifications
+        run: |
+          git add package.json
+          git add package-lock.json
+          git commit -m "build: updated package with ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
+
+      - name: Create and push new tag
+        run: |
+          git tag ${{ steps.bump.outputs.version }} -m "${{ steps.bump.outputs.version }}"
+          git push origin ${{ steps.bump.outputs.version }}
+
+      - name: Create release notes
+        uses: actions/github-script@v6
+        id: release-notes
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const repo_name = context.payload.repository.full_name
+            const previousTag = '${{ steps.fetch-tag.outputs.oldest-tag }}'
+            const currentTag = '${{ steps.bump.outputs.version }}'
+            
+            const response = await github.request('POST /repos/' + repo_name + '/releases/generate-notes', {
+              tag_name: currentTag,
+              previous_tag_name: previousTag || undefined
+            })
+            return response.data.body
+
+      - name: Create a release
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const repo_name = context.payload.repository.full_name
+            const response = await github.request('POST /repos/' + repo_name + '/releases', {
+              tag_name: '${{ steps.bump.outputs.version }}',
+              name: '${{ steps.bump.outputs.version }}',
+              draft: false,
+              body: ${{ steps.release-notes.outputs.result }},
+              prerelease: false,
+              make_latest: 'true'
+            })
+

@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
+---
+name: Publish
+
+on:
+  workflow_run:
+    workflows: ["Integration Tests"]
+    types:
+      - completed
+    branches:
+      - main
+  push:
+    tags:
+      - 'v*.*.*'
+      - '*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish-ea:
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    name: Publish EA release to NPM
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Install node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Configure git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Get current version
+        id: current-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          # Remove both -ea. and -ea- formats for compatibility
+          BASE_VERSION=$(echo "$VERSION" | sed -E 's/-ea[.-][0-9]+$//')
+          echo "base-version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "current-version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Update package with EA version
+        id: bump
+        run: |
+          EA_VERSION="${{ steps.current-version.outputs.base-version }}-ea-${{ github.run_number }}"
+          npm version "$EA_VERSION" --no-git-tag-version
+          echo "version=$EA_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install project modules
+        run: npm ci
+
+      - name: Compile project
+        run: npm run compile
+
+      - name: Publish package
+        run: npm publish --verbose --tag ea --access public --provenance
+
+      - name: Commit and push package modifications
+        run: |
+          git add package.json
+          git add package-lock.json
+          git commit -m "build: updated package with ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
+
+      - name: Create and push new tag
+        run: |
+          git tag ${{ steps.bump.outputs.version }} -m "${{ steps.bump.outputs.version }}"
+          git push origin ${{ steps.bump.outputs.version }}
+
+  publish-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    name: Publish release to NPM
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Install node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Get tag name
+        id: tag
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Update package.json with tag version
+        id: update-version
+        run: |
+          TAG_NAME="${{ steps.tag.outputs.name }}"
+          # Remove 'v' prefix if present
+          VERSION=${TAG_NAME#v}
+          npm version "$VERSION" --no-git-tag-version
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install project modules
+        run: npm ci
+
+      - name: Compile project
+        run: npm run compile
+
+      - name: Publish package
+        run: npm publish --verbose --access public --provenance

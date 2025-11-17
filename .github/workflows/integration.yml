@@ -1,8 +1,12 @@
 # yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
 ---
-name: Integration
+name: Integration Tests
 
 on:
+  workflow_run:
+    workflows: ["Test"]
+    types:
+      - completed
   workflow_dispatch:
   pull_request:
     branches:
@@ -14,8 +18,13 @@ concurrency:
 
 jobs:
   call-shared:
+    # Only run if the test workflow succeeded, or if triggered directly
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request'
     uses: trustification/exhort-integration-tests/.github/workflows/integration.yml@main
     with:
       language: javascript
       repo-url: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-      commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      commit-sha: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
