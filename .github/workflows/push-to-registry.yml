@@ -3,12 +3,16 @@
 name: Push to registry
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Integration Tests"]
+    types:
+      - completed
     branches:
       - main
-      - 'release/*'
+  push:
     tags:
-      - '*'
+      - 'v*.*.*'
+      - '*.*.*'
   workflow_dispatch:
 
 env:
@@ -17,6 +21,10 @@ env:
 
 jobs:
   build-and-push:
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -50,8 +58,8 @@ jobs:
             # For branch pushes (like main), use base version with -dev suffix and commit SHA
             BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
             if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-              SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-              VERSION="${BASE_VERSION}-ea-${SHORT_SHA}"
+              SHORT_SHA=$(git rev-parse --short "${{ github.sha }}")
+              VERSION="${BASE_VERSION}-ea.${SHORT_SHA}"
             else
               VERSION="$BASE_VERSION"
             fi
