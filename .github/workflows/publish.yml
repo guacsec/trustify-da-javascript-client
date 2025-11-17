@@ -79,11 +79,6 @@ jobs:
           git commit -m "build: updated package with ${{ steps.bump.outputs.version }} [skip ci]"
           git push
 
-      - name: Create and push new tag
-        run: |
-          git tag ${{ steps.bump.outputs.version }} -m "${{ steps.bump.outputs.version }}"
-          git push origin ${{ steps.bump.outputs.version }}
-
   publish-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
