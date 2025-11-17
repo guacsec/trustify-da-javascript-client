@@ -20,7 +20,7 @@ jobs:
     name: Lint and test project
     strategy:
       matrix:
-        node: ['24', 'latest']
+        node: ['18', '20', '24', 'latest']
     env:
       MAIN_NODE_VER: '24'
     steps:
