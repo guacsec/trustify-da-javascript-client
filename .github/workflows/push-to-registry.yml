@@ -47,10 +47,11 @@ jobs:
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            # For branch pushes (like main), use base version with -dev suffix
+            # For branch pushes (like main), use base version with -dev suffix and commit SHA
             BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
             if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-              VERSION="${BASE_VERSION}-dev"
+              SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+              VERSION="${BASE_VERSION}-ea-${SHORT_SHA}"
             else
               VERSION="$BASE_VERSION"
             fi
