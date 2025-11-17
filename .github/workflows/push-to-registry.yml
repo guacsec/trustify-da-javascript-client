@@ -41,13 +41,19 @@ jobs:
       - name: Get package version
         id: package-version
         run: |
-          # Use git tag if available (for tag-triggered builds), otherwise use package.json
+          # Use git tag if available (for tag-triggered builds), otherwise use base version with -dev suffix
           if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" = "tag" ]; then
             # Remove 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            VERSION=$(node -p "require('./package.json').version")
+            # For branch pushes (like main), use base version with -dev suffix
+            BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              VERSION="${BASE_VERSION}-dev"
+            else
+              VERSION="$BASE_VERSION"
+            fi
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Package version: $VERSION"
