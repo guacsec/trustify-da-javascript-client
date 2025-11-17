@@ -27,4 +27,4 @@ jobs:
     with:
       language: javascript
       repo-url: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-      commit-sha: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
+      commit-sha: ${{ github.event.workflow_run && github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
