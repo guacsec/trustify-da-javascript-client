@@ -18,6 +18,10 @@
 		"node": ">= 20.0.0",
 		"npm": ">= 11.5.1"
 	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
 	"type": "module",
 	"bin": "dist/src/cli.js",
 	"main": "dist/src/index.js",
