@@ -18,7 +18,8 @@ on:
       - "package.json"
       - "tsconfig.json"
       - ".github/workflows/stage.yml"
-      - ".github/workflows/release.yml"
+      - ".github/workflows/publish-prerelease.yml"
+      - ".github/workflows/publish-switch.yml"
       - "docker-image/**"
 
 permissions:
