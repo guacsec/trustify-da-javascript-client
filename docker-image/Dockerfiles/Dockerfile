@@ -20,7 +20,7 @@ RUN curl -kL https://go.dev/dl/go1.21.5.linux-amd64.tar.gz -o /tmp/golang-packag
 RUN curl -kL https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux64 -o /usr/bin/jq
 
 # Copy RHDA script (before changing WORKDIR)
-COPY docker-image/scripts/rhda.sh /rhda.sh
+COPY docker-image/scripts/trustify-da.sh /trustify-da.sh
 
 # Copy project files and install Exhort javascript API locally
 WORKDIR /app
@@ -38,7 +38,7 @@ RUN chmod +x /usr/jdk-21.0.1/bin/java \
     && chmod +x /usr/bin/jq \
     && chmod +x /app/dist/src/cli.js \
     && chmod +x /app/node_modules/.bin/trustify-da-javascript-client \
-    && chmod +x /rhda.sh
+    && chmod +x /trustify-da.sh
 
 # use default user
 USER default
@@ -91,5 +91,5 @@ COPY --from=builder /usr/bin/jq /usr/bin/jq
 # Copy trustify-da-javascript-client from the builder stage
 COPY --from=builder /app /app
 
-# Copy RHDA executable script from the builder stage
-COPY --from=builder /rhda.sh /rhda.sh
+# Copy trustify-da-javascript-client executable script from the builder stage
+COPY --from=builder /trustify-da.sh /trustify-da.sh
