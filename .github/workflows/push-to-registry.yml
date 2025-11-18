@@ -3,14 +3,12 @@
 name: Push to registry
 
 on:
-  workflow_run:
-    workflows: ["Integration Tests"]
-    types:
-      - completed
+  workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -18,19 +16,6 @@ env:
 
 jobs:
   build-and-push:
-    if: |
-      (
-        github.event_name == 'workflow_run' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_branch == 'main'
-      )
-      ||
-      (
-        github.event_name == 'push' &&
-        startsWith(github.ref, 'refs/tags/')
-      )
-      ||
-      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,7 +40,7 @@ jobs:
       - name: Determine package version
         id: version
         run: |
-          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
+          if [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
             # Release tag
             VERSION="${GITHUB_REF#refs/tags/v}"
             EA_BUILD=false
@@ -107,7 +92,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            IMAGE_VERSION=${{ steps.package-version.outputs.version }}
+            IMAGE_VERSION=${{ steps.version.outputs.version }}
             IMAGE_REVISION=${{ steps.image-meta.outputs.revision }}
             IMAGE_CREATED=${{ steps.image-meta.outputs.created }}
           cache-from: type=gha
