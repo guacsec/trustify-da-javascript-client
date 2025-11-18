@@ -7,12 +7,9 @@ on:
     workflows: ["Integration Tests"]
     types:
       - completed
-    branches:
-      - main
   push:
     tags:
       - 'v*.*.*'
-      - '*.*.*'
   workflow_dispatch:
 
 env:
@@ -22,9 +19,18 @@ env:
 jobs:
   build-and-push:
     if: |
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.event == 'push'
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+      ||
+      (
+        github.event_name == 'push' &&
+        startsWith(github.ref, 'refs/tags/')
+      )
+      ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,26 +52,26 @@ jobs:
       - name: Compile project
         run: npm run compile
 
-      - name: Get package version
-        id: package-version
+      - name: Determine package version
+        id: version
         run: |
-          # Use git tag if available (for tag-triggered builds), otherwise use base version with -ea.COMMIT_SHA suffix
-          if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" = "tag" ]; then
-            # Remove 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
+            # Release tag
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            EA_BUILD=false
+          elif [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            # EA build for main
+            BASE=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
+            SHORT_SHA=$(git rev-parse --short "${GITHUB_SHA}")
+            VERSION="${BASE}-ea.${SHORT_SHA}"
+            EA_BUILD=true
           else
-            # For branch pushes (like main), use base version with -ea.COMMIT_SHA suffix
-            BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
-            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-              SHORT_SHA=$(git rev-parse --short "${{ github.sha }}")
-              VERSION="${BASE_VERSION}-ea.${SHORT_SHA}"
-            else
-              VERSION="$BASE_VERSION"
-            fi
+            echo "Not building image for this branch"
+            exit 0
           fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Package version: $VERSION"
+          echo "ea_build=$EA_BUILD" >> $GITHUB_OUTPUT
 
       - name: Get image metadata
         id: image-meta
@@ -83,14 +89,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ steps.package-version.outputs.version }}
+            type=raw,value=latest,enable=${{ steps.version.outputs.ea_build == 'true' }}
+            type=raw,value=${{ steps.version.outputs.version }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
