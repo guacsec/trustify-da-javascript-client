@@ -49,13 +49,13 @@ jobs:
       - name: Get package version
         id: package-version
         run: |
-          # Use git tag if available (for tag-triggered builds), otherwise use base version with -dev suffix
+          # Use git tag if available (for tag-triggered builds), otherwise use base version with -ea.COMMIT_SHA suffix
           if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" = "tag" ]; then
             # Remove 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
             VERSION="${{ github.ref_name }}"
             VERSION="${VERSION#v}"
           else
-            # For branch pushes (like main), use base version with -dev suffix and commit SHA
+            # For branch pushes (like main), use base version with -ea.COMMIT_SHA suffix
             BASE_VERSION=$(node -p "require('./package.json').version" | sed -E 's/-ea[.-][0-9]+$//')
             if [ "${{ github.ref }}" = "refs/heads/main" ]; then
               SHORT_SHA=$(git rev-parse --short "${{ github.sha }}")
