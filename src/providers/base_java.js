@@ -91,8 +91,7 @@ export default class Base_Java {
 	 * @returns {PackageURL} The parsed packageURL
 	 */
 	parseDep(line) {
-
-		let match = line.match(this.DEP_REGEX);
+		let match = line.split(':').map(part => part ? part.match(this.DEP_REGEX)[0] : '');
 		if (!match) {
 			throw new Error(`Unable generate SBOM from dependency tree. Line: ${line} cannot be parsed into a PackageURL`);
 		}
@@ -105,6 +104,9 @@ export default class Base_Java {
 		let override = line.match(this.CONFLICT_REGEX);
 		if (override) {
 			version = override[1];
+		}
+		if (match[0].trim() === '') {
+			throw new Error(`Artifact coordinates should have a non-empty group ID: ${line}`);
 		}
 		return this.toPurl(match[0], match[1], version);
 	}
