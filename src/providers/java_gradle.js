@@ -231,7 +231,7 @@ export default class Java_gradle extends Base_java {
 	#extractProperties(manifestPath, opts) {
 		let properties = {}
 		let propertiesContent = this.#getProperties(manifestPath, opts)
-		let regExpMatchArray = propertiesContent.match(/([^:]+):\s+(.+)/g);
+		let regExpMatchArray = propertiesContent.match(/([^\n:]+):[\t ]*(.*)/g);
 		for (let i = 0; i < regExpMatchArray.length - 1; i++) {
 			let parts = regExpMatchArray[i].split(":");
 			properties[parts[0].trim()] = parts[1].trim()
