@@ -82,8 +82,8 @@ jobs:
       - name: Create Pull Request for release + next version
         run: |
           gh pr create \
-            --title "build: release ${{ steps.bump.outputs.version }}" \
-            --body "build: release ${{ steps.bump.outputs.version }}" \
+            --title "build: release ${{ steps.bump.outputs.version }} [skip ci]" \
+            --body "build: release ${{ steps.bump.outputs.version }} [skip ci]" \
             --base main \
             --head "release/v${{ steps.bump.outputs.version }}"
         env:
