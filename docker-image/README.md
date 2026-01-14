@@ -11,12 +11,21 @@ Before getting started, ensure that you have one of the following prerequisites 
 
 Both Docker and Podman are container runtimes that can be used to build and run the Trustify Dependency Analytics images. You can choose either Docker or Podman based on your preference and the compatibility with your operating system.
 
-## Images generated for Trustify Dependency Analytics Javascript Client
+## Image generated for Trustify Dependency Analytics Javascript Client
 
-Ecosystem                     | Version                                                            | IMAGE                                           | TAG               |
-------------------------------| ------------------------------------------------------------------ | ----------------------------------------------- |-------------------|
-Maven, NPM, Golang   | mvn 3.9.6, <br>npm 10.2.4, <br>go 1.21.5, <br>python \<any\>                                                                                                  |  ghcr.io/guacsec/trustify-da-javascript-client | 0.2.4-ea.12      |
+ghcr.io/guacsec/trustify-da-javascript-client
 
+See the [GitHub Container Registry](https://github.com/guacsec/trustify-da-javascript-client/pkgs/container/trustify-da-javascript-client)
+
+Ecosystem                     | Version                                                            |
+------------------------------| ------------------------------------------------------------------ | 
+Maven | 3.9.12 |
+Gradle | 9.2.1 |
+Go | 1.25.5 |
+NPM | 10.8.2 |
+PNPM | 10.1.0 |
+Yarn | 4.9.1 |
+Python | 3.9.25 |
 
 ## Usage Notes
 
