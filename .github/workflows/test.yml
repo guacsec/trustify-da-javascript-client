@@ -61,7 +61,7 @@ jobs:
           echo "python-bin-location=$(echo $pythonLocation)/bin" >> $GITHUB_OUTPUT
 
       - name: setup go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.20.1'
 
