@@ -111,13 +111,20 @@ ENV GRADLE_HOME=/usr/gradle-9.2.1
 COPY --from=builder /usr/local/corepack/ /usr/local/corepack/
 ENV COREPACK_HOME=/usr/local/corepack/cache
 
-# Install Python via microdnf (cleanest approach for minimal images)
+# Install Python via microdnf and fix corepack cache permissions
 USER root
-RUN microdnf install -y python3 python3-pip && microdnf clean all
+RUN microdnf install -y python3 python3-pip \
+    && microdnf clean all \
+    && chown -R 1001:0 /usr/local/corepack/cache \
+    && chmod -R g+rwX /usr/local/corepack/cache
 USER 1001
 
-# Update PATH (includes corepack bin for pnpm/yarn)
-ENV PATH=$PATH:$JAVA_HOME/bin:$MAVEN_HOME/bin:$GOLANG_HOME/bin:$GRADLE_HOME/bin:/usr/local/corepack/bin:/app/node_modules/.bin
+# Update PATH (corepack bin first for pnpm/yarn to be found reliably)
+ENV PATH=/usr/local/corepack/bin:/app/node_modules/.bin:$JAVA_HOME/bin:$MAVEN_HOME/bin:$GOLANG_HOME/bin:$GRADLE_HOME/bin:$PATH
+
+# Set explicit paths for package managers (used by trustify-da-javascript-client)
+ENV TRUSTIFY_DA_PNPM_PATH=/usr/local/corepack/bin/pnpm
+ENV TRUSTIFY_DA_YARN_PATH=/usr/local/corepack/bin/yarn
 
 # Copy jq executable from the builder stage
 COPY --from=builder /usr/bin/jq /usr/bin/jq
