@@ -12,14 +12,39 @@ exit_code=$?
 
 if [ $exit_code != 0 ]
 then
-  # In case of failure save only exit code into output file.
+  # Read the full error log
+  error_log=$(cat error.log 2>/dev/null || echo "")
+
+  # Extract the main error message (first Error: line)
+  main_error=$(echo "$error_log" | grep -m1 "^Error:" || echo "Unknown error")
+
+  # Extract cause chain (lines with "cause:" or indented error details)
+  cause_chain=$(echo "$error_log" | grep -E "(cause:|Caused by|    at )" | head -20 || echo "")
+
+  # In case of failure save error details into output file.
   jq -n {} | \
-  jq --arg exit_code "$exit_code" '. + {exit_code: $exit_code}' > \
+  jq --arg exit_code "$exit_code" \
+     --arg error "$main_error" \
+     --arg stderr "$error_log" \
+     '. + {exit_code: $exit_code, error: $error, stderr: $stderr}' > \
   $output_file_path
 
-  # Print stderr message to console
-  error_message=$(sed -n '/^Error:/p' error.log)
-  printf "\n[ERROR] Trustify Dependency Analytics failed with exit code $exit_code.\n$error_message"
+  # Print detailed error message to console
+  printf "\n[ERROR] Trustify Dependency Analytics failed with exit code $exit_code.\n"
+  printf "\n%s\n" "$main_error"
+
+  if [ -n "$cause_chain" ]; then
+    printf "\nCause chain:\n%s\n" "$cause_chain"
+  fi
+
+  # Show full stderr if it contains additional information
+  if [ -n "$error_log" ] && [ "$error_log" != "$main_error" ]; then
+    printf "\nFull error output:\n"
+    printf "=%.0s" {1..50}
+    printf "\n%s\n" "$error_log"
+    printf "=%.0s" {1..50}
+  fi
+
   exit 1
 else
 # In case of success print report summary into console
