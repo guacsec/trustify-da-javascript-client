@@ -88,8 +88,8 @@ LABEL org.opencontainers.image.created="${IMAGE_CREATED}"
 ENV TRUSTIFY_DA_PIP_FREEZE=''
 # contains pip show data for all packages, base64 encoded
 ENV TRUSTIFY_DA_PIP_SHOW=''
-# indicate whether to use the Minimal version selection (MVS) algorithm to select a set of module versions to use when building Go packages.
-ENV TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED='true'
+# indicate whether to use the virtual environment for python packages
+ENV TRUSTIFY_DA_PYTHON_VIRTUAL_ENV='true'
 
 # Copy OpenJDK (Temurin) from the builder stage
 COPY --from=builder /usr/temurin-21/ /usr/temurin-21/
