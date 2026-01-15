@@ -25,7 +25,7 @@ jobs:
       MAIN_NODE_VER: '24'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install node ${{ matrix.node }}
         uses: actions/setup-node@v5

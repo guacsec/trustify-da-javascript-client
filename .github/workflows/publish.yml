@@ -24,7 +24,7 @@ jobs:
     name: Publish EA release to NPM
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
@@ -90,7 +90,7 @@ jobs:
           rm releasebranch.txt
 
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ (github.event_name == 'workflow_run' && steps.releasebranch.outputs.branch) || github.ref }}
           fetch-depth: 0
