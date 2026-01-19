@@ -22,9 +22,10 @@ Ecosystem                     | Version                                         
 Maven | 3.9.12 |
 Gradle | 9.2.1 |
 Go | 1.25.5 |
-NPM | 10.8.2 |
+NPM | 11.6.2 |
 PNPM | 10.1.0 |
-Yarn | 4.9.1 |
+Yarn Classic | 4.9.1 |
+Yarn Berry | 1.22.22 |
 Python | 3.9.25 |
 
 ## Usage Notes
