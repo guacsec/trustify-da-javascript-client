@@ -21,11 +21,12 @@ RUN curl -kL https://services.gradle.org/distributions/gradle-9.2.1-bin.zip -o /
 RUN curl -kL https://go.dev/dl/go1.25.5.linux-amd64.tar.gz -o /tmp/golang-package.tar.gz \
     && tar xvzf /tmp/golang-package.tar.gz -C /usr/
 
-# install corepack and package managers (pnpm, yarn) - stage to /usr/local for easy copying
+# install corepack and package managers (pnpm, yarn classic + berry) - stage to /usr/local for easy copying
 ENV COREPACK_HOME=/usr/local/corepack/cache
 RUN npm install -g corepack@latest \
     && corepack enable \
     && corepack prepare pnpm@10.1.0 --activate \
+    && corepack prepare yarn@1.22.22 \
     && corepack prepare yarn@4.9.1 --activate \
     && NPM_PREFIX=$(npm config get prefix) \
     && mkdir -p /usr/local/corepack/bin \
@@ -111,12 +112,15 @@ ENV GRADLE_HOME=/usr/gradle-9.2.1
 COPY --from=builder /usr/local/corepack/ /usr/local/corepack/
 ENV COREPACK_HOME=/usr/local/corepack/cache
 
-# Install Python via microdnf and fix corepack cache permissions
+# Install Python via microdnf, create yarn wrapper scripts, and fix permissions
 USER root
 RUN microdnf install -y python3 python3-pip \
     && microdnf clean all \
     && chown -R 1001:0 /usr/local/corepack/cache \
-    && chmod -R g+rwX /usr/local/corepack/cache
+    && chmod -R g+rwX /usr/local/corepack/cache \
+    && printf '#!/bin/sh\nexec corepack yarn@1.22.22 "$@"\n' > /usr/local/bin/yarn-classic \
+    && printf '#!/bin/sh\nexec corepack yarn@4.9.1 "$@"\n' > /usr/local/bin/yarn-berry \
+    && chmod +x /usr/local/bin/yarn-classic /usr/local/bin/yarn-berry
 USER 1001
 
 # Update PATH (corepack bin first for pnpm/yarn to be found reliably)

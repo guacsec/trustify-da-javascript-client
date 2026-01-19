@@ -5,6 +5,31 @@ output_file_path="$2"
 
 printf "Analyzing the stack. Please wait..\n\n"
 
+# Get the directory containing the manifest file
+manifest_dir=$(dirname "$manifest_file_path")
+manifest_name=$(basename "$manifest_file_path")
+
+# Detect and set the correct yarn version if this is a yarn project
+if [ "$manifest_name" = "package.json" ] && [ -f "$manifest_dir/yarn.lock" ]; then
+  # Check if packageManager is already declared in package.json
+  package_manager=$(jq -r '.packageManager // empty' "$manifest_file_path" 2>/dev/null)
+  
+  if [ -z "$package_manager" ]; then
+    # No packageManager declared, detect based on project files
+    if [ -f "$manifest_dir/.yarnrc.yml" ]; then
+      # .yarnrc.yml exists = Yarn Berry
+      printf "Detected Yarn Berry project (found .yarnrc.yml), using yarn@4.9.1\n"
+      export TRUSTIFY_DA_YARN_PATH=/usr/local/bin/yarn-berry
+    else
+      # No .yarnrc.yml = Yarn Classic
+      printf "Detected Yarn Classic project, using yarn@1.22.22\n"
+      export TRUSTIFY_DA_YARN_PATH=/usr/local/bin/yarn-classic
+    fi
+  else
+    printf "Using declared packageManager: %s\n" "$package_manager"
+  fi
+fi
+
 # Getting RHDA stack analysis report using Exhort Javascript CLI.
 report=$(trustify-da-javascript-client stack $manifest_file_path 2>error.log)
 
@@ -90,5 +115,5 @@ printf "=%.0s" {1..50}
   $output_file_path
 
   printf "\nFull report is saved into file: $output_file_path"
-  printf "\nTask is completed."
+  printf "\nTask is completed.\n"
 fi
