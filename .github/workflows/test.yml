@@ -69,7 +69,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Setup syft
-        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
         with:
           repo: anchore/syft
           platform: linux
