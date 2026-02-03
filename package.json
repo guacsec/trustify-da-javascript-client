@@ -52,7 +52,7 @@
 		"https-proxy-agent": "^7.0.6",
 		"node-fetch": "^2.7.0",
 		"packageurl-js": "~1.0.2",
-		"yargs": "^17.7.2"
+		"yargs": "^18.0.0"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
