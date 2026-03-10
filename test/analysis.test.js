@@ -23,10 +23,10 @@ function interceptAndRun(handler, test) {
 
 function determineResponse(req, res, ctx) {
 	let response
-	if (req.headers.get("ex-snyk-token") == null) {
+	if (req.headers.get("ex-provider-1-token") == null) {
 		response = res(ctx.status(400));
 
-	} else if (req.headers.get("ex-snyk-token") === "good-dummy-token") {
+	} else if (req.headers.get("ex-provider-1-token") === "good-dummy-token") {
 		response = res(ctx.status(200));
 	} else {
 		response = res(ctx.status(401));
@@ -44,7 +44,7 @@ suite('testing the analysis module for sending api requests', () => {
 	};
 
 	test('invoking the requestComponent should return a json report', interceptAndRun(
-		http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+		http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 			// interception route, will return ok response for our fake content type
 			if (fakeProvided.contentType === req.headers.get('content-type')) {
 				return res(ctx.json({ dummy: 'response' }))
@@ -83,7 +83,7 @@ suite('testing the analysis module for sending api requests', () => {
 
 		test('invoking the requestStack for html should return a string report', interceptAndRun(
 			// interception route, will return ok response for our fake content type
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 				if (fakeProvided.contentType === req.headers.get('content-type')) {
 					return res(ctx.text('<html lang="en">html-content</html>'))
 				}
@@ -98,7 +98,7 @@ suite('testing the analysis module for sending api requests', () => {
 
 		test('invoking the requestStack for non-html should return a json report', interceptAndRun(
 			// interception route, will return ok response for our fake content type
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 				if (fakeProvided.contentType === req.headers.get('content-type')) {
 					return res(ctx.json({ dummy: 'response' }))
 				}
@@ -115,13 +115,13 @@ suite('testing the analysis module for sending api requests', () => {
 
 		test('invoking validateToken function with good token', interceptAndRun(
 			// interception route, will return ok response for our fake content type
-			http.get(`${backendUrl}/api/v3/token`, (req, res, ctx) => {
+			http.get(`${backendUrl}/api/v5/token`, (req, res, ctx) => {
 				return determineResponse(req, res, ctx);
 
 			}),
 			async () => {
 				let options = {
-					'TRUSTIFY_DA_SNYK_TOKEN': 'good-dummy-token'
+					'TRUSTIFY_DA_PROVIDER_1_TOKEN': 'good-dummy-token'
 				}
 				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
@@ -130,13 +130,13 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 		test('invoking validateToken function with bad token', interceptAndRun(
 			// interception route, will return ok response for our fake content type
-			http.get(`${backendUrl}/api/v3/token`, (req, res, ctx) => {
+			http.get(`${backendUrl}/api/v5/token`, (req, res, ctx) => {
 				return determineResponse(req, res, ctx);
 
 			}),
 			async () => {
 				let options = {
-					'TRUSTIFY_DA_SNYK_TOKEN': 'bad-dummy-token'
+					'TRUSTIFY_DA_PROVIDER_1_TOKEN': 'bad-dummy-token'
 				}
 				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
@@ -145,7 +145,7 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 		test('invoking validateToken function without token', interceptAndRun(
 			// interception route, will return ok response for our fake content type
-			http.get(`${backendUrl}/api/v3/token`, (req, res, ctx) => {
+			http.get(`${backendUrl}/api/v5/token`, (req, res, ctx) => {
 				return determineResponse(req, res, ctx);
 
 			}),
@@ -172,18 +172,18 @@ suite('testing the analysis module for sending api requests', () => {
 			isSupported: () => { } // not required for this test
 		};
 
-		afterEach(() => delete process.env['TRUSTIFY_DA_SNYK_TOKEN'])
+		afterEach(() => delete process.env['TRUSTIFY_DA_PROVIDER_1_TOKEN'])
 
 		test('when the relevant token environment variables are set, verify corresponding headers are included', interceptAndRun(
 			// interception route, will return ok response if found the expected token
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
-				if ('dummy-snyk-token' === req.headers.get('ex-snyk-token')) {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
+				if ('dummy-provider-1-token' === req.headers.get('ex-provider-1-token')) {
 					return res(ctx.json({ ok: 'ok' }))
 				}
 				return res(ctx.status(400))
 			}),
 			async () => {
-				process.env['TRUSTIFY_DA_SNYK_TOKEN'] = 'dummy-snyk-token'
+				process.env['TRUSTIFY_DA_PROVIDER_1_TOKEN'] = 'dummy-provider-1-token'
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ ok: 'ok' })
 			}
@@ -191,8 +191,8 @@ suite('testing the analysis module for sending api requests', () => {
 
 		test('when the relevant token environment variables are not set, verify no corresponding headers are included', interceptAndRun(
 			// interception route, will return ok response if found the expected token
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
-				if (!req.headers.get('ex-snyk-token')) {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
+				if (!req.headers.get('ex-provider-1-token')) {
 					return res(ctx.json({ ok: 'ok' }))
 				}
 				return res(ctx.status(400))
@@ -219,7 +219,7 @@ suite('testing the analysis module for sending api requests', () => {
 		})
 
 		test('when HTTP proxy is configured, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 				// The request should go through the proxy
 				return res(ctx.json({ ok: 'ok' }))
 			}),
@@ -234,7 +234,7 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 
 		test('when HTTPS proxy is configured, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 				// The request should go through the proxy
 				return res(ctx.json({ ok: 'ok' }))
 			}),
@@ -249,7 +249,7 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 
 		test('when proxy is configured via environment variable, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 				// The request should go through the proxy
 				return res(ctx.json({ ok: 'ok' }))
 			}),
@@ -261,7 +261,7 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 
 		test('when no proxy is configured, verify no agent is set', interceptAndRun(
-			http.post(`${backendUrl}/api/v3/analysis`, (req, res, ctx) => {
+			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
 				// The request should go directly without proxy
 				return res(ctx.json({ ok: 'ok' }))
 			}),

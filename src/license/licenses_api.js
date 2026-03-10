@@ -7,6 +7,7 @@
 
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
+import { selectTrustifyDABackend } from '../index.js';
 import { getCustom , getTokenHeaders } from '../tools.js';
 
 /**
@@ -14,14 +15,14 @@ import { getCustom , getTokenHeaders } from '../tools.js';
  * Returns detailed information about a specific license including category, name, and text.
  *
  * @param {string} spdxId - SPDX identifier (e.g., "Apache-2.0", "MIT")
- * @param {string} backendUrl - base URL of the Trustify DA backend (no trailing slash)
- * @param {import('../index.js').Options} [opts={}] - options (proxy, token, etc.)
+ * @param {import('../index.js').Options} [opts={}] - options (proxy, token, TRUSTIFY_DA_BACKEND_URL, etc.)
  * @returns {Promise<Object|null>} License details or null if not found
  */
-export async function getLicenseDetails(spdxId, backendUrl, opts = {}) {
+export async function getLicenseDetails(spdxId, opts = {}) {
 	if (!spdxId) {return null;}
 
-	const url = `${backendUrl.replace(/\/$/, '')}/api/v5/licenses/${encodeURIComponent(spdxId)}`;
+	const url = selectTrustifyDABackend(opts);
+	const finalUrl = new URL(`${url}/api/v5/licenses/${encodeURIComponent(spdxId)}`);
 
 	const fetchOptions = {
 		method: 'GET',
@@ -37,7 +38,7 @@ export async function getLicenseDetails(spdxId, backendUrl, opts = {}) {
 	}
 
 	try {
-		const resp = await fetch(url, fetchOptions);
+		const resp = await fetch(finalUrl, fetchOptions);
 		if (!resp.ok) {
 			const errorText = await resp.text().catch(() => '');
 			throw new Error(`HTTP ${resp.status}: ${errorText || resp.statusText}`);

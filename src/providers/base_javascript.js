@@ -2,15 +2,10 @@ import fs from 'node:fs'
 import os from "node:os";
 import path from 'node:path'
 
-import { getProjectLicenseFromManifest } from '../license/index.js';
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from "../tools.js";
 
 import Manifest from './manifest.js';
-
-/** @typedef {import('../provider.js').Provider} Provider */
-
-/** @typedef {import('../provider.js').Provided} Provided */
 
 /**
  * The ecosystem identifier for JavaScript/npm packages
@@ -152,6 +147,28 @@ export default class Base_javascript {
 	}
 
 	/**
+	 * Read license from manifest (package.json). Reused by npm, pnpm, yarn.
+	 * @param {string} manifestPath - path to package.json
+	 * @returns {string|null}
+	 */
+	readLicenseFromManifest(manifestPath) {
+		try {
+			const content = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+			if (typeof content.license === 'string') {
+				return content.license.trim() || null;
+			}
+			if (Array.isArray(content.licenses) && content.licenses.length > 0) {
+				const first = content.licenses[0];
+				const name = first.type || first.name;
+				return typeof name === 'string' ? name.trim() : null;
+			}
+			return null;
+		} catch {
+			return null;
+		}
+	}
+
+	/**
    * Builds the dependency tree for the project
    * @param {boolean} includeTransitive - Whether to include transitive dependencies
    * @returns {Object} The dependency tree
@@ -177,8 +194,7 @@ export default class Base_javascript {
 		const depsObject = this._buildDependencyTree(true);
 
 		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
-		const projectLicense = getProjectLicenseFromManifest(this.#manifest.manifestPath, opts);
-		const license = projectLicense.fromManifest;
+		const license = this.readLicenseFromManifest(this.#manifest.manifestPath);
 
 		let sbom = new Sbom();
 		sbom.addRoot(mainComponent, license);
@@ -236,8 +252,7 @@ export default class Base_javascript {
 	#getDirectDependencySbom(opts = {}) {
 		const depTree = this._buildDependencyTree(false);
 		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
-		const projectLicense = getProjectLicenseFromManifest(this.#manifest.manifestPath, opts);
-		const license = projectLicense.fromManifest;
+		const license = this.readLicenseFromManifest(this.#manifest.manifestPath);
 
 		let sbom = new Sbom();
 		sbom.addRoot(mainComponent, license);

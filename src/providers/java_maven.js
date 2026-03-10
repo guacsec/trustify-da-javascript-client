@@ -5,7 +5,6 @@ import { EOL } from 'os'
 
 import { XMLParser } from 'fast-xml-parser'
 
-import { getProjectLicenseFromManifest } from '../license/index.js'
 import Sbom from '../sbom.js'
 import { getCustom } from '../tools.js'
 
@@ -63,6 +62,25 @@ export default class Java_maven extends Base_java {
 			ecosystem: ecosystem_maven,
 			content: this.#getSbomForComponentAnalysis(manifest, opts),
 			contentType: 'application/vnd.cyclonedx+json'
+		}
+	}
+
+	readLicenseFromManifest(manifestPath) {
+		try {
+			const xml = fs.readFileSync(manifestPath, 'utf-8');
+			const parser = new XMLParser({ ignoreAttributes: false });
+			const obj = parser.parse(xml);
+			const project = obj?.project;
+			if (!project?.licenses?.license) {
+				return null;
+			}
+			const license = Array.isArray(project.licenses.license)
+				? project.licenses.license[0]
+				: project.licenses.license;
+			const name = (license?.name && license.name.trim()) || null;
+			return name || null;
+		} catch {
+			return null;
 		}
 	}
 
@@ -139,8 +157,7 @@ export default class Java_maven extends Base_java {
 		// get root component
 		let root = lines[0];
 		let rootPurl = this.parseDep(root);
-		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
-		const license = projectLicense.fromManifest;
+		const license = this.readLicenseFromManifest(manifestPath);
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
 		this.parseDependencyTree(root, 0, lines.slice(1), sbom);
@@ -177,8 +194,7 @@ export default class Java_maven extends Base_java {
 		let sbom = new Sbom();
 		let rootDependency = this.#getRootFromPom(tmpEffectivePom, manifestPath);
 		let purlRoot = this.toPurl(rootDependency.groupId, rootDependency.artifactId, rootDependency.version)
-		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
-		const license = projectLicense.fromManifest;
+		const license = this.readLicenseFromManifest(manifestPath);
 		sbom.addRoot(purlRoot, license)
 		dependencies.forEach(dep => {
 			let currentPurl = this.toPurl(dep.groupId, dep.artifactId, dep.version)

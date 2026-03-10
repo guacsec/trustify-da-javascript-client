@@ -6,26 +6,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { XMLParser } from 'fast-xml-parser';
-
+import { selectTrustifyDABackend } from '../index.js';
+import { matchForLicense, availableProviders } from '../provider.js';
 import { getCustom, getTokenHeaders } from '../tools.js';
 
 const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt'];
-
-/**
- * Resolve project license from the manifest file only (no LICENSE file).
- * @param {string} manifestPath - path to manifest (e.g. package.json, pom.xml)
- * @param {{}} [opts={}] - options (for getCustom, etc.)
- * @returns {{ fromManifest: string|null, fromFile: null, mismatch: false }}
- */
-export function getProjectLicenseFromManifest(manifestPath, opts = {}) {
-	const fromManifest = readLicenseFromManifest(manifestPath, opts);
-	return {
-		fromManifest: fromManifest || null,
-		fromFile: null,
-		mismatch: false
-	};
-}
 
 /**
  * Resolve project license from manifest and from LICENSE / LICENSE.md in manifest dir or git root.
@@ -35,8 +20,10 @@ export function getProjectLicenseFromManifest(manifestPath, opts = {}) {
  * @returns {{ fromManifest: string|null, fromFile: string|null, mismatch: boolean }}
  */
 export function getProjectLicense(manifestPath) {
-	const fromManifest = readLicenseFromManifest(manifestPath);
-	const fromFile = readLicenseFromFile(manifestPath);
+	const resolved = path.resolve(manifestPath);
+	const provider = matchForLicense(resolved, availableProviders);
+	const fromManifest = provider.readLicenseFromManifest(resolved);
+	const fromFile = readLicenseFromFile(resolved);
 	const mismatch = Boolean(
 		fromManifest && fromFile && normalizeSpdx(fromManifest) !== normalizeSpdx(fromFile)
 	);
@@ -45,71 +32,6 @@ export function getProjectLicense(manifestPath) {
 		fromFile: fromFile || null,
 		mismatch
 	};
-}
-
-/**
- * Read license from manifest (package.json, pom.xml). Returns null if not present or unsupported manifest.
- * @param {string} manifestPath
- * @returns {string|null}
- */
-function readLicenseFromManifest(manifestPath) {
-	const base = path.basename(manifestPath);
-	if (base === 'package.json') {
-		return readLicenseFromPackageJson(manifestPath);
-	}
-	if (base === 'pom.xml') {
-		return readLicenseFromPomXml(manifestPath);
-	}
-	// build.gradle, go.mod, requirements.txt: no standard license field
-	return null;
-}
-
-/**
- * @param {string} manifestPath
- * @returns {string|null}
- */
-function readLicenseFromPackageJson(manifestPath) {
-	try {
-		const content = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-		if (typeof content.license === 'string') {
-			return content.license.trim() || null;
-		}
-		if (Array.isArray(content.licenses) && content.licenses.length > 0) {
-			const first = content.licenses[0];
-			const name = first.type || first.name;
-			return typeof name === 'string' ? name.trim() : null;
-		}
-		return null;
-	} catch {
-		return null;
-	}
-}
-
-/**
- * @param {string} manifestPath
- * @returns {string|null}
- */
-function readLicenseFromPomXml(manifestPath) {
-	try {
-		const xml = fs.readFileSync(manifestPath, 'utf-8');
-		const parser = new XMLParser({ ignoreAttributes: false });
-		const obj = parser.parse(xml);
-		const project = obj?.project;
-		if (!project?.licenses?.license) {
-			return null;
-		}
-		const license = Array.isArray(project.licenses.license)
-			? project.licenses.license[0]
-			: project.licenses.license;
-		const name = (license?.name && license.name.trim()) || null;
-		if (!name) {
-			return null;
-		}
-
-		return name;
-	} catch {
-		return null;
-	}
 }
 
 /**
@@ -136,14 +58,14 @@ export function findLicenseFilePath(manifestPath) {
 /**
  * Call backend /licenses/identify endpoint to identify license from file.
  * @param {string} licenseFilePath - path to LICENSE file
- * @param {string} backendUrl - backend base URL
  * @param {{}} [opts={}] - options (proxy, token, etc.)
  * @returns {Promise<string|null>} - SPDX identifier or null
  */
-export async function identifyLicense(licenseFilePath, backendUrl, opts = {}) {
+export async function identifyLicense(licenseFilePath, opts = {}) {
 	try {
 		const fileContent = fs.readFileSync(licenseFilePath);
-		const url = `${backendUrl.replace(/\/$/, '')}/licenses/identify`;
+		const backendUrl = selectTrustifyDABackend(opts);
+		const url = new URL(`${backendUrl}/licenses/identify`);
 		const tokenHeaders = getTokenHeaders(opts);
 		const fetchOptions = {
 			method: 'POST',

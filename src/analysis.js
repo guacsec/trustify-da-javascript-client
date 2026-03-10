@@ -56,7 +56,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 		body: provided.content
 	}, opts);
 
-	const finalUrl = new URL(`${url}/api/v4/analysis`);
+	const finalUrl = new URL(`${url}/api/v5/analysis`);
 	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
@@ -118,7 +118,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 		body: provided.content
 	}, opts);
 
-	const finalUrl = new URL(`${url}/api/v4/analysis`);
+	const finalUrl = new URL(`${url}/api/v5/analysis`);
 	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
@@ -167,7 +167,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 		imageSboms[parsedImageRef.getPackageURL().toString()] = generateImageSBOM(parsedImageRef, opts)
 	}
 
-	const finalUrl = new URL(`${url}/api/v4/batch-analysis`);
+	const finalUrl = new URL(`${url}/api/v5/batch-analysis`);
 	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
@@ -218,7 +218,7 @@ async function validateToken(url, opts = {}) {
 		}
 	}, opts);
 
-	let resp = await fetch(`${url}/api/v4/token`, fetchOptions)
+	let resp = await fetch(`${url}/api/v5/token`, fetchOptions)
 	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		let exRequestId = resp.headers.get("ex-request-id");
 		if (exRequestId) {

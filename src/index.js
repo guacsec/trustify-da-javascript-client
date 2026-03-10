@@ -9,7 +9,7 @@ import * as url from 'url';
 
 export { parseImageRef } from "./oci_image/utils.js";
 export { ImageRef } from "./oci_image/images.js";
-export { getProjectLicense, getProjectLicenseFromManifest as getProjectLicenseFromManifestOnly, findLicenseFilePath, identifyLicenseViaBackend, getLicenseDetails, licensesFromReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility } from "./license/index.js";
+export { getProjectLicense, findLicenseFilePath, identifyLicenseViaBackend, getLicenseDetails, licensesFromReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility } from "./license/index.js";
 
 export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken }
 
@@ -40,7 +40,6 @@ export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken 
  * TRUSTIFY_DA_SYFT_PATH?: string | undefined,
  * TRUSTIFY_DA_YARN_PATH?: string | undefined,
  * TRUSTIFY_DA_LICENSE_CHECK?: string | undefined,
- * TRUSTIFY_DA_LICENSES_API_PATH?: string | undefined,
  * MATCH_MANIFEST_VERSIONS?: string | undefined,
  * TRUSTIFY_DA_SOURCE?: string | undefined,
  * TRUSTIFY_DA_TOKEN?: string | undefined,

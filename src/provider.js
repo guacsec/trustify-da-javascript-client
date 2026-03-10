@@ -10,7 +10,7 @@ import Javascript_yarn from './providers/javascript_yarn.js';
 import pythonPipProvider from './providers/python_pip.js'
 
 /** @typedef {{ecosystem: string, contentType: string, content: string}} Provided */
-/** @typedef {{isSupported: function(string): boolean, validateLockFile: function(string): void, provideComponent: function(string, {}): Provided | Promise<Provided>, provideStack: function(string, {}): Provided | Promise<Provided>}} Provider */
+/** @typedef {{isSupported: function(string): boolean, validateLockFile: function(string): void, provideComponent: function(string, {}): Provided | Promise<Provided>, provideStack: function(string, {}): Provided | Promise<Provided>, readLicenseFromManifest: function(string): string | null}} Provider */
 
 /**
  * MUST include all providers here.
@@ -25,6 +25,22 @@ export const availableProviders = [
 	new Javascript_yarn(),
 	golangGomodulesProvider,
 	pythonPipProvider]
+
+/**
+ * Match a provider by manifest type only (no lock file check). Used for license reading.
+ * @param {string} manifestPath - path or name of the manifest
+ * @param {[Provider]} providers - list of providers to iterate over
+ * @returns {Provider}
+ * @throws {Error} when the manifest is not supported and no provider was matched
+ */
+export function matchForLicense(manifestPath, providers) {
+	const base = path.parse(manifestPath).base
+	const provider = providers.find(prov => prov.isSupported(base))
+	if (!provider) {
+		throw new Error(`${base} is not supported`)
+	}
+	return provider
+}
 
 /**
  * Match a provider from a list or providers based on file type.

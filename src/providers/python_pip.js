@@ -2,7 +2,6 @@ import fs from 'node:fs'
 
 import { PackageURL } from 'packageurl-js'
 
-import { getProjectLicenseFromManifest } from '../license/index.js';
 import Sbom from '../sbom.js'
 import {
 	environmentVariableIsPopulated,
@@ -14,7 +13,7 @@ import {
 import Python_controller from './python_controller.js'
 import { getParser, getIgnoreQuery, getPinnedVersionQuery } from './requirements_parser.js'
 
-export default { isSupported, validateLockFile, provideComponent, provideStack }
+export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest }
 
 /** @typedef {{name: string, version: string, dependencies: DependencyEntry[]}} DependencyEntry */
 
@@ -31,6 +30,12 @@ const ecosystem = 'pip'
 function isSupported(manifestName) {
 	return 'requirements.txt' === manifestName
 }
+
+/**
+ * @param {string} manifestPath - path to requirements.txt
+ * @returns {string|null}
+ */
+function readLicenseFromManifest() { return null }
 
 /**
  * @param {string} manifestDir - the directory where the manifest lies
@@ -190,8 +195,7 @@ async function createSbomStackAnalysis(manifest, opts = {}) {
 	let dependencies = await pythonController.getDependencies(true);
 	let sbom = new Sbom();
 	const rootPurl = toPurl(DEFAULT_PIP_ROOT_COMPONENT_NAME, DEFAULT_PIP_ROOT_COMPONENT_VERSION);
-	const projectLicense = getProjectLicenseFromManifest(manifest, opts);
-	const license = projectLicense.fromManifest;
+	const license = readLicenseFromManifest(manifest);
 	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
 		addAllDependencies(rootPurl, dep, sbom)
@@ -216,8 +220,7 @@ async function getSbomForComponentAnalysis(manifest, opts = {}) {
 	let dependencies = await pythonController.getDependencies(false);
 	let sbom = new Sbom();
 	const rootPurl = toPurl(DEFAULT_PIP_ROOT_COMPONENT_NAME, DEFAULT_PIP_ROOT_COMPONENT_VERSION);
-	const projectLicense = getProjectLicenseFromManifest(manifest, opts);
-	const license = projectLicense.fromManifest;
+	const license = readLicenseFromManifest(manifest);
 	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
 		sbom.addDependency(rootPurl, toPurl(dep.name, dep.version))

@@ -7,7 +7,7 @@ import { hideBin } from 'yargs/helpers'
 
 import { getProjectLicense, getLicenseDetails } from './license/index.js'
 
-import client from './index.js'
+import client, { selectTrustifyDABackend } from './index.js'
 
 
 // command for component analysis take manifest type and content
@@ -34,9 +34,8 @@ const validateToken = {
 	builder: yargs => yargs.positional(
 		'token-provider',
 		{
-			desc: 'the token provider',
-			type: 'string',
-			choices: ['snyk','oss-index'],
+			desc: 'the token provider name',
+			type: 'string'
 		}
 	).options({
 		tokenValue: {
@@ -50,7 +49,7 @@ const validateToken = {
 		let opts={}
 		if(args['tokenValue'] !== undefined && args['tokenValue'].trim() !=="" ) {
 			let tokenValue = args['tokenValue'].trim()
-			opts[`TRUSTIFY_DA_${tokenProvider}_TOKEN`] = tokenValue
+			opts[`TRUSTIFY_DA_PROVIDER_${tokenProvider}_TOKEN`] = tokenValue
 		}
 		let res = await client.validateToken(opts)
 		console.log(res)
@@ -185,9 +184,11 @@ const license = {
 	handler: async args => {
 		let manifestPath = args['/path/to/manifest']
 
-		const backendUrl = process.env.TRUSTIFY_DA_BACKEND_URL
-		if (!backendUrl) {
-			console.error(JSON.stringify({ error: 'TRUSTIFY_DA_BACKEND_URL environment variable is required for the license command' }, null, 2))
+		const opts = {} // CLI options can be extended in the future
+		try {
+			selectTrustifyDABackend(opts)
+		} catch (err) {
+			console.error(JSON.stringify({ error: err.message }, null, 2))
 			process.exit(1)
 		}
 
@@ -200,7 +201,6 @@ const license = {
 		}
 
 		const errors = []
-		const opts = {} // CLI options can be extended in the future
 
 		// Build LicenseInfo objects
 		const buildLicenseInfo = async (spdxId) => {
@@ -209,7 +209,7 @@ const license = {
 			const licenseInfo = { spdxId }
 
 			try {
-				const details = await getLicenseDetails(spdxId, backendUrl, opts)
+				const details = await getLicenseDetails(spdxId, opts)
 				if (details) {
 					// Check if backend recognized the license as valid
 					if (details.category === 'UNKNOWN') {

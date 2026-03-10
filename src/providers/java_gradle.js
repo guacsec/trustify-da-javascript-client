@@ -4,7 +4,6 @@ import { EOL } from 'os'
 
 import TOML from 'fast-toml'
 
-import { getProjectLicenseFromManifest } from '../license/index.js'
 import Sbom from '../sbom.js'
 
 import Base_java, { ecosystem_gradle } from "./base_java.js";
@@ -102,6 +101,13 @@ export default class Java_gradle extends Base_java {
 	}
 
 	/**
+	 * Gradle manifests (build.gradle, build.gradle.kts) have no standard license field.
+	 * @param {string} manifestPath - path to manifest (unused)
+	 * @returns {null}
+	 */
+	readLicenseFromManifest() { return null }
+
+	/**
 	 * @param {string} line - the line to parse
 	 * @returns {number} the depth of the dependency in the tree starting from 1. -1 if the line is not a dependency.
 	 * @private
@@ -192,8 +198,7 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
-		const license = projectLicense.fromManifest;
+		const license = null; // Gradle has no standard license field in manifest
 		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 
@@ -348,8 +353,7 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
-		const license = projectLicense.fromManifest;
+		const license = null; // Gradle has no standard license field in manifest
 		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 

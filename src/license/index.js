@@ -6,8 +6,8 @@ import { getProjectLicense, findLicenseFilePath, identifyLicense } from './proje
 import { licensesFromReport, getLicenseDetails } from './licenses_api.js';
 import { getCompatibility } from './compatibility.js';
 
-export { getProjectLicense, getProjectLicenseFromManifest, findLicenseFilePath, identifyLicense as identifyLicenseViaBackend } from './project_license.js';
-export { licensesFromReport as licensesFromReport, normalizeLicensesResponse, getLicenseDetails } from './licenses_api.js';
+export { getProjectLicense, findLicenseFilePath, identifyLicense as identifyLicenseViaBackend } from './project_license.js';
+export { licensesFromReport, normalizeLicensesResponse, getLicenseDetails } from './licenses_api.js';
 export { getCompatibility } from './compatibility.js';
 
 /**
@@ -16,21 +16,21 @@ export { getCompatibility } from './compatibility.js';
  *
  * @param {string} sbomContent - CycloneDX SBOM JSON string (the one sent for component analysis)
  * @param {string} manifestPath - path to manifest
- * @param {string} backendUrl - Trustify DA backend base URL
+ * @param {string} url - the backend url to send the request to
  * @param {import('../index.js').Options} [opts={}]
  * @param {import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport} [analysisResult] - analysis result that includes licenses array from backend
  * @returns {Promise<{ projectLicense: { manifest: Object|null, file: Object|null, mismatch: boolean }, incompatibleDependencies: Array<{ purl: string, licenses: string[], category?: string, reason: string }>, error?: string }>}
  */
-export async function runLicenseCheck(sbomContent, manifestPath, backendUrl, opts = {}, analysisResult = null) {
+export async function runLicenseCheck(sbomContent, manifestPath, url, opts = {}, analysisResult = null) {
 	// Resolve project license from manifest and LICENSE file
 	const projectLicense = getProjectLicense(manifestPath, opts);
 
 	// Try backend identification for LICENSE file (more accurate than local pattern matching)
 	const licenseFilePath = findLicenseFilePath(manifestPath);
 	let backendFileId = null;
-	if (licenseFilePath && backendUrl) {
+	if (licenseFilePath) {
 		try {
-			backendFileId = await identifyLicense(licenseFilePath, backendUrl, opts);
+			backendFileId = await identifyLicense(licenseFilePath, { ...opts, TRUSTIFY_DA_BACKEND_URL: url });
 		} catch {
 			// Fall back to local detection
 		}
@@ -45,11 +45,11 @@ export async function runLicenseCheck(sbomContent, manifestPath, backendUrl, opt
 	const licenseDetailsCache = new Map();
 
 	async function getDetails(spdxId) {
-		if (!spdxId || !backendUrl) return null;
+		if (!spdxId || !url) return null;
 		if (licenseDetailsCache.has(spdxId)) return licenseDetailsCache.get(spdxId);
 
 		try {
-			const details = await getLicenseDetails(spdxId, backendUrl, opts);
+			const details = await getLicenseDetails(spdxId, { ...opts, TRUSTIFY_DA_BACKEND_URL: url });
 			licenseDetailsCache.set(spdxId, details);
 			return details;
 		} catch {
