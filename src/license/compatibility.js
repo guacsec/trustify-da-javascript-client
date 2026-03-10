@@ -1,66 +1,53 @@
 /**
  * License compatibility: whether a dependency license is compatible with the project license.
- * Uses a minimal in-client matrix; the backend may provide compatibility in the future.
+ * Relies on backend-provided license categories.
+ *
+ * Compatibility is based on restrictiveness hierarchy:
+ * PERMISSIVE < WEAK_COPYLEFT < STRONG_COPYLEFT
+ *
+ * A dependency is compatible if it's equal or less restrictive than the project license.
+ * A dependency is incompatible if it's more restrictive than the project license.
  */
 
 /**
- * Check if a dependency's license(s) are compatible with the project license.
- * When the backend provides dependencyCategory (from License Analysis API / analysis report), it is used for more accurate compatibility.
+ * Check if a dependency's license is compatible with the project license based on backend categories.
  *
- * @param {string|null} projectLicense - SPDX id or name from manifest/file
- * @param {string[]} dependencyLicenses - SPDX ids or names for the dependency
- * @param {string} [dependencyCategory] - optional category from backend: PERMISSIVE | WEAK_COPYLEFT | STRONG_COPYLEFT | UNKNOWN
+ * @param {string} [projectCategory] - backend category for project license: PERMISSIVE | WEAK_COPYLEFT | STRONG_COPYLEFT | UNKNOWN
+ * @param {string} [dependencyCategory] - backend category for dependency license: PERMISSIVE | WEAK_COPYLEFT | STRONG_COPYLEFT | UNKNOWN
  * @returns {'compatible'|'incompatible'|'unknown'}
  */
-export function getCompatibility(projectLicense, dependencyLicenses, dependencyCategory) {
-	if (!projectLicense) {return 'unknown';}
-	if (!dependencyLicenses?.length) {return 'unknown';}
-
-	// Use backend category when available (from API v5 licenses / analysis report)
-	const cat = String(dependencyCategory || '').toUpperCase();
-	if (cat === 'STRONG_COPYLEFT') {
-		const proj = projectLicense ? normalize(projectLicense) : '';
-		if (isPermissive(proj)) {return 'incompatible';}
-		if (isCopyleft(proj)) {return 'unknown';}
-		return 'incompatible';
-	}
-	if (cat === 'WEAK_COPYLEFT') {
-		const proj = projectLicense ? normalize(projectLicense) : '';
-		if (isPermissive(proj)) {return 'unknown';} // weak copyleft often acceptable when used as library
+export function getCompatibility(projectCategory, dependencyCategory) {
+	if (!projectCategory || !dependencyCategory) {
 		return 'unknown';
 	}
-	if (cat === 'PERMISSIVE' && (!projectLicense || isPermissive(normalize(projectLicense)))) {return 'compatible';}
 
-	if (!projectLicense || !dependencyLicenses?.length) {return 'unknown';}
+	const proj = projectCategory.toUpperCase();
+	const dep = dependencyCategory.toUpperCase();
 
-	const proj = normalize(projectLicense);
-	const depSet = new Set(dependencyLicenses.map(normalize).filter(Boolean));
+	// Unknown categories
+	if (proj === 'UNKNOWN' || dep === 'UNKNOWN') {
+		return 'unknown';
+	}
 
-	// Same license or both permissive -> compatible
-	if (depSet.has(proj)) {return 'compatible';}
-	if (isPermissive(proj) && [...depSet].every(isPermissive)) {return 'compatible';}
+	// Define restrictiveness levels (higher number = more restrictive)
+	const restrictiveness = {
+		'PERMISSIVE': 1,
+		'WEAK_COPYLEFT': 2,
+		'STRONG_COPYLEFT': 3
+	};
 
-	// Project is permissive; dependency is copyleft -> flag for user awareness
-	if (isPermissive(proj) && [...depSet].some(isCopyleft)) {return 'incompatible';}
+	const projLevel = restrictiveness[proj];
+	const depLevel = restrictiveness[dep];
 
-	// Project is copyleft; dependency is different copyleft or proprietary -> unknown / depends on linking
-	if (isCopyleft(proj)) {return 'unknown';}
+	if (projLevel === undefined || depLevel === undefined) {
+		return 'unknown';
+	}
 
-	return 'unknown';
-}
+	// Dependency is more restrictive than project → incompatible
+	if (depLevel > projLevel) {
+		return 'incompatible';
+	}
 
-function normalize(id) {
-	return String(id).trim().toLowerCase().replace(/\s+/g, '-');
-}
-
-function isPermissive(id) {
-	const n = normalize(id);
-	return ['mit', 'apache-2.0', 'bsd-2-clause', 'bsd-3-clause', 'isc', '0bsd'].includes(n) ||
-		n.startsWith('apache-') || n.startsWith('bsd-');
-}
-
-function isCopyleft(id) {
-	const n = normalize(id);
-	return ['gpl-2.0-only', 'gpl-2.0-or-later', 'gpl-3.0-only', 'gpl-3.0-or-later',
-		'agpl-3.0-only', 'agpl-3.0-or-later'].includes(n) || n.startsWith('gpl-') || n.startsWith('agpl-');
+	// Dependency is equal or less restrictive → compatible
+	return 'compatible';
 }

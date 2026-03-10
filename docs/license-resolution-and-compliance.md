@@ -26,14 +26,6 @@ The client looks for your project’s license in two places:
 
 The backend’s license identification API is used for accurate LICENSE file detection.
 
-### Dependency License Information
-
-Dependency licenses come from the Trustify DA backend, which categorizes them as:
-- **PERMISSIVE** (MIT, Apache-2.0, BSD, etc.)
-- **WEAK_COPYLEFT** (LGPL, MPL, etc.)
-- **STRONG_COPYLEFT** (GPL, AGPL, etc.)
-- **UNKNOWN**
-
 ### Compatibility Checking
 
 The client checks if dependency licenses are compatible with your project license. For example:
@@ -46,7 +38,7 @@ Compatibility results are included in the analysis report’s `licenseSummary`.
 
 ### Disable License Checking
 
-License analysis runs automatically during component/stack analysis. To disable it:
+License analysis runs automatically during **component analysis only** (not stack analysis). To disable it:
 
 **Environment variable:**
 ```bash
@@ -56,13 +48,6 @@ export TRUSTIFY_DA_LICENSE_CHECK=false
 **Programmatic option:**
 ```javascript
 await componentAnalysis(‘pom.xml’, { licenseCheck: false });
-```
-
-### Backend URL
-
-License analysis requires the same backend URL as dependency analysis:
-```bash
-export TRUSTIFY_DA_BACKEND_URL=https://api.trustify.dev
 ```
 
 ## CLI Usage
@@ -76,37 +61,47 @@ exhort license path/to/pom.xml
 **Example output:**
 ```json
 {
-  "projectLicense": {
-    "fromManifest": "Apache-2.0",
-    "fromFile": "Apache-2.0",
-    "mismatch": false
+  "manifestLicense": {
+    "spdxId": "Apache-2.0",
+    "category": "PERMISSIVE",
+    "name": "Apache License 2.0",
+    "identifiers": ["Apache-2.0"]
   },
-  "dependencies": {
-    "pkg:maven/com.google.guava/guava@32.1.0": {
-      "licenses": ["Apache-2.0"],
-      "category": "PERMISSIVE",
-      "compatible": true
-    },
-    "pkg:maven/org.postgresql/postgresql@42.6.0": {
-      "licenses": ["BSD-2-Clause"],
-      "category": "PERMISSIVE",
-      "compatible": true
-    }
-  }
+  "fileLicense": {
+    "spdxId": "Apache-2.0",
+    "category": "PERMISSIVE",
+    "name": "Apache License 2.0",
+    "identifiers": ["Apache-2.0"]
+  },
+  "mismatch": false
 }
 ```
 
+Note: The `license` command shows only your project's license. For dependency license information, use component analysis.
+
 ## Analysis Report Fields
 
-When license checking is enabled, the analysis report includes:
+When license checking is enabled, component analysis includes a `licenseSummary` field:
 
 ```javascript
 {
-  // ... standard analysis fields ...
+  // ... standard analysis fields (providers, etc.) ...
   "licenseSummary": {
-    "projectLicenseFromManifest": "Apache-2.0",
-    "projectLicenseFromFile": "Apache-2.0",
-    "manifestVsFileMismatch": false,
+    "projectLicense": {
+      "manifest": {
+        "spdxId": "Apache-2.0",
+        "category": "PERMISSIVE",
+        "name": "Apache License 2.0",
+        "identifiers": ["Apache-2.0"]
+      },
+      "file": {
+        "spdxId": "Apache-2.0",
+        "category": "PERMISSIVE",
+        "name": "Apache License 2.0",
+        "identifiers": ["Apache-2.0"]
+      },
+      "mismatch": false
+    },
     "incompatibleDependencies": [
       {
         "purl": "pkg:maven/org.example/gpl-lib@1.0.0",
@@ -114,24 +109,36 @@ When license checking is enabled, the analysis report includes:
         "category": "STRONG_COPYLEFT",
         "reason": "Dependency license(s) are incompatible with the project license."
       }
-    ],
-    "dependencyLicenses": [
-      { "purl": "...", "licenses": [...], "category": "..." }
     ]
   }
 }
 ```
 
+**Note:** Dependency license information (for all dependencies, not just incompatible ones) is available in the standard backend response under the `licenses` field. The `licenseSummary` only includes project license details and flagged incompatibilities.
+
 ## Common Scenarios
 
 ### Mismatch Between Manifest and LICENSE File
 
-If your `package.json` says `"license": "MIT"` but your LICENSE file contains Apache-2.0 text:
+If your `package.json` says `"license": "MIT"` but your LICENSE file contains Apache-2.0 text, the component analysis report will show:
 ```json
 {
-  "projectLicenseFromManifest": "MIT",
-  "projectLicenseFromFile": "Apache-2.0",
-  "manifestVsFileMismatch": true
+  "licenseSummary": {
+    "projectLicense": {
+      "manifest": {
+        "spdxId": "MIT",
+        "category": "PERMISSIVE",
+        "name": "MIT License"
+      },
+      "file": {
+        "spdxId": "Apache-2.0",
+        "category": "PERMISSIVE",
+        "name": "Apache License 2.0"
+      },
+      "mismatch": true
+    },
+    "incompatibleDependencies": []
+  }
 }
 ```
 
