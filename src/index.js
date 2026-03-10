@@ -9,7 +9,7 @@ import * as url from 'url';
 
 export { parseImageRef } from "./oci_image/utils.js";
 export { ImageRef } from "./oci_image/images.js";
-export { getProjectLicense, getProjectLicenseFromManifest as getProjectLicenseFromManifestOnly, findLicenseFilePath, identifyLicenseViaBackend, getLicensesByPurl, getLicenseDetails, licenseMapFromAnalysisReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility, extractPurlsFromSbom } from "./license/index.js";
+export { getProjectLicense, getProjectLicenseFromManifest as getProjectLicenseFromManifestOnly, findLicenseFilePath, identifyLicenseViaBackend, getLicenseDetails, licensesFromReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility } from "./license/index.js";
 
 export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken }
 

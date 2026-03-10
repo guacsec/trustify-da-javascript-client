@@ -9,9 +9,6 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 
 import { getCustom , getTokenHeaders } from '../tools.js';
 
-/** Default path for the licenses endpoint (API v5). Override via TRUSTIFY_DA_LICENSES_API_PATH or opts. */
-const DEFAULT_LICENSES_PATH = '/api/v5/licenses';
-
 /**
  * Fetch license details by SPDX identifier from the backend GET /api/v5/licenses/{spdx}.
  * Returns detailed information about a specific license including category, name, and text.
@@ -91,52 +88,7 @@ export function normalizeLicensesResponse(data, purls = []) {
  * @param {string[]} [purls] - optional list of purls to restrict to
  * @returns {Map<string, { licenses: string[], category?: string }>}
  */
-export function licenseMapFromAnalysisReport(analysisReport, purls = []) {
+export function licensesFromReport(analysisReport, purls = []) {
 	if (!analysisReport?.licenses) {return new Map();}
 	return normalizeLicensesResponse(analysisReport.licenses, purls);
-}
-
-/**
- * Fetch licenses for the given purls from the backend POST /api/v5/licenses.
- * Request body: { purls: string[] }. Response: LicensesResponse (array of LicenseProviderResult).
- *
- * NOTE: This is typically not needed since dependency licenses are included in the analysis response.
- * Use licenseMapFromAnalysisReport() instead when you have an analysis result.
- *
- * @param {string[]} purls - array of purl strings (e.g. from SBOM components)
- * @param {string} backendUrl - base URL of the Trustify DA backend (no trailing slash)
- * @param {import('../index.js').Options} [opts={}] - options (proxy, token, etc.)
- * @returns {Promise<Map<string, { licenses: string[], category?: string }>>}
- */
-export async function getLicensesByPurl(purls, backendUrl, opts = {}) {
-	if (!purls || purls.length === 0) {
-		return new Map();
-	}
-
-	const pathSegment = getCustom('TRUSTIFY_DA_LICENSES_API_PATH', DEFAULT_LICENSES_PATH, opts);
-	const url = `${backendUrl.replace(/\/$/, '')}${pathSegment}`;
-
-	const fetchOptions = {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Accept': 'application/json',
-			...getTokenHeaders(opts)
-		},
-		body: JSON.stringify({ purls }),
-	};
-
-	const proxyUrl = getCustom('TRUSTIFY_DA_PROXY_URL', null, opts);
-	if (proxyUrl) {
-		fetchOptions.agent = new HttpsProxyAgent(proxyUrl);
-	}
-
-	const resp = await fetch(url, fetchOptions);
-	if (!resp.ok) {
-		const text = await resp.text();
-		throw new Error(`Licenses API failed: ${resp.status} ${text}`);
-	}
-
-	const data = await resp.json();
-	return normalizeLicensesResponse(data, purls);
 }

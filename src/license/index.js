@@ -3,40 +3,12 @@
  */
 
 import { getProjectLicense, findLicenseFilePath, identifyLicense } from './project_license.js';
-import { licenseMapFromAnalysisReport, getLicenseDetails } from './licenses_api.js';
+import { licensesFromReport, getLicenseDetails } from './licenses_api.js';
 import { getCompatibility } from './compatibility.js';
 
 export { getProjectLicense, getProjectLicenseFromManifest, findLicenseFilePath, identifyLicense as identifyLicenseViaBackend } from './project_license.js';
-export { licenseMapFromAnalysisReport, normalizeLicensesResponse, getLicensesByPurl, getLicenseDetails } from './licenses_api.js';
+export { licensesFromReport as licensesFromReport, normalizeLicensesResponse, getLicenseDetails } from './licenses_api.js';
 export { getCompatibility } from './compatibility.js';
-
-/**
- * Extract all component purls from a CycloneDX SBOM JSON string (excluding root if desired).
- * @param {string} sbomContent - CycloneDX JSON string
- * @param {boolean} [excludeRoot=true] - if true, exclude the root component's purl from the list
- * @returns {string[]}
- */
-export function extractPurlsFromSbom(sbomContent, excludeRoot = true) {
-	let obj;
-	try {
-		obj = typeof sbomContent === 'string' ? JSON.parse(sbomContent) : sbomContent;
-	} catch {
-		return [];
-	}
-	const components = obj?.components;
-	if (!Array.isArray(components)) return [];
-
-	const rootRef = obj?.metadata?.component?.["bom-ref"] ?? obj?.metadata?.component?.purl;
-	const purls = components
-		.map(c => c.purl || c["bom-ref"] || c.bomRef)
-		.filter(Boolean);
-
-	if (excludeRoot && rootRef) {
-		const rootPurl = typeof rootRef === 'string' ? rootRef : rootRef?.purl;
-		return purls.filter(p => p !== rootPurl);
-	}
-	return purls;
-}
 
 /**
  * Run full license check: resolve project license (with backend identification and details),
@@ -50,80 +22,77 @@ export function extractPurlsFromSbom(sbomContent, excludeRoot = true) {
  * @returns {Promise<{ projectLicense: { manifest: Object|null, file: Object|null, mismatch: boolean }, incompatibleDependencies: Array<{ purl: string, licenses: string[], category?: string, reason: string }>, error?: string }>}
  */
 export async function runLicenseCheck(sbomContent, manifestPath, backendUrl, opts = {}, analysisResult = null) {
-	// Get project license from manifest (always available)
+	// Resolve project license from manifest and LICENSE file
 	const projectLicense = getProjectLicense(manifestPath, opts);
 
-	// Try to get more accurate LICENSE file identification from backend
-	let projectLicenseFromFileBackend = null;
+	// Try backend identification for LICENSE file (more accurate than local pattern matching)
 	const licenseFilePath = findLicenseFilePath(manifestPath);
+	let backendFileId = null;
 	if (licenseFilePath && backendUrl) {
 		try {
-			projectLicenseFromFileBackend = await identifyLicense(licenseFilePath, backendUrl, opts);
+			backendFileId = await identifyLicense(licenseFilePath, backendUrl, opts);
 		} catch {
-			// Fall back to local detection (already in projectLicense.fromFile)
+			// Fall back to local detection
 		}
 	}
 
-	// Use backend identification if available, otherwise use local detection
-	const finalFromFile = projectLicenseFromFileBackend || projectLicense.fromFile;
-	const finalMismatch = Boolean(
-		projectLicense.fromManifest && finalFromFile &&
-		projectLicense.fromManifest.toLowerCase() !== finalFromFile.toLowerCase()
-	);
+	// Determine final license identifiers
+	const manifestSpdx = projectLicense.fromManifest;
+	const fileSpdx = backendFileId || projectLicense.fromFile;
+	const mismatch = Boolean(manifestSpdx && fileSpdx && manifestSpdx.toLowerCase() !== fileSpdx.toLowerCase());
 
-	// Fetch detailed license info from backend for both manifest and file licenses
-	let manifestLicenseInfo = null;
-	let fileLicenseInfo = null;
+	// Fetch detailed license info from backend (avoid duplicate calls if same license)
+	const licenseDetailsCache = new Map();
 
-	if (projectLicense.fromManifest && backendUrl) {
+	async function getDetails(spdxId) {
+		if (!spdxId || !backendUrl) return null;
+		if (licenseDetailsCache.has(spdxId)) return licenseDetailsCache.get(spdxId);
+
 		try {
-			manifestLicenseInfo = await getLicenseDetails(projectLicense.fromManifest, backendUrl, opts);
+			const details = await getLicenseDetails(spdxId, backendUrl, opts);
+			licenseDetailsCache.set(spdxId, details);
+			return details;
 		} catch {
-			// Backend might not have this license; keep as null
+			return null;
 		}
 	}
 
-	if (finalFromFile && backendUrl) {
-		try {
-			fileLicenseInfo = await getLicenseDetails(finalFromFile, backendUrl, opts);
-		} catch {
-			// Backend might not have this license; keep as null
-		}
-	}
+	const manifestLicenseInfo = await getDetails(manifestSpdx);
+	const fileLicenseInfo = await getDetails(fileSpdx);
 
-	const purls = extractPurlsFromSbom(sbomContent, true);
+	// Extract dependency purls from SBOM (exclude root component)
+	const sbomObj = typeof sbomContent === 'string' ? JSON.parse(sbomContent) : sbomContent;
+	const rootRef = sbomObj?.metadata?.component?.["bom-ref"] || sbomObj?.metadata?.component?.purl;
+	const purls = (sbomObj?.components || [])
+		.map(c => c.purl || c["bom-ref"])
+		.filter(Boolean)
+		.filter(purl => !rootRef || purl !== rootRef);
+
 	if (purls.length === 0) {
 		return {
-			projectLicense: {
-				manifest: manifestLicenseInfo,
-				file: fileLicenseInfo,
-				mismatch: finalMismatch
-			},
+			projectLicense: { manifest: manifestLicenseInfo, file: fileLicenseInfo, mismatch },
 			incompatibleDependencies: []
 		};
 	}
 
-	// Get dependency licenses from analysis report (backend already provides this)
-	const licenseByPurl = licenseMapFromAnalysisReport(analysisResult, purls);
+	// Get dependency licenses from analysis report
+	const licenseByPurl = licensesFromReport(analysisResult, purls);
 	if (licenseByPurl.size === 0 && analysisResult) {
-		// No license data in analysis report - this might be expected for some backends
 		return {
-			projectLicense: {
-				manifest: manifestLicenseInfo,
-				file: fileLicenseInfo,
-				mismatch: finalMismatch
-			},
+			projectLicense: { manifest: manifestLicenseInfo, file: fileLicenseInfo, mismatch },
 			incompatibleDependencies: [],
 			error: 'No license data available in analysis report'
 		};
 	}
 
-	// Use backend category from project license details (prefer manifest, fallback to file)
-	const projectCategory = manifestLicenseInfo?.category || fileLicenseInfo?.category || null;
+	// Check compatibility for each dependency
+	const projectCategory = manifestLicenseInfo?.category || fileLicenseInfo?.category;
 	const incompatibleDependencies = [];
 
 	for (const purl of purls) {
-		const entry = licenseByPurl.get(purl) || { licenses: [], category: undefined };
+		const entry = licenseByPurl.get(purl);
+		if (!entry) continue;
+
 		const status = getCompatibility(projectCategory, entry.category);
 		if (status === 'incompatible') {
 			incompatibleDependencies.push({
@@ -136,11 +105,7 @@ export async function runLicenseCheck(sbomContent, manifestPath, backendUrl, opt
 	}
 
 	return {
-		projectLicense: {
-			manifest: manifestLicenseInfo,
-			file: fileLicenseInfo,
-			mismatch: finalMismatch
-		},
+		projectLicense: { manifest: manifestLicenseInfo, file: fileLicenseInfo, mismatch },
 		incompatibleDependencies
 	};
 }
