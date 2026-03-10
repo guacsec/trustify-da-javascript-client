@@ -43,12 +43,11 @@ function getComponent(component, type, scope, licenses) {
 		componentObject = component
 	}
 
-	// Add licenses if provided (CycloneDX format)
+	// Add licenses if provided (CycloneDX format). Callers must provide valid SPDX identifiers.
 	if (licenses) {
 		const licenseArray = Array.isArray(licenses) ? licenses : [licenses];
 		componentObject.licenses = licenseArray.map(lic => {
 			if (typeof lic === 'string') {
-				// If it's a string, treat it as an SPDX id or name
 				return { license: { id: lic } };
 			}
 			return lic;

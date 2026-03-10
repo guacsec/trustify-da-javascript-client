@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 import { PackageURL } from 'packageurl-js'
 
+import { getProjectLicenseFromManifest } from '../license/index.js';
 import Sbom from '../sbom.js'
 import {
 	environmentVariableIsPopulated,
@@ -9,7 +10,6 @@ import {
 	getCustomPath,
 	invokeCommand
 } from "../tools.js";
-import { getProjectLicenseFromManifest } from '../license/index.js';
 
 import Python_controller from './python_controller.js'
 import { getParser, getIgnoreQuery, getPinnedVersionQuery } from './requirements_parser.js'

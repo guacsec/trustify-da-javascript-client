@@ -1,111 +1,151 @@
-# License resolution and compliance
+# License Resolution and Compliance
 
-This document describes how the client resolves the **project license** (from manifest vs repository file), how it uses the **backend licenses-by-purl endpoint** to get dependency licenses, and how **component analysis** can report when the project license is missing, inconsistent, or incompatible with dependency licenses.
+This document describes the license analysis features that help you understand your project’s license and check compatibility with your dependencies.
 
-## Goals
+## Overview
 
-1. **Resolve project license** from:
-   - The manifest (e.g. `package.json` `license`, `pom.xml` `<licenses>`) when present.
-   - A `LICENSE`, `LICENSE.md`, or `LICENSE.txt` file in the same directory as the manifest.
-2. **Report to the user** when the license declared in the manifest differs from the license text file.
-3. **Component analysis**: when the user runs component analysis (e.g. on opening a manifest), optionally check dependency licenses (via backend) and report if any are **incompatible** with the project license.
+License analysis is **enabled by default** and provides:
 
-## Resolving the project license
+1. **Project license detection** from your manifest file (e.g., `package.json`, `pom.xml`) and LICENSE files
+2. **Dependency license information** from the Trustify DA backend
+3. **Compatibility checking** to identify potential license conflicts
+4. **Mismatch detection** when your manifest and LICENSE file declare different licenses
 
-### From the manifest
+## How It Works
 
-| Ecosystem      | Manifest        | Where license is read |
-|----------------|-----------------|------------------------|
-| JavaScript     | package.json    | `license` (string) or `licenses` (array); can be SPDX id or "SEE LICENSE IN FILE" |
-| Java (Maven)   | pom.xml         | Effective POM: `<licenses><license><name>` / `<url>`; map common names to SPDX where possible |
-| Java (Gradle)  | build.gradle(*) | No standard; some projects set extra/license in properties; optional best-effort |
-| Go             | go.mod          | No standard license field |
-| Python         | requirements.txt| No license in manifest |
+### Project License Detection
 
-(*) Gradle: license is often in a separate file or NOTICE; we do not parse build logic.
+The client looks for your project’s license in two places:
 
-### From the repository (LICENSE / LICENSE.md)
+1. **Manifest file** — Reads the license field from:
+   - `package.json`: `license` field
+   - `pom.xml`: `<licenses><license><name>` element
+   - Other ecosystems: varies by ecosystem (some don’t have standard license fields)
 
-- Look in the **manifest directory** for `LICENSE`, `LICENSE.md`, or `LICENSE.txt`.
-- Only searches the same directory as the manifest (not parent directories or git root).
-- Read file content; try to **detect** or **normalize** to an SPDX identifier (e.g. "Apache-2.0") for comparison using local pattern matching or the backend `/licenses/identify` endpoint for more accuracy.
+2. **LICENSE file** — Searches for `LICENSE`, `LICENSE.md`, or `LICENSE.txt` in the same directory as your manifest
 
-### Reporting manifest vs file mismatch
+The backend’s license identification API is used for accurate LICENSE file detection.
 
-- If both manifest and file are present and indicate different licenses → set `licenseSummary.manifestVsFileMismatch: true` and include both values so the user can fix the inconsistency.
-- If only one is present, we still expose both `fromManifest` and `fromFile` so the user sees what was found.
+### Dependency License Information
 
-## Backend: License Analysis API (v5) and license data in the analysis report
+Dependency licenses come from the Trustify DA backend, which categorizes them as:
+- **PERMISSIVE** (MIT, Apache-2.0, BSD, etc.)
+- **WEAK_COPYLEFT** (LGPL, MPL, etc.)
+- **STRONG_COPYLEFT** (GPL, AGPL, etc.)
+- **UNKNOWN**
 
-The Trustify Dependency Analytics backend provides:
+### Compatibility Checking
 
-1. **License data in the dependency analysis report** — When using the analysis API (e.g. stack or component analysis), the JSON report includes a **`licenses`** field with license information for all dependencies. This is a **LicensesResponse**: an array of provider results, each with `status`, `summary`, and `packages` (object keyed by purl). Each package has `concluded` (with `identifiers`, `expression`, `name`, `category`) and `evidence`. Categories are: **PERMISSIVE**, **WEAK_COPYLEFT**, **STRONG_COPYLEFT**, **UNKNOWN** (see [OpenAPI v5](https://github.com/guacsec/trustify-da-api-spec/blob/main/api/v5/openapi.yaml)).
+The client checks if dependency licenses are compatible with your project license. For example:
+- Permissive project (MIT) + permissive dependencies → ✅ Compatible
+- Permissive project (MIT) + strong copyleft dependency (GPL) → ⚠️ Potentially incompatible
 
-2. **License identification endpoint** — `POST /licenses/identify` accepts a LICENSE file (binary/text) and returns the identified SPDX license. This is used to accurately identify the project's LICENSE file when more precision is needed than local pattern matching.
+Compatibility results are included in the analysis report’s `licenseSummary`.
 
-3. **License details endpoint** — `GET /api/v5/licenses/{spdx}` returns detailed information about a specific license by SPDX identifier, including `category`, `name`, `identifiers`, `expression`, `source`, etc. Used by the CLI `license` command to provide rich license information.
+## Configuration
 
-The client:
+### Disable License Checking
 
-- When running the license check **after component analysis**, it uses the `result.licenses` data from the analysis response (no extra request needed for dependency licenses).
-- For the **project LICENSE file**, it first attempts local pattern matching (fast, synchronous). During the license check (async), it can optionally call `POST /licenses/identify` for more accurate backend-based identification.
-- Normalizes the license response into a map of purl → `{ licenses: string[], category? }` and uses the backend **category** for compatibility checking (e.g. project permissive + dependency STRONG_COPYLEFT → incompatible).
+License analysis runs automatically during component/stack analysis. To disable it:
 
-## Component analysis: license incompatibility report
+**Environment variable:**
+```bash
+export TRUSTIFY_DA_LICENSE_CHECK=false
+```
 
-When the user runs **component analysis** (e.g. upon opening a manifest):
+**Programmatic option:**
+```javascript
+await componentAnalysis(‘pom.xml’, { licenseCheck: false });
+```
 
-1. The client builds the SBOM (direct dependencies only) and sends it to the backend for the usual component analysis.
-2. By default or unless `TRUSTIFY_DA_LICENSE_CHECK=false` or an option like `licenseCheck: false` is set:
-   - **Resolve project license** from manifest (synchronous).
-   - If a LICENSE file exists, optionally call `POST /licenses/identify` to accurately identify it via the backend.
-   - Set `licenseSummary.manifestVsFileMismatch` if manifest and LICENSE file licenses differ.
-   - **Extract purls** from the SBOM that was sent (from `provided.content`).
-   - **Get dependency licenses** from the analysis result’s `licenses` array (already included in the response).
-   - For each dependency, determine if its license(s) are **compatible** with the project license, using the backend category (PERMISSIVE / WEAK_COPYLEFT / STRONG_COPYLEFT).
-   - Attach a **license summary** to the component analysis result, e.g.:
-     - `licenseSummary.projectLicenseFromManifest`
-     - `licenseSummary.projectLicenseFromFile`
-     - `licenseSummary.manifestVsFileMismatch`
-     - `licenseSummary.incompatibleDependencies`: `[{ purl, licenses, category, reason }]`
-     - `licenseSummary.dependencyLicenses`: `[{ purl, licenses, category }]`
-     - So the user can see which dependencies have licenses incompatible with the project license.
+### Backend URL
 
-The client uses the backend **category** from the analysis report’s `licenses` field, plus a small in-client compatibility matrix (e.g. permissive project + STRONG_COPYLEFT dependency → incompatible).
+License analysis requires the same backend URL as dependency analysis:
+```bash
+export TRUSTIFY_DA_BACKEND_URL=https://api.trustify.dev
+```
 
-## Disabling the license check in component analysis
+## CLI Usage
 
-- **Environment variable**: `TRUSTIFY_DA_LICENSE_CHECK=false`
-- **Option**: `opts.licenseCheck = false` when calling `client.componentAnalysis(manifest, opts)`
+### Get License Information
 
-By default (unless disabled), after the component analysis response is received, the client:
-1. Resolves the project license from manifest and LICENSE file (with optional backend identification for LICENSE file)
-2. Extracts dependency licenses from `result.licenses` in the analysis response
-3. Computes compatibility and attaches a `licenseSummary` to the report
+```bash
+exhort license path/to/pom.xml
+```
 
-## API surface (client)
+**Example output:**
+```json
+{
+  "projectLicense": {
+    "fromManifest": "Apache-2.0",
+    "fromFile": "Apache-2.0",
+    "mismatch": false
+  },
+  "dependencies": {
+    "pkg:maven/com.google.guava/guava@32.1.0": {
+      "licenses": ["Apache-2.0"],
+      "category": "PERMISSIVE",
+      "compatible": true
+    },
+    "pkg:maven/org.postgresql/postgresql@42.6.0": {
+      "licenses": ["BSD-2-Clause"],
+      "category": "PERMISSIVE",
+      "compatible": true
+    }
+  }
+}
+```
 
-- **Project license resolution** (local, synchronous):
-  - `getProjectLicense(manifestPath, opts)` → `{ fromManifest, fromFile, mismatch }`
-  - `getProjectLicenseFromManifestOnly(manifestPath, opts)` → `{ fromManifest, fromFile: null, mismatch: false }`
-  - `findLicenseFilePath(manifestPath)` → `string|null` (path to LICENSE file)
+## Analysis Report Fields
 
-- **Backend license identification and details**:
-  - `identifyLicenseViaBackend(licenseFilePath, backendUrl, opts)` → `Promise<string|null>` (SPDX id from `POST /licenses/identify`)
-  - `getLicenseDetails(spdxId, backendUrl, opts)` → `Promise<Object|null>` (detailed license info from `GET /api/v5/licenses/{spdx}`, includes category, name, identifiers, etc.)
+When license checking is enabled, the analysis report includes:
 
-- **Dependency licenses from analysis report**:
-  - `licenseMapFromAnalysisReport(analysisReport, purls?)` → `Map<purl, { licenses, category? }>`
-  - Extracts license data from the analysis response's `licenses` field (no extra request)
+```javascript
+{
+  // ... standard analysis fields ...
+  "licenseSummary": {
+    "projectLicenseFromManifest": "Apache-2.0",
+    "projectLicenseFromFile": "Apache-2.0",
+    "manifestVsFileMismatch": false,
+    "incompatibleDependencies": [
+      {
+        "purl": "pkg:maven/org.example/gpl-lib@1.0.0",
+        "licenses": ["GPL-3.0"],
+        "category": "STRONG_COPYLEFT",
+        "reason": "Dependency license(s) are incompatible with the project license."
+      }
+    ],
+    "dependencyLicenses": [
+      { "purl": "...", "licenses": [...], "category": "..." }
+    ]
+  }
+}
+```
 
-- **Full license check** (for component analysis):
-  - `runLicenseCheck(sbomContent, manifestPath, backendUrl, opts, analysisResult)` → `Promise<LicenseSummary>`
-  - Uses `analysisResult.licenses` for dependency licenses. Optionally calls `POST /licenses/identify` for accurate project LICENSE file identification. Used inside `componentAnalysis()` when license check is enabled; result is attached as `report.licenseSummary`.
+## Common Scenarios
 
-- **Compatibility checking**:
-  - `getCompatibility(projectLicense, dependencyLicenses[], dependencyCategory?)` → `'compatible' | 'incompatible' | 'unknown'`
+### Mismatch Between Manifest and LICENSE File
 
-- **Utility** (typically not needed):
-  - `getLicensesByPurl(purls, backendUrl, opts)` → `Promise<Map<purl, { licenses, category? }>>` (standalone call to `POST /api/v5/licenses`)
+If your `package.json` says `"license": "MIT"` but your LICENSE file contains Apache-2.0 text:
+```json
+{
+  "projectLicenseFromManifest": "MIT",
+  "projectLicenseFromFile": "Apache-2.0",
+  "manifestVsFileMismatch": true
+}
+```
 
-Options (e.g. proxy, token) are passed through to the backend fetch in the same way as for analysis requests.
+**Action:** Update your manifest or LICENSE file to match.
+
+### Incompatible Dependencies
+
+If you have a permissive-licensed project (MIT, Apache) but depend on GPL-licensed libraries, they’ll appear in `incompatibleDependencies`.
+
+**Action:** Review the flagged dependencies and consider:
+- Finding alternative libraries with compatible licenses
+- Consulting legal counsel if the dependency is necessary
+- Understanding how you’re using the dependency (linking, distribution, etc.)
+
+## SBOM Integration
+
+Project license information is automatically included in generated SBOMs (CycloneDX format) in the root component’s `licenses` field.

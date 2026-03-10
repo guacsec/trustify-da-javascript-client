@@ -8,7 +8,7 @@ import path from 'node:path';
 
 import { XMLParser } from 'fast-xml-parser';
 
-import { getCustom } from '../tools.js';
+import { getCustom, getTokenHeaders } from '../tools.js';
 
 const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt'];
 
@@ -30,13 +30,12 @@ export function getProjectLicenseFromManifest(manifestPath, opts = {}) {
 /**
  * Resolve project license from manifest and from LICENSE / LICENSE.md in manifest dir or git root.
  * Uses local pattern matching for LICENSE file identification (synchronous).
- * For more accurate backend-based identification, use identifyLicenseViaBackend() separately.
+ * For more accurate backend-based identification, use identifyLicense() separately.
  * @param {string} manifestPath - path to manifest
- * @param {{}} [opts={}] - options
  * @returns {{ fromManifest: string|null, fromFile: string|null, mismatch: boolean }}
  */
-export function getProjectLicense(manifestPath, opts = {}) {
-	const fromManifest = readLicenseFromManifest(manifestPath, opts);
+export function getProjectLicense(manifestPath) {
+	const fromManifest = readLicenseFromManifest(manifestPath);
 	const fromFile = readLicenseFromFile(manifestPath);
 	const mismatch = Boolean(
 		fromManifest && fromFile && normalizeSpdx(fromManifest) !== normalizeSpdx(fromFile)
@@ -51,10 +50,9 @@ export function getProjectLicense(manifestPath, opts = {}) {
 /**
  * Read license from manifest (package.json, pom.xml). Returns null if not present or unsupported manifest.
  * @param {string} manifestPath
- * @param {{}} [opts]
  * @returns {string|null}
  */
-function readLicenseFromManifest(manifestPath, opts) {
+function readLicenseFromManifest(manifestPath) {
 	const base = path.basename(manifestPath);
 	if (base === 'package.json') {
 		return readLicenseFromPackageJson(manifestPath);
@@ -142,7 +140,7 @@ export function findLicenseFilePath(manifestPath) {
  * @param {{}} [opts={}] - options (proxy, token, etc.)
  * @returns {Promise<string|null>} - SPDX identifier or null
  */
-export async function identifyLicenseViaBackend(licenseFilePath, backendUrl, opts = {}) {
+export async function identifyLicense(licenseFilePath, backendUrl, opts = {}) {
 	try {
 		const fileContent = fs.readFileSync(licenseFilePath);
 		const url = `${backendUrl.replace(/\/$/, '')}/licenses/identify`;
@@ -182,7 +180,7 @@ export async function identifyLicenseViaBackend(licenseFilePath, backendUrl, opt
  */
 function readLicenseFromFile(manifestPath) {
 	const licenseFilePath = findLicenseFilePath(manifestPath);
-	if (!licenseFilePath) return null;
+	if (!licenseFilePath) {return null;}
 
 	try {
 		const content = fs.readFileSync(licenseFilePath, 'utf-8');
@@ -199,12 +197,12 @@ function readLicenseFromFile(manifestPath) {
  */
 function detectSpdxFromText(text) {
 	const head = text.slice(0, 500);
-	if (/Apache License,?\s*Version 2\.0/i.test(head)) return 'Apache-2.0';
-	if (/MIT License/i.test(head) && /Permission is hereby granted/i.test(head)) return 'MIT';
-	if (/GNU GENERAL PUBLIC LICENSE\s+Version 2/i.test(head)) return 'GPL-2.0-only';
-	if (/GNU GENERAL PUBLIC LICENSE\s+Version 3/i.test(head)) return 'GPL-3.0-only';
-	if (/BSD 2-Clause/i.test(head)) return 'BSD-2-Clause';
-	if (/BSD 3-Clause/i.test(head)) return 'BSD-3-Clause';
+	if (/Apache License,?\s*Version 2\.0/i.test(head)) {return 'Apache-2.0';}
+	if (/MIT License/i.test(head) && /Permission is hereby granted/i.test(head)) {return 'MIT';}
+	if (/GNU GENERAL PUBLIC LICENSE\s+Version 2/i.test(head)) {return 'GPL-2.0-only';}
+	if (/GNU GENERAL PUBLIC LICENSE\s+Version 3/i.test(head)) {return 'GPL-3.0-only';}
+	if (/BSD 2-Clause/i.test(head)) {return 'BSD-2-Clause';}
+	if (/BSD 3-Clause/i.test(head)) {return 'BSD-3-Clause';}
 	return null;
 }
 
@@ -216,6 +214,6 @@ function detectSpdxFromText(text) {
 function normalizeSpdx(spdxOrName) {
 	const s = String(spdxOrName).trim().toLowerCase();
 	// e.g. "MIT" vs "MIT License"
-	if (s.endsWith(' license')) return s.slice(0, -8);
+	if (s.endsWith(' license')) {return s.slice(0, -8);}
 	return s;
 }

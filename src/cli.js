@@ -5,8 +5,9 @@ import * as path from "path";
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
-import client from './index.js'
 import { getProjectLicense, getLicenseDetails } from './license/index.js'
+
+import client from './index.js'
 
 
 // command for component analysis take manifest type and content
@@ -203,7 +204,7 @@ const license = {
 
 		// Build LicenseInfo objects
 		const buildLicenseInfo = async (spdxId) => {
-			if (!spdxId) return null
+			if (!spdxId) {return null}
 
 			const licenseInfo = { spdxId }
 

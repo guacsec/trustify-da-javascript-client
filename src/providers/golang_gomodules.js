@@ -4,9 +4,9 @@ import { EOL } from "os";
 
 import { PackageURL } from 'packageurl-js'
 
+import { getProjectLicenseFromManifest } from '../license/index.js';
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand } from "../tools.js";
-import { getProjectLicenseFromManifest } from '../license/index.js';
 
 
 export default { isSupported, validateLockFile, provideComponent, provideStack }

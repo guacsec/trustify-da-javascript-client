@@ -2,9 +2,9 @@ import fs from 'node:fs'
 import os from "node:os";
 import path from 'node:path'
 
+import { getProjectLicenseFromManifest } from '../license/index.js';
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from "../tools.js";
-import { getProjectLicenseFromManifest } from '../license/index.js';
 
 import Manifest from './manifest.js';
 

@@ -13,37 +13,38 @@
  * @returns {'compatible'|'incompatible'|'unknown'}
  */
 export function getCompatibility(projectLicense, dependencyLicenses, dependencyCategory) {
-	if (!projectLicense && !dependencyLicenses?.length) return 'unknown';
+	if (!projectLicense) {return 'unknown';}
+	if (!dependencyLicenses?.length) {return 'unknown';}
 
 	// Use backend category when available (from API v5 licenses / analysis report)
 	const cat = String(dependencyCategory || '').toUpperCase();
 	if (cat === 'STRONG_COPYLEFT') {
 		const proj = projectLicense ? normalize(projectLicense) : '';
-		if (isPermissive(proj)) return 'incompatible';
-		if (isCopyleft(proj)) return 'unknown';
+		if (isPermissive(proj)) {return 'incompatible';}
+		if (isCopyleft(proj)) {return 'unknown';}
 		return 'incompatible';
 	}
 	if (cat === 'WEAK_COPYLEFT') {
 		const proj = projectLicense ? normalize(projectLicense) : '';
-		if (isPermissive(proj)) return 'unknown'; // weak copyleft often acceptable when used as library
+		if (isPermissive(proj)) {return 'unknown';} // weak copyleft often acceptable when used as library
 		return 'unknown';
 	}
-	if (cat === 'PERMISSIVE' && (!projectLicense || isPermissive(normalize(projectLicense)))) return 'compatible';
+	if (cat === 'PERMISSIVE' && (!projectLicense || isPermissive(normalize(projectLicense)))) {return 'compatible';}
 
-	if (!projectLicense || !dependencyLicenses?.length) return 'unknown';
+	if (!projectLicense || !dependencyLicenses?.length) {return 'unknown';}
 
 	const proj = normalize(projectLicense);
 	const depSet = new Set(dependencyLicenses.map(normalize).filter(Boolean));
 
 	// Same license or both permissive -> compatible
-	if (depSet.has(proj)) return 'compatible';
-	if (isPermissive(proj) && [...depSet].every(isPermissive)) return 'compatible';
+	if (depSet.has(proj)) {return 'compatible';}
+	if (isPermissive(proj) && [...depSet].every(isPermissive)) {return 'compatible';}
 
 	// Project is permissive; dependency is copyleft -> flag for user awareness
-	if (isPermissive(proj) && [...depSet].some(isCopyleft)) return 'incompatible';
+	if (isPermissive(proj) && [...depSet].some(isCopyleft)) {return 'incompatible';}
 
 	// Project is copyleft; dependency is different copyleft or proprietary -> unknown / depends on linking
-	if (isCopyleft(proj)) return 'unknown';
+	if (isCopyleft(proj)) {return 'unknown';}
 
 	return 'unknown';
 }

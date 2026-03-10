@@ -5,9 +5,9 @@ import { EOL } from 'os'
 
 import { XMLParser } from 'fast-xml-parser'
 
+import { getProjectLicenseFromManifest } from '../license/index.js'
 import Sbom from '../sbom.js'
 import { getCustom } from '../tools.js'
-import { getProjectLicenseFromManifest } from '../license/index.js'
 
 import Base_java, { ecosystem_maven } from "./base_java.js";
 

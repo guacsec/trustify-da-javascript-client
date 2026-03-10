@@ -4,8 +4,8 @@ import { EOL } from 'os'
 
 import TOML from 'fast-toml'
 
-import Sbom from '../sbom.js'
 import { getProjectLicenseFromManifest } from '../license/index.js'
+import Sbom from '../sbom.js'
 
 import Base_java, { ecosystem_gradle } from "./base_java.js";
 

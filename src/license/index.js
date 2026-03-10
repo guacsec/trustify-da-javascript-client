@@ -2,11 +2,11 @@
  * License resolution and dependency license compatibility for component analysis.
  */
 
-import { getProjectLicense, findLicenseFilePath, identifyLicenseViaBackend } from './project_license.js';
+import { getProjectLicense, findLicenseFilePath, identifyLicense } from './project_license.js';
 import { licenseMapFromAnalysisReport } from './licenses_api.js';
 import { getCompatibility } from './compatibility.js';
 
-export { getProjectLicense, getProjectLicenseFromManifest, findLicenseFilePath, identifyLicenseViaBackend } from './project_license.js';
+export { getProjectLicense, getProjectLicenseFromManifest, findLicenseFilePath, identifyLicense as identifyLicenseViaBackend } from './project_license.js';
 export { licenseMapFromAnalysisReport, normalizeLicensesResponse, getLicensesByPurl, getLicenseDetails } from './licenses_api.js';
 export { getCompatibility } from './compatibility.js';
 
@@ -58,7 +58,7 @@ export async function runLicenseCheck(sbomContent, manifestPath, backendUrl, opt
 	const licenseFilePath = findLicenseFilePath(manifestPath);
 	if (licenseFilePath && backendUrl) {
 		try {
-			projectLicenseFromFileBackend = await identifyLicenseViaBackend(licenseFilePath, backendUrl, opts);
+			projectLicenseFromFileBackend = await identifyLicense(licenseFilePath, backendUrl, opts);
 		} catch {
 			// Fall back to local detection (already in projectLicense.fromFile)
 		}

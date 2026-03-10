@@ -4,10 +4,9 @@ import { EOL } from "os";
 
 import { HttpsProxyAgent } from "https-proxy-agent";
 
-import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
 import { runLicenseCheck } from "./license/index.js";
-import { getCustom, getTokenHeaders } from "./tools.js";
-import { TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
+import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
+import { getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
 
 export default { requestComponent, requestStack, requestImages, validateToken }
 

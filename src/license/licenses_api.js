@@ -6,8 +6,8 @@
  */
 
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import { getCustom } from '../tools.js';
-import { getTokenHeaders } from '../tools.js';
+
+import { getCustom , getTokenHeaders } from '../tools.js';
 
 /** Default path for the licenses endpoint (API v5). Override via TRUSTIFY_DA_LICENSES_API_PATH or opts. */
 const DEFAULT_LICENSES_PATH = '/api/v5/licenses';
@@ -22,7 +22,7 @@ const DEFAULT_LICENSES_PATH = '/api/v5/licenses';
  * @returns {Promise<Object|null>} License details or null if not found
  */
 export async function getLicenseDetails(spdxId, backendUrl, opts = {}) {
-	if (!spdxId) return null;
+	if (!spdxId) {return null;}
 
 	const url = `${backendUrl.replace(/\/$/, '')}/api/v5/licenses/${encodeURIComponent(spdxId)}`;
 
@@ -62,11 +62,11 @@ export async function getLicenseDetails(spdxId, backendUrl, opts = {}) {
  */
 export function normalizeLicensesResponse(data, purls = []) {
 	const map = new Map();
-	if (!data || !Array.isArray(data)) return map;
+	if (!data || !Array.isArray(data)) {return map;}
 
 	for (const providerResult of data) {
 		const packages = providerResult?.packages;
-		if (!packages || typeof packages !== 'object') continue;
+		if (!packages || typeof packages !== 'object') {continue;}
 		for (const [purl, pkgLicense] of Object.entries(packages)) {
 			const concluded = pkgLicense?.concluded;
 			const identifiers = Array.isArray(concluded?.identifiers) ? concluded.identifiers : [];
@@ -78,7 +78,7 @@ export function normalizeLicensesResponse(data, purls = []) {
 			}
 		}
 		// Use first provider that has packages; backend may return multiple (e.g. deps.dev)
-		if (map.size > 0) break;
+		if (map.size > 0) {break;}
 	}
 	return map;
 }
@@ -92,7 +92,7 @@ export function normalizeLicensesResponse(data, purls = []) {
  * @returns {Map<string, { licenses: string[], category?: string }>}
  */
 export function licenseMapFromAnalysisReport(analysisReport, purls = []) {
-	if (!analysisReport?.licenses) return new Map();
+	if (!analysisReport?.licenses) {return new Map();}
 	return normalizeLicensesResponse(analysisReport.licenses, purls);
 }
 
