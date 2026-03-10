@@ -5,6 +5,7 @@ import { EOL } from 'os'
 import TOML from 'fast-toml'
 
 import Sbom from '../sbom.js'
+import { getProjectLicenseFromManifest } from '../license/index.js'
 
 import Base_java, { ecosystem_gradle } from "./base_java.js";
 
@@ -191,7 +192,9 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		sbom.addRoot(rootPurl)
+		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
+		const license = projectLicense.fromManifest;
+		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 
 		const [runtimeConfig, compileConfig] = this.#extractConfigurations(content);
@@ -345,7 +348,9 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		sbom.addRoot(rootPurl)
+		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
+		const license = projectLicense.fromManifest;
+		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 
 		const [runtimeConfig, compileConfig] = this.#extractConfigurations(content);

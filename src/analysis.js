@@ -5,15 +5,11 @@ import { EOL } from "os";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
-import { RegexNotToBeLogged, getCustom } from "./tools.js";
+import { runLicenseCheck } from "./license/index.js";
+import { getCustom, getTokenHeaders } from "./tools.js";
+import { TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
 
 export default { requestComponent, requestStack, requestImages, validateToken }
-
-const rhdaTokenHeader = "trust-da-token";
-const rhdaTelemetryId = "telemetry-anonymous-id";
-const rhdaSourceHeader = "trust-da-source"
-const rhdaOperationTypeHeader = "trust-da-operation-type"
-const rhdaPackageManagerHeader = "trust-da-pkg-manager"
 
 /**
  * Adds proxy agent configuration to fetch options if a proxy URL is specified
@@ -43,13 +39,13 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	opts["manifest-type"] = path.parse(manifest).base
 	let provided = await provider.provideStack(manifest, opts) // throws error if content providing failed
 	opts["source-manifest"] = ""
-	opts[rhdaOperationTypeHeader.toUpperCase().replaceAll("-", "_")] = "stack-analysis"
+	opts[TRUSTIFY_DA_OPERATION_TYPE_HEADER.toUpperCase().replaceAll("-", "_")] = "stack-analysis"
 	let startTime = new Date()
 	let endTime
 	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log("Starting time of sending stack analysis request to the dependency analytics server= " + startTime)
 	}
-	opts[rhdaPackageManagerHeader.toUpperCase().replaceAll("-", "_")] = provided.ecosystem
+	opts[TRUSTIFY_DA_PACKAGE_MANAGER_HEADER.toUpperCase().replaceAll("-", "_")] = provided.ecosystem
 
 	const fetchOptions = addProxyAgent({
 		method: 'POST',
@@ -107,11 +103,11 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 
 	let provided = await provider.provideComponent(manifest, opts) // throws error if content providing failed
 	opts["source-manifest"] = ""
-	opts[rhdaOperationTypeHeader.toUpperCase().replaceAll("-", "_")] = "component-analysis"
+	opts[TRUSTIFY_DA_OPERATION_TYPE_HEADER.toUpperCase().replaceAll("-", "_")] = "component-analysis"
 	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log("Starting time of sending component analysis request to Trustify DA backend server= " + new Date())
 	}
-	opts[rhdaPackageManagerHeader.toUpperCase().replaceAll("-", "_")] = provided.ecosystem
+	opts[TRUSTIFY_DA_PACKAGE_MANAGER_HEADER.toUpperCase().replaceAll("-", "_")] = provided.ecosystem
 
 	const fetchOptions = addProxyAgent({
 		method: 'POST',
@@ -142,6 +138,14 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 			console.log("Ending time of sending component analysis request to Trustify DA backend server= " + new Date())
 
 
+		}
+		const licenseCheckEnabled = getCustom('TRUSTIFY_DA_LICENSE_CHECK', 'true', opts) !== 'false' && opts.licenseCheck !== false
+		if (licenseCheckEnabled) {
+			try {
+				result.licenseSummary = await runLicenseCheck(provided.content, manifest, url, opts, result)
+			} catch (licenseErr) {
+				result.licenseSummary = { error: licenseErr.message }
+			}
 		}
 	} else {
 		throw new Error(`Got error response from Trustify DA backend - http return code : ${resp.status}, ex-request-id: ${resp.headers.get("ex-request-id")}  error message =>  ${await resp.text()}`)
@@ -223,43 +227,4 @@ async function validateToken(url, opts = {}) {
 		}
 	}
 	return resp.status
-}
-
-/**
- *
- * @param {string} headerName - the header name to populate in request
- * @param headers
- * @param {string} optsKey - key in the options object to use the value for
- * @param {import("index.js").Options} [opts={}] - options input object to fetch header values from
- * @private
- */
-function setRhdaHeader(headerName, headers, optsKey, opts) {
-	let rhdaHeaderValue = getCustom(optsKey, null, opts);
-	if (rhdaHeaderValue) {
-		headers[headerName] = rhdaHeaderValue
-	}
-}
-
-/**
- * Utility function for fetching vendor tokens
- * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
- * @returns {{}}
- */
-export function getTokenHeaders(opts = {}) {
-	let headers = {}
-	setRhdaHeader(rhdaTokenHeader, headers, 'TRUSTIFY_DA_TOKEN', opts);
-	setRhdaHeader(rhdaSourceHeader, headers, 'TRUSTIFY_DA_SOURCE', opts);
-	setRhdaHeader(rhdaOperationTypeHeader, headers, rhdaOperationTypeHeader.toUpperCase().replaceAll("-", "_"), opts);
-	setRhdaHeader(rhdaPackageManagerHeader, headers, rhdaPackageManagerHeader.toUpperCase().replaceAll("-", "_"), opts)
-	setRhdaHeader(rhdaTelemetryId, headers, 'TRUSTIFY_DA_TELEMETRY_ID', opts);
-
-	if (getCustom("TRUSTIFY_DA_DEBUG", null, opts) === "true") {
-		console.log("Headers Values to be sent to Trustify DA backend:" + EOL)
-		for (const headerKey in headers) {
-			if (!headerKey.match(RegexNotToBeLogged)) {
-				console.log(`${headerKey}: ${headers[headerKey]}`)
-			}
-		}
-	}
-	return headers
 }

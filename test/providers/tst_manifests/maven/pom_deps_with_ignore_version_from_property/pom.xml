@@ -6,7 +6,16 @@
   <groupId>pom-with-deps-and-ignore</groupId>
   <artifactId>pom-with-dependency-not-ignored-for-tests</artifactId>
   <version>0.0.1</version>
-  
+
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+      <comments>Apache License, Version 2.0</comments>
+    </license>
+  </licenses>
   <properties>
     <log4j.version>1.2.17</log4j.version>
   </properties>

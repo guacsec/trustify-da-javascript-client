@@ -14,10 +14,11 @@ export default class Sbom {
 
 	/**
 	 * @param {PackageURL} root - add main/root component for sbom
+	 * @param {string|Array} [licenses] - optional license(s) for the root component
 	 * @return Sbom
 	 */
-	addRoot(root) {
-		return this.sbomModel.addRoot(root)
+	addRoot (root, licenses) {
+		return this.sbomModel.addRoot(root, licenses)
 	}
 
 	/**

@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from "../tools.js";
+import { getProjectLicenseFromManifest } from '../license/index.js';
 
 import Manifest from './manifest.js';
 
@@ -176,9 +177,11 @@ export default class Base_javascript {
 		const depsObject = this._buildDependencyTree(true);
 
 		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
+		const projectLicense = getProjectLicenseFromManifest(this.#manifest.manifestPath, opts);
+		const license = projectLicense.fromManifest;
 
 		let sbom = new Sbom();
-		sbom.addRoot(mainComponent);
+		sbom.addRoot(mainComponent, license);
 
 		this._addDependenciesToSbom(sbom, depsObject);
 		sbom.filterIgnoredDeps(this.#manifest.ignored);
@@ -233,9 +236,11 @@ export default class Base_javascript {
 	#getDirectDependencySbom(opts = {}) {
 		const depTree = this._buildDependencyTree(false);
 		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
+		const projectLicense = getProjectLicenseFromManifest(this.#manifest.manifestPath, opts);
+		const license = projectLicense.fromManifest;
 
 		let sbom = new Sbom();
-		sbom.addRoot(mainComponent);
+		sbom.addRoot(mainComponent, license);
 
 		const rootDeps = this._getRootDependencies(depTree);
 		const sortedDepsKeys = Array

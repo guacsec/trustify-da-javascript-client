@@ -9,6 +9,7 @@ import {
 	getCustomPath,
 	invokeCommand
 } from "../tools.js";
+import { getProjectLicenseFromManifest } from '../license/index.js';
 
 import Python_controller from './python_controller.js'
 import { getParser, getIgnoreQuery, getPinnedVersionQuery } from './requirements_parser.js'
@@ -189,7 +190,9 @@ async function createSbomStackAnalysis(manifest, opts = {}) {
 	let dependencies = await pythonController.getDependencies(true);
 	let sbom = new Sbom();
 	const rootPurl = toPurl(DEFAULT_PIP_ROOT_COMPONENT_NAME, DEFAULT_PIP_ROOT_COMPONENT_VERSION);
-	sbom.addRoot(rootPurl);
+	const projectLicense = getProjectLicenseFromManifest(manifest, opts);
+	const license = projectLicense.fromManifest;
+	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
 		addAllDependencies(rootPurl, dep, sbom)
 	})
@@ -213,7 +216,9 @@ async function getSbomForComponentAnalysis(manifest, opts = {}) {
 	let dependencies = await pythonController.getDependencies(false);
 	let sbom = new Sbom();
 	const rootPurl = toPurl(DEFAULT_PIP_ROOT_COMPONENT_NAME, DEFAULT_PIP_ROOT_COMPONENT_VERSION);
-	sbom.addRoot(rootPurl);
+	const projectLicense = getProjectLicenseFromManifest(manifest, opts);
+	const license = projectLicense.fromManifest;
+	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
 		sbom.addDependency(rootPurl, toPurl(dep.name, dep.version))
 	})

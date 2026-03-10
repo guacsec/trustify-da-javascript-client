@@ -7,6 +7,7 @@ import { XMLParser } from 'fast-xml-parser'
 
 import Sbom from '../sbom.js'
 import { getCustom } from '../tools.js'
+import { getProjectLicenseFromManifest } from '../license/index.js'
 
 import Base_java, { ecosystem_maven } from "./base_java.js";
 
@@ -119,7 +120,7 @@ export default class Java_maven extends Base_java {
 		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.error("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content.toString())
 		}
-		let sbom = this.createSbomFileFromTextFormat(content.toString(), ignoredDeps, opts);
+		let sbom = this.createSbomFileFromTextFormat(content.toString(), ignoredDeps, opts, manifest);
 		// delete temp file and directory
 		fs.rmSync(tmpDir, { recursive: true, force: true })
 		// return dependency graph as string
@@ -130,15 +131,18 @@ export default class Java_maven extends Base_java {
 	 *
 	 * @param {String} textGraphList Text graph String of the manifest
 	 * @param {[String]} ignoredDeps List of ignored dependencies to be omitted from sbom
+	 * @param {String} manifestPath Path to the pom.xml manifest
 	 * @return {String} formatted sbom Json String with all dependencies
 	 */
-	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts) {
+	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts, manifestPath) {
 		let lines = textGraphList.split(EOL);
 		// get root component
 		let root = lines[0];
 		let rootPurl = this.parseDep(root);
+		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
+		const license = projectLicense.fromManifest;
 		let sbom = new Sbom();
-		sbom.addRoot(rootPurl);
+		sbom.addRoot(rootPurl, license);
 		this.parseDependencyTree(root, 0, lines.slice(1), sbom);
 		return sbom.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts);
 	}
@@ -173,7 +177,9 @@ export default class Java_maven extends Base_java {
 		let sbom = new Sbom();
 		let rootDependency = this.#getRootFromPom(tmpEffectivePom, manifestPath);
 		let purlRoot = this.toPurl(rootDependency.groupId, rootDependency.artifactId, rootDependency.version)
-		sbom.addRoot(purlRoot)
+		const projectLicense = getProjectLicenseFromManifest(manifestPath, opts);
+		const license = projectLicense.fromManifest;
+		sbom.addRoot(purlRoot, license)
 		dependencies.forEach(dep => {
 			let currentPurl = this.toPurl(dep.groupId, dep.artifactId, dep.version)
 			sbom.addDependency(purlRoot, currentPurl)

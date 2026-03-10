@@ -59,7 +59,7 @@
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
-		"@trustify-da/trustify-da-api-model": "^2.0.1",
+		"@trustify-da/trustify-da-api-model": "^2.0.7",
 		"@types/node": "^20.17.30",
 		"@types/which": "^3.0.4",
 		"babel-plugin-rewire": "^1.2.0",

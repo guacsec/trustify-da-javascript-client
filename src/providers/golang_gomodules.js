@@ -6,6 +6,7 @@ import { PackageURL } from 'packageurl-js'
 
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand } from "../tools.js";
+import { getProjectLicenseFromManifest } from '../license/index.js';
 
 
 export default { isSupported, validateLockFile, provideComponent, provideStack }
@@ -281,7 +282,9 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	}
 
 	const mainModule = toPurl(root, "@")
-	sbom.addRoot(mainModule)
+	const projectLicense = getProjectLicenseFromManifest(manifest, opts);
+	const license = projectLicense.fromManifest;
+	sbom.addRoot(mainModule, license)
 	const exhortGoMvsLogicEnabled = getCustom("TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED", "true", opts)
 	if(includeTransitive && exhortGoMvsLogicEnabled === "true") {
 		rows = getFinalPackagesVersionsForModule(rows, manifest, goBin)

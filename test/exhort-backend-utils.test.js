@@ -3,7 +3,7 @@ import * as chai from 'chai'
 import * as sinon from 'sinon'
 import sinonChai from 'sinon-chai'
 
-import { getTokenHeaders } from '../src/analysis.js';
+import { getTokenHeaders } from '../src/tools.js';
 import { selectTrustifyDABackend } from '../src/index.js'
 
 chai.use(sinonChai)
