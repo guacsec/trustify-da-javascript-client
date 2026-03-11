@@ -8,7 +8,7 @@ import path from 'node:path';
 
 import { selectTrustifyDABackend } from '../index.js';
 import { matchForLicense, availableProviders } from '../provider.js';
-import { getCustom, getTokenHeaders } from '../tools.js';
+import { addProxyAgent, getTokenHeaders } from '../tools.js';
 
 const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt'];
 
@@ -67,20 +67,14 @@ export async function identifyLicense(licenseFilePath, opts = {}) {
 		const backendUrl = selectTrustifyDABackend(opts);
 		const url = new URL(`${backendUrl}/licenses/identify`);
 		const tokenHeaders = getTokenHeaders(opts);
-		const fetchOptions = {
+		const fetchOptions = addProxyAgent({
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/octet-stream',
 				...tokenHeaders,
 			},
 			body: fileContent,
-		};
-
-		const proxyUrl = getCustom('TRUSTIFY_DA_PROXY_URL', null, opts);
-		if (proxyUrl) {
-			const { HttpsProxyAgent } = await import('https-proxy-agent');
-			fetchOptions.agent = new HttpsProxyAgent(proxyUrl);
-		}
+		}, opts);
 
 		const resp = await fetch(url, fetchOptions);
 		if (!resp.ok) {

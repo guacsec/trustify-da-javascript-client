@@ -5,6 +5,10 @@ import { PackageURL } from 'packageurl-js'
 
 import { getCustomPath, getGitRootDir, getWrapperPreference, invokeCommand } from "../tools.js"
 
+/** @typedef {import('../provider').Provider} */
+
+/** @typedef {import('../provider').Provided} Provided */
+
 /** @typedef {{name: string, version: string}} Package */
 
 /** @typedef {{groupId: string, artifactId: string, version: string, scope: string, ignore: boolean}} Dependency */

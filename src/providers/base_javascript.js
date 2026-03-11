@@ -7,6 +7,10 @@ import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } fro
 
 import Manifest from './manifest.js';
 
+/** @typedef {import('../provider').Provider} */
+
+/** @typedef {import('../provider').Provided} Provided */
+
 /**
  * The ecosystem identifier for JavaScript/npm packages
  * @type {string}

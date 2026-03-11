@@ -2,27 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { EOL } from "os";
 
-import { HttpsProxyAgent } from "https-proxy-agent";
-
 import { runLicenseCheck } from "./license/index.js";
 import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
-import { getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
+import { addProxyAgent, getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
 
 export default { requestComponent, requestStack, requestImages, validateToken }
-
-/**
- * Adds proxy agent configuration to fetch options if a proxy URL is specified
- * @param {RequestInit} options - The base fetch options
- * @param {import("index.js").Options} opts - The trustify DA options that may contain proxy configuration
- * @returns {RequestInit} The fetch options with proxy agent if applicable
- */
-function addProxyAgent(options, opts) {
-	const proxyUrl = getCustom('TRUSTIFY_DA_PROXY_URL', null, opts);
-	if (proxyUrl) {
-		options.agent = new HttpsProxyAgent(proxyUrl);
-	}
-	return options;
-}
 
 /**
  * Send a stack analysis request and get the report as 'text/html' or 'application/json'.

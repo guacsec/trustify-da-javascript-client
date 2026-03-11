@@ -5,10 +5,8 @@
  * @see https://github.com/guacsec/trustify-da-api-spec/blob/main/api/v5/openapi.yaml
  */
 
-import { HttpsProxyAgent } from 'https-proxy-agent';
-
 import { selectTrustifyDABackend } from '../index.js';
-import { getCustom , getTokenHeaders } from '../tools.js';
+import { addProxyAgent, getTokenHeaders } from '../tools.js';
 
 /**
  * Fetch license details by SPDX identifier from the backend GET /api/v5/licenses/{spdx}.
@@ -24,18 +22,13 @@ export async function getLicenseDetails(spdxId, opts = {}) {
 	const url = selectTrustifyDABackend(opts);
 	const finalUrl = new URL(`${url}/api/v5/licenses/${encodeURIComponent(spdxId)}`);
 
-	const fetchOptions = {
+	const fetchOptions = addProxyAgent({
 		method: 'GET',
 		headers: {
 			'Accept': 'application/json',
 			...getTokenHeaders(opts)
 		},
-	};
-
-	const proxyUrl = getCustom('TRUSTIFY_DA_PROXY_URL', null, opts);
-	if (proxyUrl) {
-		fetchOptions.agent = new HttpsProxyAgent(proxyUrl);
-	}
+	}, opts);
 
 	try {
 		const resp = await fetch(finalUrl, fetchOptions);
