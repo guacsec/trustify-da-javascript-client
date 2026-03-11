@@ -70,6 +70,14 @@ export default class Java_gradle extends Base_java {
 	validateLockFile() { return true; }
 
 	/**
+	 * Gradle manifests (build.gradle, build.gradle.kts) have no standard license field.
+	 * @param {string} manifestPath - path to manifest
+	 * @returns {null}
+	 */
+	// eslint-disable-next-line no-unused-vars
+	readLicenseFromManifest(manifestPath) { return null; }
+
+	/**
 	 * Provide content and content type for stack analysis.
 	 * @param {string} manifest - the manifest path or name
 	 * @param {{}} [opts={}] - optional various options to pass along the application
@@ -99,13 +107,6 @@ export default class Java_gradle extends Base_java {
 			contentType: 'application/vnd.cyclonedx+json'
 		}
 	}
-
-	/**
-	 * Gradle manifests (build.gradle, build.gradle.kts) have no standard license field.
-	 * @param {string} manifestPath - path to manifest (unused)
-	 * @returns {null}
-	 */
-	readLicenseFromManifest() { return null }
 
 	/**
 	 * @param {string} line - the line to parse
@@ -198,7 +199,7 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		const license = null; // Gradle has no standard license field in manifest
+		const license = this.readLicenseFromManifest(manifestPath);
 		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 
@@ -353,7 +354,7 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		const license = null; // Gradle has no standard license field in manifest
+		const license = this.readLicenseFromManifest(manifestPath);
 		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 

@@ -32,10 +32,12 @@ function isSupported(manifestName) {
 }
 
 /**
+ * Python requirements.txt has no standard license field
  * @param {string} manifestPath - path to requirements.txt
  * @returns {string|null}
  */
-function readLicenseFromManifest() { return null }
+// eslint-disable-next-line no-unused-vars
+function readLicenseFromManifest(manifestPath) { return null }
 
 /**
  * @param {string} manifestDir - the directory where the manifest lies

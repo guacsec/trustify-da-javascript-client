@@ -65,6 +65,11 @@ export default class Java_maven extends Base_java {
 		}
 	}
 
+	/**
+	 * Read license from pom.xml manifest
+	 * @param {string} manifestPath - path to pom.xml
+	 * @returns {string|null}
+	 */
 	readLicenseFromManifest(manifestPath) {
 		try {
 			const xml = fs.readFileSync(manifestPath, 'utf-8');

@@ -35,10 +35,12 @@ function isSupported(manifestName) {
 }
 
 /**
+ * Go modules have no standard license field in go.mod
  * @param {string} manifestPath - path to go.mod
  * @returns {string|null}
 */
-function readLicenseFromManifest() { return null }
+// eslint-disable-next-line no-unused-vars
+function readLicenseFromManifest(manifestPath) { return null }
 
 /**
  * @param {string} manifestDir - the directory where the manifest lies
