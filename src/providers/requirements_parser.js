@@ -1,12 +1,12 @@
-import { createRequire } from 'node:module';
+import { fileURLToPath } from 'url';
 
 import { Language, Parser, Query } from 'web-tree-sitter';
 
-const require = createRequire(import.meta.url);
+const wasmPath = fileURLToPath(import.meta.resolve('tree-sitter-requirements/tree-sitter-requirements.wasm'));
 
 async function init() {
 	await Parser.init();
-	return await Language.load(require.resolve('tree-sitter-requirements/tree-sitter-requirements.wasm'));
+	return await Language.load(wasmPath);
 }
 
 export async function getParser() {
