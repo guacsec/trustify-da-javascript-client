@@ -4,11 +4,11 @@
 
 import { getProjectLicense, findLicenseFilePath, identifyLicense } from './project_license.js';
 import { licensesFromReport, getLicenseDetails } from './licenses_api.js';
-import { getCompatibility } from './compatibility.js';
+import { getCompatibility } from './license_utils.js';
 
-export { getProjectLicense, findLicenseFilePath, identifyLicense as identifyLicenseViaBackend } from './project_license.js';
+export { getProjectLicense, findLicenseFilePath, identifyLicense } from './project_license.js';
 export { licensesFromReport, normalizeLicensesResponse, getLicenseDetails } from './licenses_api.js';
-export { getCompatibility } from './compatibility.js';
+export { getCompatibility } from './license_utils.js';
 
 /**
  * Run full license check: resolve project license (with backend identification and details),
@@ -23,7 +23,7 @@ export { getCompatibility } from './compatibility.js';
  */
 export async function runLicenseCheck(sbomContent, manifestPath, url, opts = {}, analysisResult = null) {
 	// Resolve project license from manifest and LICENSE file
-	const projectLicense = getProjectLicense(manifestPath, opts);
+	const projectLicense = getProjectLicense(manifestPath);
 
 	// Try backend identification for LICENSE file (more accurate than local pattern matching)
 	const licenseFilePath = findLicenseFilePath(manifestPath);

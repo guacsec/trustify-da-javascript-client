@@ -4,6 +4,7 @@ import { EOL } from "os";
 
 import { PackageURL } from 'packageurl-js'
 
+import { readLicenseFile } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand } from "../tools.js";
 
@@ -40,7 +41,7 @@ function isSupported(manifestName) {
  * @returns {string|null}
 */
 // eslint-disable-next-line no-unused-vars
-function readLicenseFromManifest(manifestPath) { return null }
+function readLicenseFromManifest(manifestPath) { return readLicenseFile(manifestPath); }
 
 /**
  * @param {string} manifestDir - the directory where the manifest lies

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from "node:os";
 import path from 'node:path'
 
+import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from "../tools.js";
 
@@ -156,20 +157,20 @@ export default class Base_javascript {
 	 * @returns {string|null}
 	 */
 	readLicenseFromManifest(manifestPath) {
+		let manifestLicense;
 		try {
 			const content = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
 			if (typeof content.license === 'string') {
-				return content.license.trim() || null;
-			}
-			if (Array.isArray(content.licenses) && content.licenses.length > 0) {
+				manifestLicense = content.license.trim() || null;
+			} else if (Array.isArray(content.licenses) && content.licenses.length > 0) {
 				const first = content.licenses[0];
 				const name = first.type || first.name;
-				return typeof name === 'string' ? name.trim() : null;
+				manifestLicense = (typeof name === 'string' ? name.trim() : null);
 			}
-			return null;
 		} catch {
-			return null;
+			manifestLicense = null;
 		}
+		return getLicense(manifestLicense, manifestPath);
 	}
 
 	/**

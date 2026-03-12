@@ -5,6 +5,7 @@ import { EOL } from 'os'
 
 import { XMLParser } from 'fast-xml-parser'
 
+import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustom } from '../tools.js'
 
@@ -66,27 +67,27 @@ export default class Java_maven extends Base_java {
 	}
 
 	/**
-	 * Read license from pom.xml manifest
+	 * Read license from pom.xml manifest, with fallback to LICENSE file
 	 * @param {string} manifestPath - path to pom.xml
 	 * @returns {string|null}
 	 */
 	readLicenseFromManifest(manifestPath) {
+		let fromPom = null;
 		try {
 			const xml = fs.readFileSync(manifestPath, 'utf-8');
 			const parser = new XMLParser({ ignoreAttributes: false });
 			const obj = parser.parse(xml);
 			const project = obj?.project;
-			if (!project?.licenses?.license) {
-				return null;
+			if (project?.licenses?.license) {
+				const license = Array.isArray(project.licenses.license)
+					? project.licenses.license[0]
+					: project.licenses.license;
+				fromPom = (license?.name && license.name.trim()) || null;
 			}
-			const license = Array.isArray(project.licenses.license)
-				? project.licenses.license[0]
-				: project.licenses.license;
-			const name = (license?.name && license.name.trim()) || null;
-			return name || null;
 		} catch {
-			return null;
+			// leave fromPom as null
 		}
+		return getLicense(fromPom, manifestPath);
 	}
 
 	/**

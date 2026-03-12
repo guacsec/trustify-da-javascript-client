@@ -43,6 +43,21 @@ let imageAnalysisWithArch = await client.imageAnalysis(['httpd:2.4.49^^amd64'])
 ```
 </li>
 </ul>
+
+<h3>License Detection</h3>
+<p>
+The client automatically detects your project's license with intelligent fallback:
+</p>
+<ul>
+<li><strong>Manifest-first:</strong> For ecosystems with license support (Maven, JavaScript), reads from manifest file (<code>pom.xml</code>, <code>package.json</code>)</li>
+<li><strong>LICENSE file fallback:</strong> If no license in manifest, or for ecosystems without license support (Gradle, Go, Python), automatically reads from <code>LICENSE</code>, <code>LICENSE.md</code>, or <code>LICENSE.txt</code></li>
+<li><strong>SBOM integration:</strong> Detected licenses are included in generated SBOMs for all ecosystems</li>
+<li><strong>SPDX support:</strong> Automatically detects common licenses (Apache-2.0, MIT, GPL, BSD) from LICENSE file content</li>
+</ul>
+<p>
+See <a href="./docs/license-resolution-and-compliance.md">License Resolution and Compliance</a> for detailed documentation.
+</p>
+
 <ul>
 <li>
 Use as ESM Module from Common-JS module
@@ -182,6 +197,21 @@ $ trustify-da-javascript-client license /path/to/package.json
 <li><a href="https://www.python.org/">Python</a> - <a href="https://pypi.org/project/pip/">pip Installer</a></li>
 <li><a href="https://gradle.org/">Gradle (Groovy and Kotlin DSL)</a> - <a href="https://gradle.org/install/">Gradle Installation</a></li>
 </ul>
+
+<h3>License Detection</h3>
+<p>
+The client automatically detects your project's license with intelligent fallback:
+</p>
+<ul>
+<li><strong>Manifest-first:</strong> For ecosystems with license support (Maven, JavaScript), reads from manifest file (<code>pom.xml</code>, <code>package.json</code>)</li>
+<li><strong>LICENSE file fallback:</strong> If no license in manifest, or for ecosystems without license support (Gradle, Go, Python), automatically reads from <code>LICENSE</code>, <code>LICENSE.md</code>, or <code>LICENSE.txt</code></li>
+<li><strong>SBOM integration:</strong> Detected licenses are included in generated SBOMs for all ecosystems</li>
+<li><strong>SPDX support:</strong> Automatically detects common licenses (Apache-2.0, MIT, GPL, BSD) from LICENSE file content</li>
+</ul>
+<p>
+See <a href="./docs/license-resolution-and-compliance.md">License Resolution and Compliance</a> for detailed documentation.
+</p>
+
 
 <h3>Excluding Packages</h3>
 <p>

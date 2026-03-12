@@ -4,6 +4,7 @@ import { EOL } from 'os'
 
 import TOML from 'fast-toml'
 
+import { readLicenseFile } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 
 import Base_java, { ecosystem_gradle } from "./base_java.js";
@@ -75,7 +76,7 @@ export default class Java_gradle extends Base_java {
 	 * @returns {null}
 	 */
 	// eslint-disable-next-line no-unused-vars
-	readLicenseFromManifest(manifestPath) { return null; }
+	readLicenseFromManifest(manifestPath) { return readLicenseFile(manifestPath); }
 
 	/**
 	 * Provide content and content type for stack analysis.

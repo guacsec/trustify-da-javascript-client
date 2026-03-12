@@ -15,16 +15,23 @@ License analysis is **enabled by default** and provides:
 
 ### Project License Detection
 
-The client looks for your project’s license in two places:
+The client looks for your project’s license with **automatic fallback**:
 
-1. **Manifest file** — Reads the license field from:
+1. **Primary: Manifest file** — Reads the license field from:
    - `package.json`: `license` field
    - `pom.xml`: `<licenses><license><name>` element
-   - Other ecosystems: varies by ecosystem (some don’t have standard license fields)
+   - `build.gradle` / `build.gradle.kts`: No standard license field (falls back to LICENSE file)
+   - `go.mod`: No standard license field (falls back to LICENSE file)
+   - `requirements.txt`: No standard license field (falls back to LICENSE file)
 
-2. **LICENSE file** — Searches for `LICENSE`, `LICENSE.md`, or `LICENSE.txt` in the same directory as your manifest
+2. **Fallback: LICENSE file** — If no license is found in the manifest, searches for `LICENSE`, `LICENSE.md`, or `LICENSE.txt` in the same directory as your manifest
 
-The backend’s license identification API is used for accurate LICENSE file detection.
+**How the fallback works:**
+- **Ecosystems with manifest license support** (Maven, JavaScript): Uses manifest license if present, otherwise falls back to LICENSE file
+- **Ecosystems without manifest license support** (Gradle, Go, Python): Automatically reads from LICENSE file
+- **SPDX detection**: Common licenses (Apache-2.0, MIT, GPL-2.0/3.0, LGPL-2.1/3.0, AGPL-3.0, BSD-2-Clause/3-Clause) are automatically detected from LICENSE file content
+
+The backend’s license identification API is used for accurate LICENSE file detection when available.
 
 ### Compatibility Checking
 
@@ -156,3 +163,9 @@ If you have a permissive-licensed project (MIT, Apache) but depend on GPL-licens
 ## SBOM Integration
 
 Project license information is automatically included in generated SBOMs (CycloneDX format) in the root component’s `licenses` field.
+
+**LICENSE file fallback in SBOMs:**
+- **All ecosystems** now include license information in the SBOM when available
+- **Gradle, Go, Python projects**: Even though these ecosystems don’t have manifest license fields, the SBOM will include the license from your LICENSE file
+- **Maven, JavaScript projects**: The SBOM uses the manifest license, or falls back to LICENSE file if not specified in manifest
+- If neither manifest nor LICENSE file contains a license, the SBOM root component will have no `licenses` field
