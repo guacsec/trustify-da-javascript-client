@@ -43,6 +43,21 @@ let imageAnalysisWithArch = await client.imageAnalysis(['httpd:2.4.49^^amd64'])
 ```
 </li>
 </ul>
+
+<h3>License Detection</h3>
+<p>
+The client automatically detects your project's license with intelligent fallback:
+</p>
+<ul>
+<li><strong>Manifest-first:</strong> For ecosystems with license support (Maven, JavaScript, Rust Cargo), reads from manifest file (<code>pom.xml</code>, <code>package.json</code>, <code>Cargo.toml</code>)</li>
+<li><strong>LICENSE file fallback:</strong> If no license in manifest, or for ecosystems without license support (Gradle, Go, Python), automatically reads from <code>LICENSE</code>, <code>LICENSE.md</code>, or <code>LICENSE.txt</code></li>
+<li><strong>SBOM integration:</strong> Detected licenses are included in generated SBOMs for all ecosystems</li>
+<li><strong>SPDX support:</strong> Automatically detects common licenses (Apache-2.0, MIT, GPL, BSD) from LICENSE file content</li>
+</ul>
+<p>
+See <a href="./docs/license-resolution-and-compliance.md">License Resolution and Compliance</a> for detailed documentation.
+</p>
+
 <ul>
 <li>
 Use as ESM Module from Common-JS module
@@ -83,12 +98,13 @@ Use as CLI Script
 ```shell
 $ npx @trustify-da/trustify-da-javascript-client help
 
-Usage: trustify-da-javascript-client {component|stack|image|validate-token}
+Usage: trustify-da-javascript-client {component|stack|image|validate-token|license}
 
 Commands:
   trustify-da-javascript-client stack </path/to/manifest> [--html|--summary]               produce stack report for manifest path
   trustify-da-javascript-client component <path/to/manifest> [--summary]   produce component report for a manifest type and content
   trustify-da-javascript-client image <image-refs..> [--html|--summary]               produce image analysis report for OCI image references
+  trustify-da-javascript-client license </path/to/manifest>               display project license information from manifest and LICENSE file in JSON format
 
 Options:
   --help  Show help                                                    [boolean]
@@ -123,6 +139,9 @@ $ npx @trustify-da/trustify-da-javascript-client image docker.io/library/node:18
 
 # specify architecture using ^^ notation (e.g., httpd:2.4.49^^amd64)
 $ npx @trustify-da/trustify-da-javascript-client image httpd:2.4.49^^amd64
+
+# get project license information
+$ npx @trustify-da/trustify-da-javascript-client license /path/to/package.json
 ```
 </li>
 
@@ -161,6 +180,9 @@ $ trustify-da-javascript-client image docker.io/library/node:18 docker.io/librar
 
 # specify architecture using ^^ notation (e.g., httpd:2.4.49^^amd64)
 $ trustify-da-javascript-client image httpd:2.4.49^^amd64
+
+# get project license information
+$ trustify-da-javascript-client license /path/to/package.json
 ```
 </li>
 </ul>
@@ -176,6 +198,21 @@ $ trustify-da-javascript-client image httpd:2.4.49^^amd64
 <li><a href="https://gradle.org/">Gradle (Groovy and Kotlin DSL)</a> - <a href="https://gradle.org/install/">Gradle Installation</a></li>
 <li><a href="https://www.rust-lang.org/">Rust</a> - <a href="https://doc.rust-lang.org/cargo/">Cargo</a></li>
 </ul>
+
+<h3>License Detection</h3>
+<p>
+The client automatically detects your project's license with intelligent fallback:
+</p>
+<ul>
+<li><strong>Manifest-first:</strong> For ecosystems with license support (Maven, JavaScript, Rust Cargo), reads from manifest file (<code>pom.xml</code>, <code>package.json</code>, <code>Cargo.toml</code>)</li>
+<li><strong>LICENSE file fallback:</strong> If no license in manifest, or for ecosystems without license support (Gradle, Go, Python), automatically reads from <code>LICENSE</code>, <code>LICENSE.md</code>, or <code>LICENSE.txt</code></li>
+<li><strong>SBOM integration:</strong> Detected licenses are included in generated SBOMs for all ecosystems</li>
+<li><strong>SPDX support:</strong> Automatically detects common licenses (Apache-2.0, MIT, GPL, BSD) from LICENSE file content</li>
+</ul>
+<p>
+See <a href="./docs/license-resolution-and-compliance.md">License Resolution and Compliance</a> for detailed documentation.
+</p>
+
 
 <h3>Excluding Packages</h3>
 <p>
@@ -386,6 +423,11 @@ const options = {
 ```
 
 The proxy URL should be in the format: `http://host:port` or `https://host:port`. The API will automatically use the appropriate protocol (HTTP or HTTPS) based on the proxy URL provided.
+</p>
+
+<h4>License resolution and dependency license compliance</h4>
+<p>
+The client can resolve the <strong>project license</strong> from the manifest (e.g. <code>package.json</code> <code>license</code>, <code>pom.xml</code> <code>&lt;licenses&gt;</code>, <code>Cargo.toml</code> <code>license</code>) and from a <code>LICENSE</code> or <code>LICENSE.md</code> file in the project, and report when they differ. For <strong>component analysis</strong>, you can optionally run a license check: the client fetches dependency licenses from the backend (by purl) and reports dependencies whose licenses are incompatible with the project license. See <a href="docs/license-resolution-and-compliance.md">License resolution and compliance</a> for design and behavior. To disable the check on component analysis, set <code>TRUSTIFY_DA_LICENSE_CHECK=false</code> or pass <code>licenseCheck: false</code> in the options.
 </p>
 
 <h4>Customizing Executables</h4>

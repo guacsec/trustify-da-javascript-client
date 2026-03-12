@@ -1,0 +1,90 @@
+{
+    "packages": [
+        {
+            "name": "crate-a",
+            "version": "0.1.0",
+            "id": "path+file:///fake/path/cargo_virtual_workspace_with_license/crate-a#0.1.0",
+            "source": null,
+            "dependencies": [
+                { "name": "serde", "kind": null }
+            ]
+        },
+        {
+            "name": "crate-b",
+            "version": "0.2.0",
+            "id": "path+file:///fake/path/cargo_virtual_workspace_with_license/crate-b#0.2.0",
+            "source": null,
+            "dependencies": [
+                { "name": "tokio", "kind": null }
+            ]
+        },
+        {
+            "name": "serde",
+            "version": "1.0.193",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        },
+        {
+            "name": "tokio",
+            "version": "1.35.0",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.35.0",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": [
+                { "name": "pin-project-lite", "kind": null }
+            ]
+        },
+        {
+            "name": "pin-project-lite",
+            "version": "0.2.13",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.13",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        }
+    ],
+    "workspace_members": [
+        "path+file:///fake/path/cargo_virtual_workspace_with_license/crate-a#0.1.0",
+        "path+file:///fake/path/cargo_virtual_workspace_with_license/crate-b#0.2.0"
+    ],
+    "workspace_root": "/fake/path/cargo_virtual_workspace_with_license",
+    "resolve": {
+        "root": null,
+        "nodes": [
+            {
+                "id": "path+file:///fake/path/cargo_virtual_workspace_with_license/crate-a#0.1.0",
+                "deps": [
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    }
+                ]
+            },
+            {
+                "id": "path+file:///fake/path/cargo_virtual_workspace_with_license/crate-b#0.2.0",
+                "deps": [
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.35.0",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    }
+                ]
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+                "deps": []
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.35.0",
+                "deps": [
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.13",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    }
+                ]
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.13",
+                "deps": []
+            }
+        ]
+    }
+}

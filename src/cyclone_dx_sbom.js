@@ -7,10 +7,11 @@ import {PackageURL} from "packageurl-js";
  * @param component {PackageURL}
  * @param type type of package - application or library
  * @param scope scope of the component - runtime or compile
- * @return {{"bom-ref": string, name, purl: string, type, version, scope}}
+ * @param licenses optional license string or array of licenses for the component
+ * @return {{"bom-ref": string, name, purl: string, type, version, scope, licenses?}}
  * @private
  */
-function getComponent(component, type, scope) {
+function getComponent(component, type, scope, licenses) {
 	let componentObject;
 	if(component instanceof PackageURL)
 	{
@@ -41,6 +42,18 @@ function getComponent(component, type, scope) {
 	{
 		componentObject = component
 	}
+
+	// Add licenses if provided (CycloneDX format). Callers must provide valid SPDX identifiers.
+	if (licenses) {
+		const licenseArray = Array.isArray(licenses) ? licenses : [licenses];
+		componentObject.licenses = licenseArray.map(lic => {
+			if (typeof lic === 'string') {
+				return { license: { id: lic } };
+			}
+			return lic;
+		});
+	}
+
 	return componentObject
 }
 
@@ -73,12 +86,13 @@ export default class CycloneDxSbom {
 
 	/**
 	 * @param {PackageURL} root - add main/root component for sbom
+	 * @param {string|Array} [licenses] - optional license(s) for the root component
 	 * @return {CycloneDxSbom} the CycloneDxSbom Sbom Object
 	 */
-	addRoot(root) {
+	addRoot(root, licenses) {
 
 		this.rootComponent =
-			getComponent(root, "application")
+			getComponent(root, "application", undefined, licenses)
 		this.components.push(this.rootComponent)
 		return this
 	}

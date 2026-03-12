@@ -4,6 +4,7 @@ import { EOL } from 'os'
 
 import TOML from 'fast-toml'
 
+import { readLicenseFile } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 
 import Base_java, { ecosystem_gradle } from "./base_java.js";
@@ -68,6 +69,14 @@ export default class Java_gradle extends Base_java {
 	 * @param {string} manifestDir - the directory where the manifest lies
  	 */
 	validateLockFile() { return true; }
+
+	/**
+	 * Gradle manifests (build.gradle, build.gradle.kts) have no standard license field.
+	 * @param {string} manifestPath - path to manifest
+	 * @returns {null}
+	 */
+	// eslint-disable-next-line no-unused-vars
+	readLicenseFromManifest(manifestPath) { return readLicenseFile(manifestPath); }
 
 	/**
 	 * Provide content and content type for stack analysis.
@@ -191,7 +200,8 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		sbom.addRoot(rootPurl)
+		const license = this.readLicenseFromManifest(manifestPath);
+		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 
 		const [runtimeConfig, compileConfig] = this.#extractConfigurations(content);
@@ -345,7 +355,8 @@ export default class Java_gradle extends Base_java {
 		let sbom = new Sbom();
 		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
 		let rootPurl = this.parseDep(root)
-		sbom.addRoot(rootPurl)
+		const license = this.readLicenseFromManifest(manifestPath);
+		sbom.addRoot(rootPurl, license)
 		let ignoredDeps = this.#getIgnoredDeps(manifestPath);
 
 		const [runtimeConfig, compileConfig] = this.#extractConfigurations(content);

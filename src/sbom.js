@@ -14,16 +14,17 @@ export default class Sbom {
 
 	/**
 	 * @param {PackageURL} root - add main/root component for sbom
+	 * @param {string|Array} [licenses] - optional license(s) for the root component
 	 * @return Sbom
 	 */
-	addRoot (root) {
-		return this.sbomModel.addRoot(root)
+	addRoot (root, licenses) {
+		return this.sbomModel.addRoot(root, licenses)
 	}
 
 	/**
 	 * @return {{{"bom-ref": string, name, purl: string, type, version}}} root component of sbom.
 	 */
-	getRoot (){
+	getRoot() {
 		return this.sbomModel.getRoot()
 	}
 
@@ -32,7 +33,7 @@ export default class Sbom {
 	 * @param {Array} dependencies to be removed from sbom
 	 * @return {Sbom} without ignored dependencies
 	 */
-	filterIgnoredDeps(deps){
+	filterIgnoredDeps(deps) {
 		return this.sbomModel.filterIgnoredDeps(deps)
 	}
 
@@ -71,7 +72,7 @@ export default class Sbom {
 	 * @param purl {PackageURL}
 	 * @return component
 	 */
-	purlToComponent(purl){
+	purlToComponent(purl) {
 		return this.sbomModel.purlToComponent(purl)
 	}
 
@@ -82,7 +83,7 @@ export default class Sbom {
 	 * @return {boolean}
 	 */
 	checkIfPackageInsideDependsOnList(component, name) {
-		return this.sbomModel.checkIfPackageInsideDependsOnList(component,name)
+		return this.sbomModel.checkIfPackageInsideDependsOnList(component, name)
 	}
 
 	/** Removes the root component from the sbom

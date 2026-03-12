@@ -8,13 +8,13 @@ import {getCustomPath, invokeCommand } from "../../src/tools.js"
 
 let clock
 
-function sharedComponentAnalysisTestFlow(testCase, usePipDepTreeUtility) {
+async function sharedComponentAnalysisTestFlow(testCase, usePipDepTreeUtility) {
 	// load the expected list for tsharedComponentAnalysisTestFlowhe scenario
 	let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_component_sbom.json`).toString().trim()
 	expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
 	// invoke sut stack analysis for scenario manifest
-	let opts = { "TRUSTIFY_DA_PIP_USE_DEP_TREE" : usePipDepTreeUtility }
-	let providedDatForComponent = pythonPip.provideComponent(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, opts)
+	let opts = { TRUSTIFY_DA_PIP_USE_DEP_TREE: usePipDepTreeUtility.toString() }
+	let providedDatForComponent = await pythonPip.provideComponent(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, opts)
 	// verify returned data matches expectation
 	expect(providedDatForComponent).to.deep.equal({
 		ecosystem: 'pip',
@@ -23,7 +23,7 @@ function sharedComponentAnalysisTestFlow(testCase, usePipDepTreeUtility) {
 	})
 }
 
-function sharedStackAnalysisTestFlow(testCase, usePipDepTreeUtility) {
+async function sharedStackAnalysisTestFlow(testCase, usePipDepTreeUtility) {
 	// load the expected graph for the scenario
 	let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_stack_sbom.json`).toString()
 	expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
@@ -34,8 +34,8 @@ function sharedStackAnalysisTestFlow(testCase, usePipDepTreeUtility) {
 	} catch (error) {
 		throw new Error('fail installing requirements.txt manifest in created virtual python environment', {cause: error})
 	}
-	let opts = { "TRUSTIFY_DA_PIP_USE_DEP_TREE" : usePipDepTreeUtility }
-	let providedDataForStack = pythonPip.provideStack(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, opts)
+	let opts = { TRUSTIFY_DA_PIP_USE_DEP_TREE: usePipDepTreeUtility.toString() }
+	let providedDataForStack = await pythonPip.provideStack(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, opts)
 	// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
 
 	// providedDataForStack.content = providedDataForStack.content.replaceAll("\"timestamp\":\"[a-zA-Z0-9\\-\\:]+\"","")
@@ -58,27 +58,27 @@ suite('testing the python-pip data provider', () => {
 	});
 
 	[
-		"pip_requirements_txt_no_ignore",
-		// "pip_requirements_txt_ignore"
+		// "pip_requirements_txt_no_ignore",
+		"pip_requirements_txt_ignore"
 	].forEach(testCase => {
 		let scenario = testCase.replace('pip_requirements_', '').replaceAll('_', ' ')
-		test(`verify requirements.txt sbom provided for stack analysis with scenario ${scenario}`, () => {
-			sharedStackAnalysisTestFlow(testCase,false);
+		test(`verify requirements.txt sbom provided for stack analysis with scenario ${scenario}`, async () => {
+			await sharedStackAnalysisTestFlow(testCase, false);
 			// these test cases takes ~2500-2700 ms each pr >10000 in CI (for the first test-case)
 		}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000)
 
-		test(`verify requirements.txt sbom provided for component analysis with scenario ${scenario}`, () => {
-			sharedComponentAnalysisTestFlow(testCase,false);
+		test(`verify requirements.txt sbom provided for component analysis with scenario ${scenario}`, async () => {
+			await sharedComponentAnalysisTestFlow(testCase, false);
 			// these test cases takes ~1400-2000 ms each pr >10000 in CI (for the first test-case)
 		}).timeout(process.env.GITHUB_ACTIONS ? 15000 : 10000)
 
-		test(`verify requirements.txt sbom provided for stack analysis using pipdeptree utility with scenario ${scenario}`, () => {
-			sharedStackAnalysisTestFlow(testCase,true);
+		test(`verify requirements.txt sbom provided for stack analysis using pipdeptree utility with scenario ${scenario}`, async () => {
+			await sharedStackAnalysisTestFlow(testCase, true);
 			// these test cases takes ~2500-2700 ms each pr >10000 in CI (for the first test-case)
 		}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000)
 
-		test(`verify requirements.txt sbom provided for component analysis using pipdeptree utility with scenario ${scenario}`, () => {
-			sharedComponentAnalysisTestFlow(testCase,true);
+		test(`verify requirements.txt sbom provided for component analysis using pipdeptree utility with scenario ${scenario}`, async () => {
+			await sharedComponentAnalysisTestFlow(testCase, true);
 			// these test cases takes ~1400-2000 ms each pr >10000 in CI (for the first test-case)
 		}).timeout(process.env.GITHUB_ACTIONS ? 15000 : 10000)
 	});
@@ -91,14 +91,14 @@ suite('testing the python-pip data provider with virtual environment', () => {
 		"pip_requirements_virtual_env_with_ignore"
 	].forEach(testCase => {
 		let scenario = testCase.replace('pip_requirements_', '').replaceAll('_', ' ')
-		test(`verify requirements.txt sbom provided for stack analysis using virutal python environment, with scenario ${scenario}`, () => {
+		test(`verify requirements.txt sbom provided for stack analysis using virutal python environment, with scenario ${scenario}`, async () => {
 			// load the expected sbom stack analysis
 			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_stack_sbom.json`,).toString()
-			process.env["TRUSTIFY_DA_PYTHON_VIRTUAL_ENV"] = "true"
-			// process.env["TRUSTIFY_DA_DEBUG"] = "true"
 			expectedSbom = JSON.stringify(JSON.parse(expectedSbom), null, 4)
 			// invoke sut stack analysis for scenario manifest
-			let providedDataForStack = pythonPip.provideStack(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`)
+			let providedDataForStack = await pythonPip.provideStack(`test/providers/tst_manifests/pip/${testCase}/requirements.txt`, {
+				TRUSTIFY_DA_PYTHON_VIRTUAL_ENV: "true"
+			})
 			// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
 
 			// providedDataForStack.content = providedDataForStack.content.replaceAll("\"timestamp\":\"[a-zA-Z0-9\\-\\:]+\"","")

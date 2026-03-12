@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from 'node:path';
-import os, {EOL} from "os";
+import os, { EOL } from "os";
 
-import {environmentVariableIsPopulated,getCustom, invokeCommand} from "../tools.js";
+import { environmentVariableIsPopulated, getCustom, invokeCommand } from "../tools.js";
+
+import { getParser, getRequirementQuery, getPinnedVersionQuery } from './requirements_parser.js';
 
 function getPipFreezeOutput() {
 	try {
@@ -23,13 +25,15 @@ function getPipShowOutput(depNames) {
 /** @typedef {{name: string, version: string, dependencies: DependencyEntry[]}} DependencyEntry */
 
 export default class Python_controller {
-
 	pythonEnvDir
 	pathToPipBin
 	pathToPythonBin
 	realEnvironment
 	pathToRequirements
 	options
+	parser
+	requirementsQuery
+	pinnedVersionQuery
 
 	/**
 	 * Constructor to create new python controller instance to interact with pip package manager
@@ -39,14 +43,18 @@ export default class Python_controller {
 	 * @param {string} pathToRequirements
 	 * @
 	 */
-	constructor(realEnvironment,pathToPip,pathToPython,pathToRequirements,options={}) {
+	constructor(realEnvironment, pathToPip, pathToPython, pathToRequirements, options={}) {
 		this.pathToPythonBin = pathToPython
 		this.pathToPipBin = pathToPip
 		this.realEnvironment= realEnvironment
 		this.prepareEnvironment()
 		this.pathToRequirements = pathToRequirements
 		this.options = options
+		this.parser = getParser()
+		this.requirementsQuery = getRequirementQuery()
+		this.pinnedVersionQuery = getPinnedVersionQuery()
 	}
+
 	prepareEnvironment() {
 		if(!this.realEnvironment) {
 			this.pythonEnvDir = path.join(path.sep, "tmp", "trustify_da_env_js")
@@ -87,6 +95,24 @@ export default class Python_controller {
 		}
 	}
 
+	/**
+	 * Parse the requirements.txt file using tree-sitter and return structured requirement data.
+	 * @return {Promise<{name: string, version: string|null}[]>}
+	 */
+	async #parseRequirements() {
+		const content = fs.readFileSync(this.pathToRequirements).toString();
+		const tree = (await this.parser).parse(content);
+		return Promise.all((await this.requirementsQuery).matches(tree.rootNode).map(async (match) => {
+			const reqNode = match.captures.find(c => c.name === 'req').node;
+			const name = match.captures.find(c => c.name === 'name').node.text;
+			const versionMatches = (await this.pinnedVersionQuery).matches(reqNode);
+			const version = versionMatches.length > 0
+				? versionMatches[0].captures.find(c => c.name === 'version').node.text
+				: null;
+			return { name, version };
+		}));
+	}
+
 	#decideIfWindowsOrLinuxPath(fileName) {
 		if (os.platform() === "win32") {
 			return fileName + ".exe"
@@ -97,9 +123,9 @@ export default class Python_controller {
 	/**
 	 *
 	 * @param {boolean} includeTransitive - whether to return include in returned object transitive dependencies or not
-	 * @return {[DependencyEntry]}
+	 * @return {Promise<[DependencyEntry]>}
 	 */
-	getDependencies(includeTransitive) {
+	async getDependencies(includeTransitive) {
 		let startingTime
 		let endingTime
 		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
@@ -123,10 +149,10 @@ export default class Python_controller {
 				if(matchManifestVersions === "true") {
 					throw new Error("Conflicting settings, TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS=true can only work with MATCH_MANIFEST_VERSIONS=false")
 				}
-				this.#installingRequirementsOneByOne()
+				await this.#installingRequirementsOneByOne()
 			}
 		}
-		let dependencies = this.#getDependenciesImpl(includeTransitive)
+		let dependencies = await this.#getDependenciesImpl(includeTransitive)
 		this.#cleanEnvironment()
 		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			endingTime = new Date()
@@ -137,15 +163,13 @@ export default class Python_controller {
 		return dependencies
 	}
 
-	#installingRequirementsOneByOne() {
-		let requirementsContent = fs.readFileSync(this.pathToRequirements);
-		let requirementsRows = requirementsContent.toString().split(EOL);
-		requirementsRows.filter((line) => !line.trim().startsWith("#")).filter((line) => line.trim() !== "").forEach( (dependency) => {
-			let dependencyName = getDependencyName(dependency);
+	async #installingRequirementsOneByOne() {
+		const requirements = await this.#parseRequirements();
+		requirements.forEach(({name}) => {
 			try {
-				invokeCommand(this.pathToPipBin, ['install', dependencyName])
+				invokeCommand(this.pathToPipBin, ['install', name])
 			} catch (error) {
-				throw new Error(`Failed in best-effort installing ${dependencyName} in virtual python environment`, {cause: error})
+				throw new Error(`Failed in best-effort installing ${name} in virtual python environment`, {cause: error})
 			}
 		})
 	}
@@ -162,44 +186,33 @@ export default class Python_controller {
 		}
 	}
 
-	#getDependenciesImpl(includeTransitive) {
-		let dependencies = new Array()
+	async #getDependenciesImpl(includeTransitive) {
+		let dependencies = []
 		let usePipDepTree = getCustom("TRUSTIFY_DA_PIP_USE_DEP_TREE","false",this.options);
-		let freezeOutput
-		let lines
-		let depNames
-		let pipShowOutput
 		let allPipShowDeps
 		let pipDepTreeJsonArrayOutput
 		if(usePipDepTree !== "true") {
-			freezeOutput = getPipFreezeOutput.call(this);
-			lines = freezeOutput.split(EOL)
-			depNames = lines.map( line => getDependencyName(line))
-		}
-		else {
+			const freezeOutput = getPipFreezeOutput.call(this);
+			const lines = freezeOutput.split(EOL)
+			const depNames = lines.map( line => getDependencyName(line))
+			const pipShowOutput = getPipShowOutput.call(this, depNames);
+			allPipShowDeps = pipShowOutput.split( EOL + "---" + EOL);
+		} else {
 			pipDepTreeJsonArrayOutput = getDependencyTreeJsonFromPipDepTree(this.pathToPipBin,this.pathToPythonBin)
 		}
 
-
-		if(usePipDepTree !== "true") {
-			pipShowOutput = getPipShowOutput.call(this, depNames);
-			allPipShowDeps = pipShowOutput.split( EOL + "---" + EOL);
-		}
-		//debug
-		// pipShowOutput = "alternative pip show output goes here for debugging"
-
 		let matchManifestVersions = getCustom("MATCH_MANIFEST_VERSIONS","true",this.options);
-		let linesOfRequirements = fs.readFileSync(this.pathToRequirements).toString().split(EOL).filter( (line) => !line.trim().startsWith("#")).map(line => line.trim())
+		let parsedRequirements = await this.#parseRequirements()
 		let CachedEnvironmentDeps = {}
 		if(usePipDepTree !== "true") {
-			allPipShowDeps.forEach((record) => {
+			allPipShowDeps.forEach(record => {
 				let dependencyName = getDependencyNameShow(record).toLowerCase()
 				CachedEnvironmentDeps[dependencyName] = record
 				CachedEnvironmentDeps[dependencyName.replace("-", "_")] = record
 				CachedEnvironmentDeps[dependencyName.replace("_", "-")] = record
 			})
 		} else {
-			pipDepTreeJsonArrayOutput.forEach( depTreeEntry => {
+			pipDepTreeJsonArrayOutput.forEach(depTreeEntry => {
 				let packageName = depTreeEntry["package"]["package_name"].toLowerCase()
 				let pipDepTreeEntryForCache = {
 					name: packageName,
@@ -211,41 +224,25 @@ export default class Python_controller {
 				CachedEnvironmentDeps[packageName.replace("_", "-")] = pipDepTreeEntryForCache
 			})
 		}
-		linesOfRequirements.forEach( (dep) => {
-			// if matchManifestVersions setting is turned on , then
-			if(matchManifestVersions === "true") {
-				let dependencyName
-				let manifestVersion
+		parsedRequirements.forEach(({ name: depName, version: manifestVersion }) => {
+			if(matchManifestVersions === "true" && manifestVersion != null) {
 				let installedVersion
-				let doubleEqualSignPosition
-				if(dep.includes("==")) {
-					doubleEqualSignPosition = dep.indexOf("==")
-					manifestVersion = dep.substring(doubleEqualSignPosition + 2).trim()
-					if(manifestVersion.includes("#")) {
-						let hashCharIndex = manifestVersion.indexOf("#");
-						manifestVersion = manifestVersion.substring(0,hashCharIndex)
+				if(CachedEnvironmentDeps[depName.toLowerCase()] !== undefined) {
+					if(usePipDepTree !== "true") {
+						installedVersion = getDependencyVersion(CachedEnvironmentDeps[depName.toLowerCase()])
+					} else {
+						installedVersion = CachedEnvironmentDeps[depName.toLowerCase()].version
 					}
-					dependencyName = getDependencyName(dep)
-					// only compare between declared version in manifest to installed version , if the package is installed.
-					if(CachedEnvironmentDeps[dependencyName.toLowerCase()] !== undefined) {
-						if(usePipDepTree !== "true") {
-							installedVersion = getDependencyVersion(CachedEnvironmentDeps[dependencyName.toLowerCase()])
-						} else {
-							installedVersion = CachedEnvironmentDeps[dependencyName.toLowerCase()].version
-						}
-					}
-					if(installedVersion) {
-						if (manifestVersion.trim() !== installedVersion.trim()) {
-							throw new Error(`Can't continue with analysis - versions mismatch for dependency name ${dependencyName} (manifest version=${manifestVersion}, installed version=${installedVersion}).If you want to allow version mismatch for analysis between installed and requested packages, set environment variable/setting MATCH_MANIFEST_VERSIONS=false`)
-						}
+				}
+				if(installedVersion) {
+					if (manifestVersion.trim() !== installedVersion.trim()) {
+						throw new Error(`Can't continue with analysis - versions mismatch for dependency name ${depName} (manifest version=${manifestVersion}, installed version=${installedVersion}).If you want to allow version mismatch for analysis between installed and requested packages, set environment variable/setting MATCH_MANIFEST_VERSIONS=false`)
 					}
 				}
 			}
-			let path = new Array()
-			let depName = getDependencyName(dep)
-			//array to track a path for each branch in the dependency tree
+			let path = []
 			path.push(depName.toLowerCase())
-			bringAllDependencies(dependencies,depName,CachedEnvironmentDeps,includeTransitive,path,usePipDepTree)
+			bringAllDependencies(dependencies, depName, CachedEnvironmentDeps, includeTransitive, path, usePipDepTree)
 		})
 		dependencies.sort((dep1,dep2) =>{
 			const DEP1 = dep1.name.toLowerCase()
@@ -350,12 +347,12 @@ function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDep
 		version = record.version
 		directDeps = record.dependencies
 	}
-	let targetDeps = new Array()
+	let targetDeps = []
 
-	let entry = { "name" : depName , "version" : version, "dependencies" : [] }
+	let entry = { "name": depName, "version": version, "dependencies": [] }
 	dependencies.push(entry)
 	directDeps.forEach( (dep) => {
-		let depArray = new Array()
+		let depArray = []
 		// to avoid infinite loop, check if the dependency not already on current path, before going recursively resolving its dependencies.
 		if(!path.includes(dep.toLowerCase())) {
 			// send to recurrsion the path + the current dep

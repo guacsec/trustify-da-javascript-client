@@ -1,6 +1,7 @@
 import { execFileSync } from "child_process";
 import { EOL } from "os";
 
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { PackageURL } from "packageurl-js";
 
 export const RegexNotToBeLogged = /TRUSTIFY_DA_(.*_)?TOKEN|ex-.*-token|trust-.*-token/
@@ -169,4 +170,64 @@ export function invokeCommand(bin, args, opts={}) {
 	};
 
 	return execFileSync(bin, args, {...{stdio: 'pipe', encoding: 'utf-8'}, ...opts})
+}
+
+
+export const TRUSTIFY_DA_TOKEN_HEADER = "trust-da-token";
+export const TRUSTIFY_DA_TELEMETRY_ID_HEADER = "telemetry-anonymous-id";
+export const TRUSTIFY_DA_SOURCE_HEADER = "trust-da-source"
+export const TRUSTIFY_DA_OPERATION_TYPE_HEADER = "trust-da-operation-type"
+export const TRUSTIFY_DA_PACKAGE_MANAGER_HEADER = "trust-da-pkg-manager"
+
+/**
+ * Adds proxy agent configuration to fetch options if a proxy URL is specified
+ * @param {RequestInit} options - The base fetch options
+ * @param {import("index.js").Options} opts - The trustify DA options that may contain proxy configuration
+ * @returns {RequestInit} The fetch options with proxy agent if applicable
+ */
+export function addProxyAgent(options, opts) {
+	const proxyUrl = getCustom('TRUSTIFY_DA_PROXY_URL', null, opts);
+	if (proxyUrl) {
+		options.agent = new HttpsProxyAgent(proxyUrl);
+	}
+	return options;
+}
+
+/**
+ * Utility function for fetching vendor tokens
+ * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
+ * @returns {{}}
+ */
+export function getTokenHeaders(opts = {}) {
+	let headers = {}
+	setCustomHeader(TRUSTIFY_DA_TOKEN_HEADER, headers, 'TRUSTIFY_DA_TOKEN', opts);
+	setCustomHeader(TRUSTIFY_DA_SOURCE_HEADER, headers, 'TRUSTIFY_DA_SOURCE', opts);
+	setCustomHeader(TRUSTIFY_DA_OPERATION_TYPE_HEADER, headers, TRUSTIFY_DA_OPERATION_TYPE_HEADER.toUpperCase().replaceAll("-", "_"), opts);
+	setCustomHeader(TRUSTIFY_DA_PACKAGE_MANAGER_HEADER, headers, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER.toUpperCase().replaceAll("-", "_"), opts)
+	setCustomHeader(TRUSTIFY_DA_TELEMETRY_ID_HEADER, headers, 'TRUSTIFY_DA_TELEMETRY_ID', opts);
+
+	if (getCustom("TRUSTIFY_DA_DEBUG", null, opts) === "true") {
+		console.log("Headers Values to be sent to Trustify DA backend:" + EOL)
+		for (const headerKey in headers) {
+			if (!headerKey.match(RegexNotToBeLogged)) {
+				console.log(`${headerKey}: ${headers[headerKey]}`)
+			}
+		}
+	}
+	return headers
+}
+
+/**
+ *
+ * @param {string} headerName - the header name to populate in request
+ * @param headers
+ * @param {string} optsKey - key in the options object to use the value for
+ * @param {import("index.js").Options} [opts={}] - options input object to fetch header values from
+ * @private
+ */
+function setCustomHeader(headerName, headers, optsKey, opts) {
+	let customHeaderValue = getCustom(optsKey, null, opts);
+	if (customHeaderValue) {
+		headers[headerName] = customHeaderValue
+	}
 }

@@ -483,3 +483,41 @@ suite('testing rust-cargo workspace with root ignore with exhortignore', () => {
 		expect(sbom.components.find(c => c.name === 'tokio')).to.be.undefined
 	}).timeout(10000)
 }).beforeAll(() => clock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z'))).afterAll(() => clock.restore());
+
+suite('testing rust-cargo license detection', () => {
+	const singleCrateLicenseDir = 'test/providers/tst_manifests/cargo/cargo_single_crate_with_license'
+	const virtualWorkspaceLicenseDir = 'test/providers/tst_manifests/cargo/cargo_virtual_workspace_with_license'
+
+	// readLicenseFromManifest unit tests are in license.test.js (shared across all providers)
+
+	test('verify license is included in SBOM for single crate (stack analysis)', async () => {
+		await assertSbomMatchesExpected(singleCrateLicenseDir, 'stack')
+	}).timeout(10000)
+
+	test('verify license is included in SBOM for single crate (component analysis)', async () => {
+		await assertSbomMatchesExpected(singleCrateLicenseDir, 'component')
+	}).timeout(10000)
+
+	test('verify license is included in SBOM for virtual workspace (stack analysis)', async () => {
+		await assertSbomMatchesExpected(virtualWorkspaceLicenseDir, 'stack')
+	}).timeout(10000)
+
+	test('verify license is included in SBOM for virtual workspace (component analysis)', async () => {
+		await assertSbomMatchesExpected(virtualWorkspaceLicenseDir, 'component')
+	}).timeout(10000)
+
+	test('verify license field present in single crate SBOM metadata component', async () => {
+		let sbom = await getParsedSbom(singleCrateLicenseDir, 'stack')
+		expect(sbom.metadata.component.licenses).to.deep.equal([{ license: { id: 'ISC' } }])
+	}).timeout(10000)
+
+	test('verify license field present in virtual workspace SBOM metadata component', async () => {
+		let sbom = await getParsedSbom(virtualWorkspaceLicenseDir, 'stack')
+		expect(sbom.metadata.component.licenses).to.deep.equal([{ license: { id: 'ISC' } }])
+	}).timeout(10000)
+
+	test('verify no license field in SBOM when manifest has no license', async () => {
+		let sbom = await getParsedSbom('test/providers/tst_manifests/cargo/cargo_single_crate_no_ignore', 'stack')
+		expect(sbom.metadata.component.licenses).to.be.undefined
+	}).timeout(10000)
+}).beforeAll(() => clock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z'))).afterAll(() => clock.restore());

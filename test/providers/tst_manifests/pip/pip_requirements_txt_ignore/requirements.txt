@@ -25,3 +25,8 @@ urllib3==1.26.16
 uvicorn==0.17.0
 Werkzeug==2.0.3
 zipp==3.6.0
+aiohappyeyeballs==2.6.1 \
+    --config-settings=SAMPLE_TEXT=TEST_VALUE \
+    --config-settings=ANOTHER_KEY=ANOTHER_VALUE
+async-timeout==5.0.1 ; python_full_version < '3.11'
+--extra-index-url=https://download.pytorch.org/whl/cpu

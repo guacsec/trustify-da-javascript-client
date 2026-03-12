@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "crate-a",
+    "crate-b",
+]
+resolver = "2"
+
+[workspace.package]
+license = "ISC"
+
+[workspace.dependencies]
+serde = "1.0.193"
+tokio = "1.35.0"

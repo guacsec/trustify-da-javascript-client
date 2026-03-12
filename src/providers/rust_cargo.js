@@ -3,10 +3,11 @@ import path from 'node:path'
 
 import { PackageURL } from 'packageurl-js'
 
+import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustomPath, invokeCommand } from '../tools.js'
 
-export default { isSupported, validateLockFile, provideComponent, provideStack }
+export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest }
 
 /** @typedef {import('../provider').Provider} */
 
@@ -69,6 +70,43 @@ const CrateType = {
  */
 function isSupported(manifestName) {
 	return 'Cargo.toml' === manifestName
+}
+
+/**
+ * Read project license from Cargo.toml, with fallback to LICENSE file.
+ * Supports the `license` field under `[package]` (single crate / workspace
+ * with root) and under `[workspace.package]` (virtual workspaces).
+ * @param {string} manifestPath - path to Cargo.toml
+ * @returns {string|null} SPDX identifier or null
+ */
+function readLicenseFromManifest(manifestPath) {
+	let fromManifest = null
+	try {
+		let content = fs.readFileSync(manifestPath, 'utf-8')
+		let lines = content.split(/\r?\n/)
+		let currentSection = ''
+
+		for (let line of lines) {
+			let trimmed = line.trim()
+
+			let sectionMatch = trimmed.match(/^\[([^\]]+)\]\s*(?:#.*)?$/)
+			if (sectionMatch) {
+				currentSection = sectionMatch[1]
+				continue
+			}
+
+			if (currentSection === 'package' || currentSection === 'workspace.package') {
+				let licenseMatch = trimmed.match(/^license\s*=\s*"([^"]+)"/)
+				if (licenseMatch) {
+					fromManifest = licenseMatch[1].trim()
+					break
+				}
+			}
+		}
+	} catch (_) {
+		// leave fromManifest as null
+	}
+	return getLicense(fromManifest, manifestPath)
 }
 
 /**
@@ -156,14 +194,15 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	let metadata = executeCargoMetadata(cargoBin, manifestDir)
 	let ignoredDeps = getIgnoredDeps(manifest, metadata)
 	let crateType = detectCrateType(metadata)
+	let license = readLicenseFromManifest(manifest)
 
 	let sbom
 	if (crateType === CrateType.WORKSPACE_VIRTUAL) {
-		sbom = handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts)
+		sbom = handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license)
 	} else if (crateType === CrateType.WORKSPACE_WITH_ROOT_CRATE) {
-		sbom = handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts)
+		sbom = handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts, license)
 	} else {
-		sbom = handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts)
+		sbom = handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license)
 	}
 
 	return sbom
@@ -230,16 +269,17 @@ function detectCrateType(metadata) {
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @param {boolean} includeTransitive - whether to include transitive dependencies
  * @param {{}} opts - options
+ * @param {string|null} license - SPDX license identifier for the root component
  * @returns {string} SBOM json string
  * @private
  */
-function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts) {
+function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license) {
 	let rootPackageId = metadata.resolve.root
 	let rootPackage = findPackageById(metadata, rootPackageId)
 	let rootPurl = toPurl(rootPackage.name, rootPackage.version)
 
 	let sbom = new Sbom()
-	sbom.addRoot(rootPurl)
+	sbom.addRoot(rootPurl, license)
 
 	let resolveNode = findResolveNode(metadata, rootPackageId)
 	if (!resolveNode) {
@@ -267,16 +307,17 @@ function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts) {
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @param {boolean} includeTransitive - whether to include transitive dependencies
  * @param {{}} opts - options
+ * @param {string|null} license - SPDX license identifier for the root component
  * @returns {string} SBOM json string
  * @private
  */
-function handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts) {
+function handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts, license) {
 	let rootPackageId = metadata.resolve.root
 	let rootPackage = findPackageById(metadata, rootPackageId)
 	let rootPurl = toPurl(rootPackage.name, rootPackage.version)
 
 	let sbom = new Sbom()
-	sbom.addRoot(rootPurl)
+	sbom.addRoot(rootPurl, license)
 
 	let resolveNode = findResolveNode(metadata, rootPackageId)
 	if (!resolveNode) {
@@ -310,17 +351,18 @@ function handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts)
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @param {boolean} includeTransitive - whether to include transitive dependencies
  * @param {{}} opts - options
+ * @param {string|null} license - SPDX license identifier for the root component
  * @returns {string} SBOM json string
  * @private
  */
-function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts) {
+function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license) {
 	let workspaceRoot = metadata.workspace_root
 	let rootName = path.basename(workspaceRoot)
 	let workspaceVersion = getWorkspaceVersion(metadata)
 	let rootPurl = toPurl(rootName, workspaceVersion)
 
 	let sbom = new Sbom()
-	sbom.addRoot(rootPurl)
+	sbom.addRoot(rootPurl, license)
 
 	if (includeTransitive) {
 		// Stack analysis: walk all members and their full dependency trees

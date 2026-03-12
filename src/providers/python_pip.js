@@ -1,8 +1,8 @@
 import fs from 'node:fs'
-import { EOL } from 'os'
 
 import { PackageURL } from 'packageurl-js'
 
+import { readLicenseFile } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import {
 	environmentVariableIsPopulated,
@@ -11,10 +11,10 @@ import {
 	invokeCommand
 } from "../tools.js";
 
-
 import Python_controller from './python_controller.js'
+import { getParser, getIgnoreQuery, getPinnedVersionQuery } from './requirements_parser.js'
 
-export default { isSupported, validateLockFile, provideComponent, provideStack }
+export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest }
 
 /** @typedef {{name: string, version: string, dependencies: DependencyEntry[]}} DependencyEntry */
 
@@ -33,6 +33,14 @@ function isSupported(manifestName) {
 }
 
 /**
+ * Python requirements.txt has no standard license field
+ * @param {string} manifestPath - path to requirements.txt
+ * @returns {string|null}
+ */
+// eslint-disable-next-line no-unused-vars
+function readLicenseFromManifest(manifestPath) { return readLicenseFile(manifestPath); }
+
+/**
  * @param {string} manifestDir - the directory where the manifest lies
  */
 function validateLockFile() { return true; }
@@ -41,12 +49,12 @@ function validateLockFile() { return true; }
  * Provide content and content type for python-pip stack analysis.
  * @param {string} manifest - the manifest path or name
  * @param {{}} [opts={}] - optional various options to pass along the application
- * @returns {Provided}
+ * @returns {Promise<Provided>}
  */
-function provideStack(manifest, opts = {}) {
+async function provideStack(manifest, opts = {}) {
 	return {
 		ecosystem,
-		content: createSbomStackAnalysis(manifest, opts),
+		content: await createSbomStackAnalysis(manifest, opts),
 		contentType: 'application/vnd.cyclonedx+json'
 	}
 }
@@ -55,12 +63,12 @@ function provideStack(manifest, opts = {}) {
  * Provide content and content type for python-pip component analysis.
  * @param {string} manifest - path to requirements.txt for component report
  * @param {{}} [opts={}] - optional various options to pass along the application
- * @returns {Provided}
+ * @returns {Promise<Provided>}
  */
-function provideComponent(manifest, opts = {}) {
+async function provideComponent(manifest, opts = {}) {
 	return {
 		ecosystem,
-		content: getSbomForComponentAnalysis(manifest, opts),
+		content: await getSbomForComponentAnalysis(manifest, opts),
 		contentType: 'application/vnd.cyclonedx+json'
 	}
 }
@@ -79,57 +87,41 @@ function addAllDependencies(source, dep, sbom) {
 	sbom.addDependency(source, targetPurl)
 	let directDeps = dep["dependencies"]
 	if (directDeps !== undefined && directDeps.length > 0) {
-		directDeps.forEach( (dependency) =>{ addAllDependencies(toPurl(dep["name"],dep["version"]), dependency, sbom)})
+		directDeps.forEach((dependency) => { addAllDependencies(toPurl(dep["name"],dep["version"]), dependency, sbom) })
 	}
 }
 
 /**
  *
- * @param nameVersion
- * @return {string}
- */
-function splitToNameVersion(nameVersion) {
-	let result = []
-	if(nameVersion.includes("==")) {
-		return nameVersion.split("==")
-	}
-	const regex = /[^\w\s-_]/g;
-	let endIndex = nameVersion.search(regex);
-	if(endIndex === -1) {
-		return [nameVersion.trim()]
-	}
-	result.push(nameVersion.substring(0, endIndex).trim())
-	return result;
-}
-
-/**
- *
- * @param {string} requirementTxtContent
+ * @param {string} manifest - path to requirements.txt
  * @return {PackageURL []}
  */
-function getIgnoredDependencies(requirementTxtContent) {
-	let requirementsLines = requirementTxtContent.split(EOL)
-	return requirementsLines
-		.filter(line => line.includes("#exhortignore") || line.includes("# exhortignore"))
-		.map((line) => line.substring(0,line.indexOf("#")).trim())
-		.map((name) => {
-			let nameVersion = splitToNameVersion(name);
-			if(nameVersion.length === 2) {
-				return toPurl(nameVersion[0],nameVersion[1])
-			}
-			return toPurl(nameVersion[0], undefined);
-		})
+async function getIgnoredDependencies(manifest) {
+	const [parser, ignoreQuery, pinnedVersionQuery] = await Promise.all([
+		getParser(), getIgnoreQuery(), getPinnedVersionQuery()
+	]);
+	const content = fs.readFileSync(manifest).toString();
+	const tree = parser.parse(content);
+	return ignoreQuery.matches(tree.rootNode).map(match => {
+		const reqNode = match.captures.find(c => c.name === 'req').node;
+		const name = match.captures.find(c => c.name === 'name').node.text;
+		const versionMatches = pinnedVersionQuery.matches(reqNode);
+		const version = versionMatches.length > 0
+			? versionMatches[0].captures.find(c => c.name === 'version').node.text
+			: undefined;
+		return toPurl(name, version);
+	})
 }
 
 /**
  *
- * @param {string} requirementTxtContent content of requirments.txt in string
+ * @param {string} manifest - path to requirements.txt
  * @param {Sbom} sbom object to filter out from it exhortignore dependencies.
  * @param {{Object}} opts - various options and settings for the application
  * @private
  */
-function handleIgnoredDependencies(requirementTxtContent, sbom, opts ={}) {
-	let ignoredDeps = getIgnoredDependencies(requirementTxtContent)
+async function handleIgnoredDependencies(manifest, sbom, opts = {}) {
+	let ignoredDeps = await getIgnoredDependencies(manifest)
 	let matchManifestVersions = getCustom("MATCH_MANIFEST_VERSIONS", "true", opts);
 	if(matchManifestVersions === "true") {
 		const ignoredDepsVersion = ignoredDeps.filter(dep => dep.version !== undefined);
@@ -145,7 +137,7 @@ function handleIgnoredDependencies(requirementTxtContent, sbom, opts ={}) {
  * @param {object}binaries
  * @param {{}} [opts={}]
  */
-function getPythonPipBinaries(binaries,opts) {
+function getPythonPipBinaries(binaries, opts) {
 	let python = getCustomPath("python3", opts)
 	let pip = getCustomPath("pip3", opts)
 	try {
@@ -195,23 +187,23 @@ const DEFAULT_PIP_ROOT_COMPONENT_VERSION = "0.0.0";
  * Create sbom json string out of a manifest path for stack analysis.
  * @param {string} manifest - path for requirements.txt
  * @param {{}} [opts={}] - optional various options to pass along the application
- * @returns {string} the sbom json string content
+ * @returns {Promise<string>} the sbom json string content
  * @private
  */
-function createSbomStackAnalysis(manifest, opts = {}) {
+async function createSbomStackAnalysis(manifest, opts = {}) {
 	let binaries = {}
 	let createVirtualPythonEnv = handlePythonEnvironment(binaries, opts);
 
 	let pythonController = new Python_controller(createVirtualPythonEnv === "false", binaries.pip, binaries.python, manifest, opts)
-	let dependencies = pythonController.getDependencies(true);
+	let dependencies = await pythonController.getDependencies(true);
 	let sbom = new Sbom();
 	const rootPurl = toPurl(DEFAULT_PIP_ROOT_COMPONENT_NAME, DEFAULT_PIP_ROOT_COMPONENT_VERSION);
-	sbom.addRoot(rootPurl);
+	const license = readLicenseFromManifest(manifest);
+	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
 		addAllDependencies(rootPurl, dep, sbom)
 	})
-	let requirementTxtContent = fs.readFileSync(manifest).toString();
-	handleIgnoredDependencies(requirementTxtContent, sbom, opts)
+	await handleIgnoredDependencies(manifest, sbom, opts)
 	// In python there is no root component, then we must remove the dummy root we added, so the sbom json will be accepted by the DA backend
 	// sbom.removeRootComponent()
 	return sbom.getAsJsonString(opts)
@@ -221,22 +213,22 @@ function createSbomStackAnalysis(manifest, opts = {}) {
  * Create a sbom json string out of a manifest content for component analysis
  * @param {string} manifest - path to requirements.txt
  * @param {{}} [opts={}] - optional various options to pass along the application
- * @returns {string} the sbom json string content
+ * @returns {Promise<string>} the sbom json string content
  * @private
  */
-function getSbomForComponentAnalysis(manifest, opts = {}) {
+async function getSbomForComponentAnalysis(manifest, opts = {}) {
 	let binaries = {}
 	let createVirtualPythonEnv = handlePythonEnvironment(binaries, opts);
 	let pythonController = new Python_controller(createVirtualPythonEnv === "false", binaries.pip, binaries.python, manifest, opts)
-	let dependencies = pythonController.getDependencies(false);
+	let dependencies = await pythonController.getDependencies(false);
 	let sbom = new Sbom();
 	const rootPurl = toPurl(DEFAULT_PIP_ROOT_COMPONENT_NAME, DEFAULT_PIP_ROOT_COMPONENT_VERSION);
-	sbom.addRoot(rootPurl);
+	const license = readLicenseFromManifest(manifest);
+	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
 		sbom.addDependency(rootPurl, toPurl(dep.name, dep.version))
 	})
-	let requirementTxtContent = fs.readFileSync(manifest).toString();
-	handleIgnoredDependencies(requirementTxtContent, sbom, opts)
+	await handleIgnoredDependencies(manifest, sbom, opts)
 	// In python there is no root component, then we must remove the dummy root we added, so the sbom json will be accepted by the DA backend
 	// sbom.removeRootComponent()
 	return sbom.getAsJsonString(opts)

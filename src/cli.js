@@ -5,7 +5,9 @@ import * as path from "path";
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
-import client from './index.js'
+import { getProjectLicense, getLicenseDetails } from './license/index.js'
+
+import client, { selectTrustifyDABackend } from './index.js'
 
 
 // command for component analysis take manifest type and content
@@ -32,9 +34,8 @@ const validateToken = {
 	builder: yargs => yargs.positional(
 		'token-provider',
 		{
-			desc: 'the token provider',
-			type: 'string',
-			choices: ['snyk','oss-index'],
+			desc: 'the token provider name',
+			type: 'string'
 		}
 	).options({
 		tokenValue: {
@@ -48,7 +49,7 @@ const validateToken = {
 		let opts={}
 		if(args['tokenValue'] !== undefined && args['tokenValue'].trim() !=="" ) {
 			let tokenValue = args['tokenValue'].trim()
-			opts[`TRUSTIFY_DA_${tokenProvider}_TOKEN`] = tokenValue
+			opts[`TRUSTIFY_DA_PROVIDER_${tokenProvider}_TOKEN`] = tokenValue
 		}
 		let res = await client.validateToken(opts)
 		console.log(res)
@@ -168,13 +169,86 @@ const stack = {
 	}
 }
 
+// command for license checking
+const license = {
+	command: 'license </path/to/manifest>',
+	desc: 'Display project license information from manifest and LICENSE file in JSON format',
+	builder: yargs => yargs.positional(
+		'/path/to/manifest',
+		{
+			desc: 'manifest path for license analysis',
+			type: 'string',
+			normalize: true,
+		}
+	),
+	handler: async args => {
+		let manifestPath = args['/path/to/manifest']
+
+		const opts = {} // CLI options can be extended in the future
+		try {
+			selectTrustifyDABackend(opts)
+		} catch (err) {
+			console.error(JSON.stringify({ error: err.message }, null, 2))
+			process.exit(1)
+		}
+
+		let localResult
+		try {
+			localResult = getProjectLicense(manifestPath)
+		} catch (err) {
+			console.error(JSON.stringify({ error: `Failed to read manifest: ${err.message}` }, null, 2))
+			process.exit(1)
+		}
+
+		const errors = []
+
+		// Build LicenseInfo objects
+		const buildLicenseInfo = async (spdxId) => {
+			if (!spdxId) {return null}
+
+			const licenseInfo = { spdxId }
+
+			try {
+				const details = await getLicenseDetails(spdxId, opts)
+				if (details) {
+					// Check if backend recognized the license as valid
+					if (details.category === 'UNKNOWN') {
+						errors.push(`"${spdxId}" is not a valid SPDX license identifier. Please use a valid SPDX expression (e.g., "Apache-2.0", "MIT"). See https://spdx.org/licenses/`)
+					} else {
+						Object.assign(licenseInfo, details)
+					}
+				} else {
+					errors.push(`No license details found for ${spdxId}`)
+				}
+			} catch (err) {
+				errors.push(`Failed to fetch details for ${spdxId}: ${err.message}`)
+			}
+
+			return licenseInfo
+		}
+
+		const output = {
+			manifestLicense: await buildLicenseInfo(localResult.fromManifest),
+			fileLicense: await buildLicenseInfo(localResult.fromFile),
+			mismatch: localResult.mismatch
+		}
+
+		if (errors.length > 0) {
+			output.errors = errors
+		}
+
+		console.log(JSON.stringify(output, null, 2))
+	}
+}
+
 // parse and invoke the command
 yargs(hideBin(process.argv))
-	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|image|validate-token}`)
+	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|image|validate-token|license}`)
 	.command(stack)
 	.command(component)
 	.command(image)
 	.command(validateToken)
+	.command(license)
 	.scriptName('')
 	.version(false)
 	.demandCommand(1)

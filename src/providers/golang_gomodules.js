@@ -4,11 +4,13 @@ import { EOL } from "os";
 
 import { PackageURL } from 'packageurl-js'
 
+import { readLicenseFile } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand } from "../tools.js";
 
 
-export default { isSupported, validateLockFile, provideComponent, provideStack }
+
+export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest }
 
 /** @typedef {import('../provider').Provider} */
 
@@ -21,17 +23,25 @@ export default { isSupported, validateLockFile, provideComponent, provideStack }
 /**
  * @type {string} ecosystem for npm-npm is 'maven'
  * @private
- */
+*/
 const ecosystem = 'golang'
 const defaultMainModuleVersion = "v0.0.0";
 
 /**
  * @param {string} manifestName - the subject manifest name-type
  * @returns {boolean} - return true if `pom.xml` is the manifest name-type
- */
+*/
 function isSupported(manifestName) {
 	return 'go.mod' === manifestName
 }
+
+/**
+ * Go modules have no standard license field in go.mod
+ * @param {string} manifestPath - path to go.mod
+ * @returns {string|null}
+*/
+// eslint-disable-next-line no-unused-vars
+function readLicenseFromManifest(manifestPath) { return readLicenseFile(manifestPath); }
 
 /**
  * @param {string} manifestDir - the directory where the manifest lies
@@ -281,7 +291,8 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	}
 
 	const mainModule = toPurl(root, "@")
-	sbom.addRoot(mainModule)
+	const license = readLicenseFromManifest(manifest);
+	sbom.addRoot(mainModule, license)
 	const exhortGoMvsLogicEnabled = getCustom("TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED", "true", opts)
 	if(includeTransitive && exhortGoMvsLogicEnabled === "true") {
 		rows = getFinalPackagesVersionsForModule(rows, manifest, goBin)

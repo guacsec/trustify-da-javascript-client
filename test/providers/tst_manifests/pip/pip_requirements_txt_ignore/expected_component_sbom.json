@@ -21,6 +21,13 @@
 			"bom-ref": "pkg:pypi/default-pip-root@0.0.0"
 		},
 		{
+			"name": "aiohappyeyeballs",
+			"version": "2.6.1",
+			"purl": "pkg:pypi/aiohappyeyeballs@2.6.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/aiohappyeyeballs@2.6.1"
+		},
+		{
 			"name": "anyio",
 			"version": "3.6.2",
 			"purl": "pkg:pypi/anyio@3.6.2",
@@ -33,6 +40,13 @@
 			"purl": "pkg:pypi/asgiref@3.4.1",
 			"type": "library",
 			"bom-ref": "pkg:pypi/asgiref@3.4.1"
+		},
+		{
+			"name": "async-timeout",
+			"version": "5.0.1",
+			"purl": "pkg:pypi/async-timeout@5.0.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/async-timeout@5.0.1"
 		},
 		{
 			"name": "beautifulsoup4",
@@ -200,8 +214,10 @@
 		{
 			"ref": "pkg:pypi/default-pip-root@0.0.0",
 			"dependsOn": [
+				"pkg:pypi/aiohappyeyeballs@2.6.1",
 				"pkg:pypi/anyio@3.6.2",
 				"pkg:pypi/asgiref@3.4.1",
+				"pkg:pypi/async-timeout@5.0.1",
 				"pkg:pypi/beautifulsoup4@4.12.2",
 				"pkg:pypi/certifi@2023.7.22",
 				"pkg:pypi/chardet@4.0.0",
@@ -228,11 +244,19 @@
 			]
 		},
 		{
+			"ref": "pkg:pypi/aiohappyeyeballs@2.6.1",
+			"dependsOn": []
+		},
+		{
 			"ref": "pkg:pypi/anyio@3.6.2",
 			"dependsOn": []
 		},
 		{
 			"ref": "pkg:pypi/asgiref@3.4.1",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/async-timeout@5.0.1",
 			"dependsOn": []
 		},
 		{

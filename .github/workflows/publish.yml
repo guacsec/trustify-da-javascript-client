@@ -76,7 +76,7 @@ jobs:
     steps:
       - name: Get releasebranch.txt artifact from Release pipeline
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: releasebranch.txt
           run-id: ${{ github.event.workflow_run.id }}
