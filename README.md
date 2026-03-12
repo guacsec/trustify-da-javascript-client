@@ -174,6 +174,7 @@ $ trustify-da-javascript-client image httpd:2.4.49^^amd64
 <li><a href="https://go.dev/">Golang</a> - <a href="https://go.dev/blog/using-go-modules/">Go Modules</a></li>
 <li><a href="https://www.python.org/">Python</a> - <a href="https://pypi.org/project/pip/">pip Installer</a></li>
 <li><a href="https://gradle.org/">Gradle (Groovy and Kotlin DSL)</a> - <a href="https://gradle.org/install/">Gradle Installation</a></li>
+<li><a href="https://www.rust-lang.org/">Rust</a> - <a href="https://doc.rust-lang.org/cargo/">Cargo</a></li>
 </ul>
 
 <h3>Excluding Packages</h3>
@@ -297,7 +298,21 @@ test {
 }
 ```
 
-All of the 5 above examples are valid for marking a package to be ignored
+<em>Rust Cargo</em> users can add a comment with <code># trustify-da-ignore</code> (or <code># exhortignore</code>) in <em>Cargo.toml</em> next to the dependency to be ignored. This works for inline declarations, table-based declarations, and workspace-level dependency sections:
+
+```toml
+[dependencies]
+serde = "1.0" # trustify-da-ignore
+tokio = { version = "1.35", features = ["full"] }
+
+[dependencies.regex] # trustify-da-ignore
+version = "1.10"
+
+[workspace.dependencies]
+log = "0.4" # trustify-da-ignore
+```
+
+All of the 6 above examples are valid for marking a package to be ignored
 </li>
 
 </ul>
@@ -329,6 +344,7 @@ let options = {
   'TRUSTIFY_DA_PYTHON_PATH' : '/path/to/python',
   'TRUSTIFY_DA_PIP_PATH' : '/path/to/pip',
   'TRUSTIFY_DA_GRADLE_PATH' : '/path/to/gradle',
+  'TRUSTIFY_DA_CARGO_PATH' : '/path/to/cargo',
   // Configure proxy for all requests
   'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080'
 }
@@ -444,6 +460,11 @@ following keys for setting custom paths for the said executables.
 <td><a href="https://gradle.org/">Gradle</a></td>
 <td><em>gradle</em></td>
 <td>TRUSTIFY_DA_PREFER_GRADLEW</td>
+</tr>
+<tr>
+<td><a href="https://www.rust-lang.org/">Rust Cargo</a></td>
+<td><em>cargo</em></td>
+<td>TRUSTIFY_DA_CARGO_PATH</td>
 </tr>
 </table>
 

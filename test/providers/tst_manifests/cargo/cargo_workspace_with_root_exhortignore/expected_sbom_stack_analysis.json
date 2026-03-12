@@ -1,0 +1,25 @@
+{
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.4",
+    "version": 1,
+    "metadata": {
+        "timestamp": "2023-08-07T00:00:00.000Z",
+        "component": {
+            "name": "my-workspace-root",
+            "version": "0.1.0",
+            "purl": "pkg:cargo/my-workspace-root@0.1.0",
+            "type": "application",
+            "bom-ref": "pkg:cargo/my-workspace-root@0.1.0"
+        }
+    },
+    "components": [
+        {
+            "name": "my-workspace-root",
+            "version": "0.1.0",
+            "purl": "pkg:cargo/my-workspace-root@0.1.0",
+            "type": "application",
+            "bom-ref": "pkg:cargo/my-workspace-root@0.1.0"
+        }
+    ],
+    "dependencies": []
+}

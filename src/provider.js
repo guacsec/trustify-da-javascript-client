@@ -8,6 +8,7 @@ import Javascript_npm from './providers/javascript_npm.js';
 import Javascript_pnpm from './providers/javascript_pnpm.js';
 import Javascript_yarn from './providers/javascript_yarn.js';
 import pythonPipProvider from './providers/python_pip.js'
+import rustCargoProvider from './providers/rust_cargo.js'
 
 /** @typedef {{ecosystem: string, contentType: string, content: string}} Provided */
 /** @typedef {{isSupported: function(string): boolean, validateLockFile: function(string): void, provideComponent: function(string, {}): Provided, provideStack: function(string, {}): Provided}} Provider */
@@ -24,7 +25,8 @@ export const availableProviders = [
 	new Javascript_pnpm(),
 	new Javascript_yarn(),
 	golangGomodulesProvider,
-	pythonPipProvider]
+	pythonPipProvider,
+	rustCargoProvider]
 
 /**
  * Match a provider from a list or providers based on file type.

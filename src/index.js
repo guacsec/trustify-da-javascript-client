@@ -14,6 +14,7 @@ export default { componentAnalysis, stackAnalysis, imageAnalysis, validateToken 
 
 /**
  * @typedef {{
+ * TRUSTIFY_DA_CARGO_PATH?: string | undefined,
  * TRUSTIFY_DA_DOCKER_PATH?: string | undefined,
  * TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED?: string | undefined,
  * TRUSTIFY_DA_GO_PATH?: string | undefined,

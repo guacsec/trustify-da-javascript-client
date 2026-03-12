@@ -1,0 +1,108 @@
+{
+    "packages": [
+        {
+            "name": "my-test-crate",
+            "version": "0.1.0",
+            "id": "path+file:///fake/path/my-test-crate#0.1.0",
+            "source": null,
+            "dependencies": [
+                { "name": "serde", "kind": null },
+                { "name": "serde_derive", "kind": null },
+                { "name": "tokio", "kind": null },
+                { "name": "tempfile", "kind": "dev" }
+            ]
+        },
+        {
+            "name": "serde",
+            "version": "1.0.193",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        },
+        {
+            "name": "serde_derive",
+            "version": "1.0.193",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#serde_derive@1.0.193",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        },
+        {
+            "name": "tokio",
+            "version": "1.35.0",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.35.0",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": [
+                { "name": "pin-project-lite", "kind": null }
+            ]
+        },
+        {
+            "name": "pin-project-lite",
+            "version": "0.2.13",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.13",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        },
+        {
+            "name": "tempfile",
+            "version": "3.8.0",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#tempfile@3.8.0",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        }
+    ],
+    "workspace_members": [
+        "path+file:///fake/path/my-test-crate#0.1.0"
+    ],
+    "workspace_root": "/fake/path/my-test-crate",
+    "resolve": {
+        "root": "path+file:///fake/path/my-test-crate#0.1.0",
+        "nodes": [
+            {
+                "id": "path+file:///fake/path/my-test-crate#0.1.0",
+                "deps": [
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    },
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#serde_derive@1.0.193",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    },
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.35.0",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    },
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#tempfile@3.8.0",
+                        "dep_kinds": [{ "kind": "dev", "target": null }]
+                    }
+                ]
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+                "deps": []
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#serde_derive@1.0.193",
+                "deps": []
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.35.0",
+                "deps": [
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.13",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    }
+                ]
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#pin-project-lite@0.2.13",
+                "deps": []
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#tempfile@3.8.0",
+                "deps": []
+            }
+        ]
+    }
+}

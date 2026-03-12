@@ -42,6 +42,7 @@ The OpenAPI specification is located in the [`trustify-da-api-spec`](https://git
   which will provide data that we can send to the _Backend_ using _analysis.js_. See the
   [Adding a Provider](#adding-a-provider) section.
   * [java_maven.js](src/providers/java_maven.js) is the provider for the _Java_ _Maven_ ecosystem.
+  * [rust_cargo.js](src/providers/rust_cargo.js) is the provider for the _Rust_ _Cargo_ ecosystem.
 
 #### Types
 
