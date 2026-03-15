@@ -56,6 +56,7 @@
 		"https-proxy-agent": "^7.0.6",
 		"node-fetch": "^3.3.2",
 		"packageurl-js": "~1.0.2",
+		"smol-toml": "^1.6.0",
 		"tree-sitter-requirements": "github:Strum355/tree-sitter-requirements#d0261ee76b84253997fe70d7d397e78c006c3801",
 		"web-tree-sitter": "^0.26.6",
 		"yargs": "^18.0.0"

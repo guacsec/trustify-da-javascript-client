@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { PackageURL } from 'packageurl-js'
+import { parse as parseToml } from 'smol-toml'
 
 import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
@@ -83,26 +84,11 @@ function readLicenseFromManifest(manifestPath) {
 	let fromManifest = null
 	try {
 		let content = fs.readFileSync(manifestPath, 'utf-8')
-		let lines = content.split(/\r?\n/)
-		let currentSection = ''
+		let parsed = parseToml(content)
 
-		for (let line of lines) {
-			let trimmed = line.trim()
-
-			let sectionMatch = trimmed.match(/^\[([^\]]+)\]\s*(?:#.*)?$/)
-			if (sectionMatch) {
-				currentSection = sectionMatch[1]
-				continue
-			}
-
-			if (currentSection === 'package' || currentSection === 'workspace.package') {
-				let licenseMatch = trimmed.match(/^license\s*=\s*"([^"]+)"/)
-				if (licenseMatch) {
-					fromManifest = licenseMatch[1].trim()
-					break
-				}
-			}
-		}
+		fromManifest = parsed.package?.license
+			|| parsed.workspace?.package?.license
+			|| null
 	} catch (_) {
 		// leave fromManifest as null
 	}
@@ -504,35 +490,13 @@ function findResolveNode(metadata, packageId) {
  * @private
  */
 function getWorkspaceDepsFromManifest(manifest) {
-	let content
 	try {
-		content = fs.readFileSync(manifest, 'utf-8')
+		let content = fs.readFileSync(manifest, 'utf-8')
+		let parsed = parseToml(content)
+		return Object.keys(parsed.workspace?.dependencies || {})
 	} catch (_) {
 		return []
 	}
-
-	let lines = content.split(/\r?\n/)
-	let inSection = false
-	let names = []
-
-	for (let line of lines) {
-		let trimmed = line.trim()
-
-		let sectionMatch = trimmed.match(/^\[([^\]]+)\]\s*(?:#.*)?$/)
-		if (sectionMatch) {
-			inSection = sectionMatch[1] === 'workspace.dependencies'
-			continue
-		}
-
-		if (inSection) {
-			let nameMatch = trimmed.match(/^([a-zA-Z0-9_-]+)\s*=/)
-			if (nameMatch) {
-				names.push(nameMatch[1])
-			}
-		}
-	}
-
-	return names
 }
 
 /**
@@ -546,14 +510,11 @@ function getWorkspaceVersion(metadata) {
 	let cargoTomlPath = path.join(workspaceRoot, 'Cargo.toml')
 	try {
 		let content = fs.readFileSync(cargoTomlPath, 'utf-8')
-		let versionMatch = content.match(/\[workspace\.package\][\s\S]*?version\s*=\s*"([^"]+)"/)
-		if (versionMatch) {
-			return versionMatch[1]
-		}
+		let parsed = parseToml(content)
+		return parsed.workspace?.package?.version || '0.0.0'
 	} catch (_) {
-		// fall through to default
+		return '0.0.0'
 	}
-	return '0.0.0'
 }
 
 /**
