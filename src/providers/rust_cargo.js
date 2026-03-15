@@ -185,8 +185,6 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	let sbom
 	if (crateType === CrateType.WORKSPACE_VIRTUAL) {
 		sbom = handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license)
-	} else if (crateType === CrateType.WORKSPACE_WITH_ROOT_CRATE) {
-		sbom = handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts, license)
 	} else {
 		sbom = handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license)
 	}
@@ -250,7 +248,11 @@ function detectCrateType(metadata) {
 }
 
 /**
- * Handles SBOM generation for single crate projects (no workspace members beyond the root).
+ * Handles SBOM generation for single crate and workspace-with-root-crate projects.
+ * For workspace-with-root-crate, workspace members are only included if they
+ * appear in the root crate's dependency graph from cargo metadata.  We don't
+ * automatically add all members as dependencies since most workspace members
+ * (examples, tools, benchmarks) depend ON the root crate, not the other way around.
  * @param {object} metadata - parsed cargo metadata
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @param {boolean} includeTransitive - whether to include transitive dependencies
@@ -260,44 +262,6 @@ function detectCrateType(metadata) {
  * @private
  */
 function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license) {
-	let rootPackageId = metadata.resolve.root
-	let rootPackage = findPackageById(metadata, rootPackageId)
-	let rootPurl = toPurl(rootPackage.name, rootPackage.version)
-
-	let sbom = new Sbom()
-	sbom.addRoot(rootPurl, license)
-
-	let resolveNode = findResolveNode(metadata, rootPackageId)
-	if (!resolveNode) {
-		return sbom.getAsJsonString(opts)
-	}
-
-	if (includeTransitive) {
-		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set())
-	} else {
-		addDirectDeps(sbom, metadata, rootPackageId, rootPurl, ignoredDeps)
-	}
-
-	return sbom.getAsJsonString(opts)
-}
-
-/**
- * Handles SBOM generation for workspace-with-root-crate projects.
- * Processes root crate dependencies — this naturally includes any workspace
- * members that are actual dependencies via the cargo dependency graph.
- * Workspace members are only included if they appear in the root crate's
- * dependency graph from cargo metadata.  We don't automatically add all
- * members as dependencies since most workspace members (examples, tools,
- * benchmarks) depend ON the root crate, not the other way around.
- * @param {object} metadata - parsed cargo metadata
- * @param {Set<string>} ignoredDeps - set of ignored dependency names
- * @param {boolean} includeTransitive - whether to include transitive dependencies
- * @param {{}} opts - options
- * @param {string|null} license - SPDX license identifier for the root component
- * @returns {string} SBOM json string
- * @private
- */
-function handleWorkspaceWithRoot(metadata, ignoredDeps, includeTransitive, opts, license) {
 	let rootPackageId = metadata.resolve.root
 	let rootPackage = findPackageById(metadata, rootPackageId)
 	let rootPurl = toPurl(rootPackage.name, rootPackage.version)
