@@ -375,6 +375,12 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited) {
 		if (!depPackage) {continue}
 		if (isDepIgnored(depPackage.name, ignoredDeps)) {continue}
 
+		if (depPackage.source == null) {
+			// Path dependency — don't add to SBOM, but still walk its deps
+			addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited)
+			continue
+		}
+
 		let depPurl = toPurl(depPackage.name, depPackage.version)
 		sbom.addDependency(sourcePurl, depPurl)
 		addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited)
@@ -400,6 +406,7 @@ function addDirectDeps(sbom, metadata, packageId, parentPurl, ignoredDeps) {
 		let depPackage = findPackageById(metadata, depId)
 		if (!depPackage) {continue}
 		if (isDepIgnored(depPackage.name, ignoredDeps)) {continue}
+		if (depPackage.source == null) {continue}
 
 		let depPurl = toPurl(depPackage.name, depPackage.version)
 		sbom.addDependency(parentPurl, depPurl)
@@ -454,13 +461,9 @@ function findResolveNode(metadata, packageId) {
  * @private
  */
 function getWorkspaceDepsFromManifest(manifest) {
-	try {
-		let content = fs.readFileSync(manifest, 'utf-8')
-		let parsed = parseToml(content)
-		return Object.keys(parsed.workspace?.dependencies || {})
-	} catch (_) {
-		return []
-	}
+	let content = fs.readFileSync(manifest, 'utf-8')
+	let parsed = parseToml(content)
+	return Object.keys(parsed.workspace?.dependencies || {})
 }
 
 /**
