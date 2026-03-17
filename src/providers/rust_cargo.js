@@ -350,14 +350,19 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 
 /**
  * Recursively adds transitive dependencies to the SBOM.
+ * Path dependencies (source == null) are not added to the SBOM, but their
+ * subtrees are still walked.  Any registry dependencies found under a path
+ * dep are attached to the nearest non-path ancestor via {@link effectiveParentPurl}.
  * @param {Sbom} sbom - the SBOM to add dependencies to
  * @param {object} metadata - parsed cargo metadata
  * @param {string} packageId - the package ID to resolve dependencies for
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @param {Set<string>} visited - set of already-visited package IDs to prevent cycles
+ * @param {PackageURL} [effectiveParentPurl] - when walking through a path dep,
+ *   the purl of the nearest registry ancestor to attach discovered deps to
  * @private
  */
-function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited) {
+function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, effectiveParentPurl) {
 	if (visited.has(packageId)) {return}
 	visited.add(packageId)
 
@@ -366,7 +371,12 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited) {
 
 	let sourcePackage = findPackageById(metadata, packageId)
 	if (!sourcePackage) {return}
-	let sourcePurl = toPurl(sourcePackage.name, sourcePackage.version)
+
+	// For path deps use the effective parent purl so their children attach
+	// to the nearest real (registry) ancestor in the SBOM.
+	let sourcePurl = (sourcePackage.source == null && effectiveParentPurl)
+		? effectiveParentPurl
+		: toPurl(sourcePackage.name, sourcePackage.version)
 
 	let runtimeDeps = filterRuntimeDeps(resolveNode)
 
@@ -376,8 +386,9 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited) {
 		if (isDepIgnored(depPackage.name, ignoredDeps)) {continue}
 
 		if (depPackage.source == null) {
-			// Path dependency — don't add to SBOM, but still walk its deps
-			addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited)
+			// Path dependency — don't add to SBOM, but walk its deps
+			// passing our sourcePurl so its children attach correctly
+			addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited, sourcePurl)
 			continue
 		}
 
