@@ -23,16 +23,16 @@
         {
             "name": "crate-a",
             "version": "0.1.0",
-            "purl": "pkg:cargo/crate-a@0.1.0",
+            "purl": "pkg:cargo/crate-a@0.1.0?repository_url=local",
             "type": "library",
-            "bom-ref": "pkg:cargo/crate-a@0.1.0"
+            "bom-ref": "pkg:cargo/crate-a@0.1.0?repository_url=local"
         },
         {
             "name": "crate-b",
             "version": "0.2.0",
-            "purl": "pkg:cargo/crate-b@0.2.0",
+            "purl": "pkg:cargo/crate-b@0.2.0?repository_url=local",
             "type": "library",
-            "bom-ref": "pkg:cargo/crate-b@0.2.0"
+            "bom-ref": "pkg:cargo/crate-b@0.2.0?repository_url=local"
         },
         {
             "name": "tokio",
@@ -53,16 +53,16 @@
         {
             "ref": "pkg:cargo/cargo_virtual_workspace_with_ignore@0.0.0",
             "dependsOn": [
-                "pkg:cargo/crate-a@0.1.0",
-                "pkg:cargo/crate-b@0.2.0"
+                "pkg:cargo/crate-a@0.1.0?repository_url=local",
+                "pkg:cargo/crate-b@0.2.0?repository_url=local"
             ]
         },
         {
-            "ref": "pkg:cargo/crate-a@0.1.0",
+            "ref": "pkg:cargo/crate-a@0.1.0?repository_url=local",
             "dependsOn": []
         },
         {
-            "ref": "pkg:cargo/crate-b@0.2.0",
+            "ref": "pkg:cargo/crate-b@0.2.0?repository_url=local",
             "dependsOn": [
                 "pkg:cargo/tokio@1.35.0"
             ]

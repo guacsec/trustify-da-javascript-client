@@ -275,7 +275,7 @@ function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, licen
 	}
 
 	if (includeTransitive) {
-		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set())
+		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set(), rootPurl)
 	} else {
 		addDirectDeps(sbom, metadata, rootPackageId, rootPurl, ignoredDeps)
 	}
@@ -322,9 +322,12 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 			let memberPackage = findPackageById(metadata, memberId)
 			if (!memberPackage) {continue}
 
-			let memberPurl = toPurl(memberPackage.name, memberPackage.version)
+			let memberPurl = memberPackage.source == null
+				? toPathDepPurl(memberPackage.name, memberPackage.version)
+				: toPurl(memberPackage.name, memberPackage.version)
+
 			sbom.addDependency(rootPurl, memberPurl)
-			addTransitiveDeps(sbom, metadata, memberId, ignoredDeps, new Set())
+			addTransitiveDeps(sbom, metadata, memberId, ignoredDeps, new Set(), memberPurl)
 		}
 	} else {
 		// Component analysis: only [workspace.dependencies] from root Cargo.toml
@@ -333,14 +336,17 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 		for (let depName of workspaceDeps) {
 			if (isDepIgnored(depName, ignoredDeps)) {continue}
 
-			let pkg = metadata.packages.find(p => p.name === depName && p.source != null)
+			let pkg = metadata.packages.find(p => p.name === depName)
 			if (!pkg) {
 				let altName = depName.replace(/-/g, '_')
-				pkg = metadata.packages.find(p => p.name === altName && p.source != null)
+				pkg = metadata.packages.find(p => p.name === altName)
 			}
 			if (!pkg) {continue}
 
-			let depPurl = toPurl(pkg.name, pkg.version)
+			let depPurl = pkg.source == null
+				? toPathDepPurl(pkg.name, pkg.version)
+				: toPurl(pkg.name, pkg.version)
+
 			sbom.addDependency(rootPurl, depPurl)
 		}
 	}
@@ -350,19 +356,19 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 
 /**
  * Recursively adds transitive dependencies to the SBOM.
- * Path dependencies (source == null) are not added to the SBOM, but their
- * subtrees are still walked.  Any registry dependencies found under a path
- * dep are attached to the nearest non-path ancestor via {@link effectiveParentPurl}.
+ * Path dependencies (source == null) are included with a
+ * {@code repository_url=local} qualifier so the backend can skip
+ * vulnerability checks while still showing them in the dependency tree.
  * @param {Sbom} sbom - the SBOM to add dependencies to
  * @param {object} metadata - parsed cargo metadata
  * @param {string} packageId - the package ID to resolve dependencies for
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @param {Set<string>} visited - set of already-visited package IDs to prevent cycles
- * @param {PackageURL} [effectiveParentPurl] - when walking through a path dep,
- *   the purl of the nearest registry ancestor to attach discovered deps to
+ * @param {PackageURL} [startingPurl] - purl to use for the starting package,
+ *   so callers can ensure it matches the purl already added to the SBOM
  * @private
  */
-function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, effectiveParentPurl) {
+function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, startingPurl) {
 	if (visited.has(packageId)) {return}
 	visited.add(packageId)
 
@@ -372,11 +378,9 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, effe
 	let sourcePackage = findPackageById(metadata, packageId)
 	if (!sourcePackage) {return}
 
-	// For path deps use the effective parent purl so their children attach
-	// to the nearest real (registry) ancestor in the SBOM.
-	let sourcePurl = (sourcePackage.source == null && effectiveParentPurl)
-		? effectiveParentPurl
-		: toPurl(sourcePackage.name, sourcePackage.version)
+	let sourcePurl = startingPurl || (sourcePackage.source == null
+		? toPathDepPurl(sourcePackage.name, sourcePackage.version)
+		: toPurl(sourcePackage.name, sourcePackage.version))
 
 	let runtimeDeps = filterRuntimeDeps(resolveNode)
 
@@ -385,14 +389,10 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, effe
 		if (!depPackage) {continue}
 		if (isDepIgnored(depPackage.name, ignoredDeps)) {continue}
 
-		if (depPackage.source == null) {
-			// Path dependency — don't add to SBOM, but walk its deps
-			// passing our sourcePurl so its children attach correctly
-			addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited, sourcePurl)
-			continue
-		}
+		let depPurl = depPackage.source == null
+			? toPathDepPurl(depPackage.name, depPackage.version)
+			: toPurl(depPackage.name, depPackage.version)
 
-		let depPurl = toPurl(depPackage.name, depPackage.version)
 		sbom.addDependency(sourcePurl, depPurl)
 		addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited)
 	}
@@ -400,6 +400,7 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, effe
 
 /**
  * Adds only direct (non-transitive) dependencies to the SBOM.
+ * Path dependencies are included with a {@code repository_url=local} qualifier.
  * @param {Sbom} sbom - the SBOM to add dependencies to
  * @param {object} metadata - parsed cargo metadata
  * @param {string} packageId - the package ID to resolve dependencies for
@@ -417,9 +418,11 @@ function addDirectDeps(sbom, metadata, packageId, parentPurl, ignoredDeps) {
 		let depPackage = findPackageById(metadata, depId)
 		if (!depPackage) {continue}
 		if (isDepIgnored(depPackage.name, ignoredDeps)) {continue}
-		if (depPackage.source == null) {continue}
 
-		let depPurl = toPurl(depPackage.name, depPackage.version)
+		let depPurl = depPackage.source == null
+			? toPathDepPurl(depPackage.name, depPackage.version)
+			: toPurl(depPackage.name, depPackage.version)
+
 		sbom.addDependency(parentPurl, depPurl)
 	}
 }
@@ -625,4 +628,17 @@ function isInDependencySection(section) {
  */
 function toPurl(name, version) {
 	return new PackageURL(ecosystem, undefined, name, version, undefined, undefined)
+}
+
+/**
+ * Creates a PackageURL for a local path dependency, marked with a
+ * {@code repository_url=local} qualifier so the backend can distinguish
+ * it from registry packages and skip vulnerability checks.
+ * @param {string} name - the crate name
+ * @param {string} version - the crate version
+ * @returns {PackageURL} the package URL with local qualifier
+ * @private
+ */
+function toPathDepPurl(name, version) {
+	return new PackageURL(ecosystem, undefined, name, version, { repository_url: 'local' }, undefined)
 }
