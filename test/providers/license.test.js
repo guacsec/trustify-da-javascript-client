@@ -10,6 +10,56 @@ import Javascript_npm from '../../src/providers/javascript_npm.js'
 import Javascript_pnpm from '../../src/providers/javascript_pnpm.js'
 import Javascript_yarn from '../../src/providers/javascript_yarn.js'
 import pythonPipProvider from '../../src/providers/python_pip.js'
+import { normalizeLicensesResponse } from '../../src/license/licenses_api.js'
+
+suite('normalizeLicensesResponse', () => {
+	const lgpl = { id: 'LGPL-2.1', name: 'GNU Lesser General Public License v2.1 only', category: 'WEAK_COPYLEFT' }
+	const apache = { id: 'Apache-2.0', name: 'Apache License 2.0', category: 'PERMISSIVE' }
+
+	const backendResponse = [
+		{
+			status: { ok: true, name: 'deps.dev' },
+			packages: {
+				// backend returns purls with ?scope=compile qualifier
+				'pkg:maven/org.mariadb.jdbc/mariadb-java-client@3.1.4?scope=compile': {
+					concluded: { identifiers: [lgpl], expression: 'LGPL-2.1', category: 'WEAK_COPYLEFT' }
+				},
+				'pkg:maven/javassist/javassist@3.12.1.GA?scope=compile': {
+					concluded: { identifiers: [lgpl], expression: 'LGPL-2.1', category: 'WEAK_COPYLEFT' }
+				},
+				'pkg:maven/commons-collections/commons-collections@3.2.1': {
+					concluded: { identifiers: [apache], expression: 'Apache-2.0', category: 'PERMISSIVE' }
+				}
+			}
+		}
+	]
+
+	// SBOM purls have no qualifier
+	const sbomPurls = [
+		'pkg:maven/org.mariadb.jdbc/mariadb-java-client@3.1.4',
+		'pkg:maven/javassist/javassist@3.12.1.GA',
+		'pkg:maven/commons-collections/commons-collections@3.2.1'
+	]
+
+	test('matches backend purls with ?scope=compile qualifier against plain SBOM purls', () => {
+		const map = normalizeLicensesResponse(backendResponse, sbomPurls)
+		expect(map.size).to.equal(3)
+	})
+
+	test('stores purl without qualifier as map key', () => {
+		const map = normalizeLicensesResponse(backendResponse, sbomPurls)
+		expect(map.has('pkg:maven/org.mariadb.jdbc/mariadb-java-client@3.1.4')).to.be.true
+		expect(map.has('pkg:maven/javassist/javassist@3.12.1.GA')).to.be.true
+		expect(map.has('pkg:maven/org.mariadb.jdbc/mariadb-java-client@3.1.4?scope=compile')).to.be.false
+	})
+
+	test('preserves correct license category for qualifier-stripped purls', () => {
+		const map = normalizeLicensesResponse(backendResponse, sbomPurls)
+		expect(map.get('pkg:maven/org.mariadb.jdbc/mariadb-java-client@3.1.4').category).to.equal('WEAK_COPYLEFT')
+		expect(map.get('pkg:maven/javassist/javassist@3.12.1.GA').category).to.equal('WEAK_COPYLEFT')
+		expect(map.get('pkg:maven/commons-collections/commons-collections@3.2.1').category).to.equal('PERMISSIVE')
+	})
+})
 
 suite('testing readLicenseFromManifest with existing test manifests', () => {
 
