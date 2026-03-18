@@ -5,6 +5,7 @@
  * @see https://github.com/guacsec/trustify-da-api-spec/blob/main/api/v5/openapi.yaml
  */
 
+import { PackageURL } from 'packageurl-js';
 import { selectTrustifyDABackend } from '../index.js';
 import { addProxyAgent, getTokenHeaders } from '../tools.js';
 
@@ -42,6 +43,11 @@ export async function getLicenseDetails(spdxId, opts = {}) {
 	}
 }
 
+function normalizePurlString(purl) {
+	const parsed = PackageURL.fromString(purl);
+	return new PackageURL(parsed.type, parsed.namespace, parsed.name, parsed.version, null, null).toString();
+}
+
 /**
  * Normalize the LicensesResponse shape (array of LicenseProviderResult) into a map of purl -> license info.
  * Each provider result has { status, summary, packages } where packages is { [purl]: { concluded, evidence } }.
@@ -55,6 +61,8 @@ export function normalizeLicensesResponse(data, purls = []) {
 	const map = new Map();
 	if (!data || !Array.isArray(data)) {return map;}
 
+	const normalizedPurlsSet = purls.length > 0 ? new Set(purls.map(normalizePurlString)) : null;
+
 	for (const providerResult of data) {
 		const packages = providerResult?.packages;
 		if (!packages || typeof packages !== 'object') {continue;}
@@ -64,8 +72,9 @@ export function normalizeLicensesResponse(data, purls = []) {
 			const expression = concluded?.expression;
 			const licenses = identifiers.length > 0 ? identifiers : (expression ? [expression] : []);
 			const category = concluded?.category; // PERMISSIVE | WEAK_COPYLEFT | STRONG_COPYLEFT | UNKNOWN
-			if (purls.length === 0 || purls.includes(purl)) {
-				map.set(purl, { licenses: licenses.filter(Boolean), category });
+			const normalizedPurl = normalizePurlString(purl);
+			if (normalizedPurlsSet === null || normalizedPurlsSet.has(normalizedPurl)) {
+				map.set(normalizedPurl, { licenses: licenses.filter(Boolean), category });
 			}
 		}
 		// Use first provider that has packages; backend may return multiple (e.g. deps.dev)
