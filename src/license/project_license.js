@@ -72,15 +72,3 @@ export async function identifyLicense(licenseFilePath, opts = {}) {
 		return null; // Fallback to local detection on error
 	}
 }
-
-/**
- * Get license for SBOM root component with fallback to LICENSE file.
- * Priority: manifest license > LICENSE file > null
- * This is used by providers to populate the license field in the SBOM.
- * @param {string} manifestPath - path to manifest
- * @returns {string|null} - SPDX identifier or null
- */
-export function getLicenseForSbom(manifestPath) {
-	const { fromManifest, fromFile } = getProjectLicense(manifestPath);
-	return fromManifest || fromFile || null;
-}
