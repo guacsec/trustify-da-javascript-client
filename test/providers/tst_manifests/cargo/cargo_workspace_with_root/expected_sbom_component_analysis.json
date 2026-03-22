@@ -14,13 +14,6 @@
     },
     "components": [
         {
-            "name": "my-workspace-root",
-            "version": "0.1.0",
-            "purl": "pkg:cargo/my-workspace-root@0.1.0",
-            "type": "application",
-            "bom-ref": "pkg:cargo/my-workspace-root@0.1.0"
-        },
-        {
             "name": "serde",
             "version": "1.0.193",
             "purl": "pkg:cargo/serde@1.0.193",

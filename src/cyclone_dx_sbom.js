@@ -149,6 +149,7 @@ export default class CycloneDxSbom {
 	getAsJsonString(opts) {
 		let manifestType = opts["manifest-type"]
 		this.setSourceManifest(opts["source-manifest"])
+		const rootPurl = this.rootComponent?.purl;
 		this.sbomObject = {
 			"bomFormat": "CycloneDX",
 			"specVersion": "1.4",
@@ -158,7 +159,7 @@ export default class CycloneDxSbom {
 				"component": this.rootComponent,
 				"properties": new Array()
 			},
-			"components": this.components,
+			"components": this.components.filter(c => c.purl !== rootPurl),
 			"dependencies": this.dependencies
 		}
 		if (this.rootComponent === undefined)

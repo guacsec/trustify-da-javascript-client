@@ -14,13 +14,6 @@
 	},
 	"components": [
 		{
-			"name": "default-pip-root",
-			"version": "0.0.0",
-			"purl": "pkg:pypi/default-pip-root@0.0.0",
-			"type": "application",
-			"bom-ref": "pkg:pypi/default-pip-root@0.0.0"
-		},
-		{
 			"name": "aiohappyeyeballs",
 			"version": "2.6.1",
 			"purl": "pkg:pypi/aiohappyeyeballs@2.6.1",

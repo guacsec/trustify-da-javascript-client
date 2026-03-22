@@ -15,14 +15,6 @@
 	},
 	"components": [
 		{
-			"group": "org.acme.dbaas",
-			"name": "postgresql-orm-quarkus",
-			"version": "1.0.0-SNAPSHOT",
-			"purl": "pkg:maven/org.acme.dbaas/postgresql-orm-quarkus@1.0.0-SNAPSHOT",
-			"type": "application",
-			"bom-ref": "pkg:maven/org.acme.dbaas/postgresql-orm-quarkus@1.0.0-SNAPSHOT"
-		},
-		{
 			"group": "io.quarkus",
 			"name": "quarkus-hibernate-orm",
 			"version": "2.13.5.Final",

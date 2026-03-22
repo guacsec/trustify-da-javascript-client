@@ -21,20 +21,6 @@
     },
     "components": [
         {
-            "name": "cargo_virtual_workspace_with_license",
-            "version": "0.0.0",
-            "purl": "pkg:cargo/cargo_virtual_workspace_with_license@0.0.0",
-            "type": "application",
-            "bom-ref": "pkg:cargo/cargo_virtual_workspace_with_license@0.0.0",
-            "licenses": [
-                {
-                    "license": {
-                        "id": "ISC"
-                    }
-                }
-            ]
-        },
-        {
             "name": "serde",
             "version": "1.0.193",
             "purl": "pkg:cargo/serde@1.0.193",

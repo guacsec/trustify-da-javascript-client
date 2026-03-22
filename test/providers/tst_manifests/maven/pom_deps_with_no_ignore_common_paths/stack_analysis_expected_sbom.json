@@ -15,14 +15,6 @@
 	},
 	"components": [
 		{
-			"group": "pom-with-deps-no-ignore",
-			"name": "pom-with-dependency-not-ignored-common-paths",
-			"version": "0.0.1",
-			"purl": "pkg:maven/pom-with-deps-no-ignore/pom-with-dependency-not-ignored-common-paths@0.0.1",
-			"type": "application",
-			"bom-ref": "pkg:maven/pom-with-deps-no-ignore/pom-with-dependency-not-ignored-common-paths@0.0.1"
-		},
-		{
 			"group": "org.springframework.boot",
 			"name": "spring-boot-starter",
 			"version": "2.3.5.RELEASE",

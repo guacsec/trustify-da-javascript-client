@@ -13,15 +13,6 @@
             "bom-ref": "pkg:golang/github.com/sample/empty-module@v0.0.0"
         }
     },
-    "components": [
-        {
-            "group": "github.com/sample",
-            "name": "empty-module",
-            "version": "v0.0.0",
-            "purl": "pkg:golang/github.com/sample/empty-module@v0.0.0",
-            "type": "application",
-            "bom-ref": "pkg:golang/github.com/sample/empty-module@v0.0.0"
-        }
-    ],
+    "components": [],
     "dependencies": []
 }

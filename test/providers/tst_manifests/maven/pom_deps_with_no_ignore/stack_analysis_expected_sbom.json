@@ -15,14 +15,6 @@
 	},
 	"components": [
 		{
-			"group": "pom-with-deps-no-ignore",
-			"name": "pom-with-dependency-not-ignored-for-tests",
-			"version": "0.0.1",
-			"purl": "pkg:maven/pom-with-deps-no-ignore/pom-with-dependency-not-ignored-for-tests@0.0.1",
-			"type": "application",
-			"bom-ref": "pkg:maven/pom-with-deps-no-ignore/pom-with-dependency-not-ignored-for-tests@0.0.1"
-		},
-		{
 			"group": "log4j",
 			"name": "log4j",
 			"version": "1.2.17",

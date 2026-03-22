@@ -14,13 +14,6 @@
   },
   "components": [
     {
-      "name": "backend",
-      "version": "1.0.0",
-      "purl": "pkg:npm/backend@1.0.0",
-      "type": "application",
-      "bom-ref": "pkg:npm/backend@1.0.0"
-    },
-    {
       "group": "@hapi",
       "name": "address",
       "version": "4.1.0",

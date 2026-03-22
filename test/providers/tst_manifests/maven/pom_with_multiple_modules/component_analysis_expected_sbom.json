@@ -15,14 +15,6 @@
 	},
 	"components": [
 		{
-			"group": "org.example",
-			"name": "root-example",
-			"version": "1.0-SNAPSHOT",
-			"purl": "pkg:maven/org.example/root-example@1.0-SNAPSHOT",
-			"type": "application",
-			"bom-ref": "pkg:maven/org.example/root-example@1.0-SNAPSHOT"
-		},
-		{
 			"group": "commons-io",
 			"name": "commons-io",
 			"version": "2.15.1",

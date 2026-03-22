@@ -15,14 +15,6 @@
 	},
 	"components": [
 		{
-			"group": "github.com/GoogleCloudPlatform/microservices-demo/src",
-			"name": "checkoutservice",
-			"version": "v0.0.0",
-			"purl": "pkg:golang/github.com/GoogleCloudPlatform/microservices-demo/src/checkoutservice@v0.0.0",
-			"type": "application",
-			"bom-ref": "pkg:golang/github.com/GoogleCloudPlatform/microservices-demo/src/checkoutservice@v0.0.0"
-		},
-		{
 			"group": "cloud.google.com",
 			"name": "go",
 			"version": "v0.100.2",

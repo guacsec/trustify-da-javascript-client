@@ -12,14 +12,6 @@
             "bom-ref": "pkg:cargo/cargo_virtual_workspace_glob_members@0.0.0"
         }
     },
-    "components": [
-        {
-            "name": "cargo_virtual_workspace_glob_members",
-            "version": "0.0.0",
-            "purl": "pkg:cargo/cargo_virtual_workspace_glob_members@0.0.0",
-            "type": "application",
-            "bom-ref": "pkg:cargo/cargo_virtual_workspace_glob_members@0.0.0"
-        }
-    ],
+    "components": [],
     "dependencies": []
 }

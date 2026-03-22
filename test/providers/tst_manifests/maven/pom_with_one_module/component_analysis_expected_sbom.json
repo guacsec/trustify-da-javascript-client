@@ -15,14 +15,6 @@
 	},
 	"components": [
 		{
-			"group": "org.zgrinber.tracing",
-			"name": "tracing-parent",
-			"version": "1",
-			"purl": "pkg:maven/org.zgrinber.tracing/tracing-parent@1",
-			"type": "application",
-			"bom-ref": "pkg:maven/org.zgrinber.tracing/tracing-parent@1"
-		},
-		{
 			"group": "com.fasterxml.jackson.core",
 			"name": "jackson-databind",
 			"version": "2.15.2",
