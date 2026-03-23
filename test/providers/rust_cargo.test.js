@@ -126,18 +126,18 @@ suite('testing the rust-cargo data provider', () => {
 		expect(rustCargo.validateLockFile('test/providers/provider_manifests/cargo/workspace_member_without_lock/member1')).to.equal(false)
 	})
 
-	test('verify validateLockFile with opts.workspaceDir returns true when Cargo.lock exists at workspace root', () => {
+	test('verify validateLockFile with opts.TRUSTIFY_DA_WORKSPACE_DIR returns true when Cargo.lock exists at workspace root', () => {
 		const workspaceRoot = 'test/providers/provider_manifests/cargo/workspace_member_with_lock'
-		expect(rustCargo.validateLockFile('test/providers/provider_manifests/cargo/workspace_member_with_lock/member1', { workspaceDir: workspaceRoot })).to.equal(true)
+		expect(rustCargo.validateLockFile('test/providers/provider_manifests/cargo/workspace_member_with_lock/member1', { TRUSTIFY_DA_WORKSPACE_DIR: workspaceRoot })).to.equal(true)
 	})
 
-	test('verify validateLockFile with opts.workspaceDir returns false when Cargo.lock is not at workspace root', () => {
+	test('verify validateLockFile with opts.TRUSTIFY_DA_WORKSPACE_DIR returns false when Cargo.lock is not at workspace root', () => {
 		const wrongDir = 'test/providers/provider_manifests/cargo/workspace_member_without_lock'
-		expect(rustCargo.validateLockFile('test/providers/provider_manifests/cargo/workspace_member_with_lock/member1', { workspaceDir: wrongDir })).to.equal(false)
+		expect(rustCargo.validateLockFile('test/providers/provider_manifests/cargo/workspace_member_with_lock/member1', { TRUSTIFY_DA_WORKSPACE_DIR: wrongDir })).to.equal(false)
 	})
 
-	test('verify match with opts.workspaceDir finds Cargo provider when lock is at workspace root', () => {
-		const opts = { workspaceDir: 'test/providers/provider_manifests/cargo/workspace_member_with_lock' }
+	test('verify match with opts.TRUSTIFY_DA_WORKSPACE_DIR finds Cargo provider when lock is at workspace root', () => {
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: 'test/providers/provider_manifests/cargo/workspace_member_with_lock' }
 		const provider = match('test/providers/provider_manifests/cargo/workspace_member_with_lock/member1/Cargo.toml', availableProviders, opts)
 		expect(provider).to.not.be.null
 		expect(provider.isSupported('Cargo.toml')).to.be.true

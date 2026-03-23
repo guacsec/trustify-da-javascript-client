@@ -51,7 +51,7 @@ export function matchForLicense(manifestPath, providers) {
  * Each provider MUST export 'provideStack' taking manifest path returning a {@link Provided}.
  * @param {string} manifest - the name-type or path of the manifest
  * @param {[Provider]} providers - list of providers to iterate over
- * @param {{workspaceDir?: string, TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional; workspaceDir (or TRUSTIFY_DA_WORKSPACE_DIR) overrides lock file location for workspaces
+ * @param {{TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional; TRUSTIFY_DA_WORKSPACE_DIR overrides lock file location for workspaces
  * @returns {Provider}
  * @throws {Error} when the manifest is not supported and no provider was matched
  */

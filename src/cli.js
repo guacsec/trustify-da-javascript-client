@@ -31,7 +31,7 @@ const component = {
 	}),
 	handler: async args => {
 		let manifestName = args['/path/to/manifest']
-		const opts = args.workspaceDir ? { workspaceDir: args.workspaceDir } : {}
+		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
 		let res = await client.componentAnalysis(manifestName, opts)
 		console.log(JSON.stringify(res, null, 2))
 	}
@@ -157,7 +157,7 @@ const stack = {
 		let manifest = args['/path/to/manifest']
 		let html = args['html']
 		let summary = args['summary']
-		const opts = args.workspaceDir ? { workspaceDir: args.workspaceDir } : {}
+		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
 		let theProvidersSummary = new Map();
 		let theProvidersObject ={}
 		let res = await client.stackAnalysis(manifest, html, opts)

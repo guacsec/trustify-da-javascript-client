@@ -65,7 +65,7 @@ export {
  * TRUSTIFY_DA_SOURCE?: string | undefined,
  * TRUSTIFY_DA_TOKEN?: string | undefined,
  * TRUSTIFY_DA_TELEMETRY_ID?: string | undefined,
- * workspaceDir?: string | undefined,
+ * TRUSTIFY_DA_WORKSPACE_DIR?: string | undefined,
  * batchConcurrency?: number | undefined,
  * TRUSTIFY_DA_BATCH_CONCURRENCY?: string | undefined,
  * workspaceDiscoveryIgnore?: string[] | undefined,
@@ -280,7 +280,7 @@ function buildBatchAnalysisMetadata(root, ecosystem, totalSbomAttempts, successf
  * Generate an SBOM for a single manifest, returning a normalized result.
  *
  * @param {string} manifestPath
- * @param {Options} workspaceOpts - opts with `workspaceDir` set
+ * @param {Options} workspaceOpts - opts with `TRUSTIFY_DA_WORKSPACE_DIR` set
  * @returns {Promise<SbomResult>}
  * @private
  */
@@ -473,7 +473,7 @@ async function stackAnalysisBatch(workspaceRoot, html = false, opts = {}) {
 		throw new Error(`No workspace manifests found at ${root}. Ensure Cargo.toml+Cargo.lock or package.json+lock file exist.`)
 	}
 
-	const workspaceOpts = { ...opts, workspaceDir: root }
+	const workspaceOpts = { ...opts, TRUSTIFY_DA_WORKSPACE_DIR: root }
 	const concurrency = resolveBatchConcurrency(opts)
 
 	let sbomByPurl

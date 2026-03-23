@@ -113,14 +113,14 @@ export default class Base_javascript {
 
 	/**
    * Checks if a required lock file exists in the manifest directory or at the workspace root.
-   * When workspaceDir is provided (e.g. from TRUSTIFY_DA_WORKSPACE_DIR or opts.workspaceDir),
+   * When TRUSTIFY_DA_WORKSPACE_DIR is provided (via env var or opts),
    * checks only that directory for the lock file.
    * @param {string} manifestDir - The base directory where the manifest is located
-   * @param {{workspaceDir?: string, TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional workspace root
+   * @param {{TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional workspace root
    * @returns {boolean} True if the lock file exists
    */
 	validateLockFile(manifestDir, opts = {}) {
-		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts) ?? opts.workspaceDir
+		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts)
 		const dirToCheck = workspaceDir ? path.resolve(workspaceDir) : manifestDir
 		const lock = path.join(dirToCheck, this._lockFileName())
 		return fs.existsSync(lock)
@@ -181,14 +181,14 @@ export default class Base_javascript {
 	/**
    * Builds the dependency tree for the project
    * @param {boolean} includeTransitive - Whether to include transitive dependencies
-   * @param {Object} [opts={}] - Configuration options; when `workspaceDir` is set, commands run from workspace root
+   * @param {Object} [opts={}] - Configuration options; when `TRUSTIFY_DA_WORKSPACE_DIR` is set, commands run from workspace root
    * @returns {Object} The dependency tree
    * @protected
    */
 	_buildDependencyTree(includeTransitive, opts = {}) {
 		this._version();
 		const manifestDir = path.dirname(this.#manifest.manifestPath);
-		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts) ?? opts.workspaceDir
+		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts)
 		const cmdDir = workspaceDir ? path.resolve(workspaceDir) : manifestDir;
 		this.#createLockFile(cmdDir);
 

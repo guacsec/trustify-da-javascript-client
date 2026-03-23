@@ -152,17 +152,17 @@ suite('testing the javascript-npm data provider', async () => {
 		expect(() => new Manifest(manifestPath)).to.throw(Error);
 	});
 
-	test('verify match with opts.workspaceDir finds npm provider when lock is at workspace root', () => {
+	test('verify match with opts.TRUSTIFY_DA_WORKSPACE_DIR finds npm provider when lock is at workspace root', () => {
 		const manifest = 'test/providers/provider_manifests/npm/with_lock_file/package.json'
-		const opts = { workspaceDir: 'test/providers/provider_manifests/npm/with_lock_file' }
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: 'test/providers/provider_manifests/npm/with_lock_file' }
 		const provider = match(manifest, availableProviders, opts)
 		expect(provider).to.not.be.null
 		expect(provider.isSupported('package.json')).to.be.true
 	})
 
-	test('verify match with opts.workspaceDir finds pnpm provider when lock is at workspace root', () => {
+	test('verify match with opts.TRUSTIFY_DA_WORKSPACE_DIR finds pnpm provider when lock is at workspace root', () => {
 		const manifest = 'test/providers/provider_manifests/pnpm/with_lock_file/package.json'
-		const opts = { workspaceDir: 'test/providers/provider_manifests/pnpm/with_lock_file' }
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: 'test/providers/provider_manifests/pnpm/with_lock_file' }
 		const provider = match(manifest, availableProviders, opts)
 		expect(provider).to.not.be.null
 		expect(provider.isSupported('package.json')).to.be.true
