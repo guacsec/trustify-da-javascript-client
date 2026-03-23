@@ -11,7 +11,7 @@ import pythonPipProvider from './providers/python_pip.js'
 import rustCargoProvider from './providers/rust_cargo.js'
 
 /** @typedef {{ecosystem: string, contentType: string, content: string}} Provided */
-/** @typedef {{isSupported: function(string): boolean, validateLockFile: function(string): void, provideComponent: function(string, {}): Provided | Promise<Provided>, provideStack: function(string, {}): Provided | Promise<Provided>, readLicenseFromManifest: function(string): string | null}} Provider */
+/** @typedef {{isSupported: function(string): boolean, validateLockFile: function(string, Object): void, provideComponent: function(string, {}): Provided | Promise<Provided>, provideStack: function(string, {}): Provided | Promise<Provided>, readLicenseFromManifest: function(string): string | null}} Provider */
 
 /**
  * MUST include all providers here.
@@ -21,9 +21,9 @@ export const availableProviders = [
 	new Java_maven(),
 	new Java_gradle_groovy(),
 	new Java_gradle_kotlin(),
-	new Javascript_npm(),
 	new Javascript_pnpm(),
 	new Javascript_yarn(),
+	new Javascript_npm(),
 	golangGomodulesProvider,
 	pythonPipProvider,
 	rustCargoProvider]
@@ -51,16 +51,17 @@ export function matchForLicense(manifestPath, providers) {
  * Each provider MUST export 'provideStack' taking manifest path returning a {@link Provided}.
  * @param {string} manifest - the name-type or path of the manifest
  * @param {[Provider]} providers - list of providers to iterate over
+ * @param {{workspaceDir?: string, TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional; workspaceDir (or TRUSTIFY_DA_WORKSPACE_DIR) overrides lock file location for workspaces
  * @returns {Provider}
  * @throws {Error} when the manifest is not supported and no provider was matched
  */
-export function match(manifest, providers) {
+export function match(manifest, providers, opts = {}) {
 	const manifestPath = path.parse(manifest)
 	const supported = providers.filter(prov => prov.isSupported(manifestPath.base))
 	if (supported.length === 0) {
 		throw new Error(`${manifestPath.base} is not supported`)
 	}
-	const provider = supported.find(prov => prov.validateLockFile(manifestPath.dir))
+	const provider = supported.find(prov => prov.validateLockFile(manifestPath.dir, opts))
 	if(!provider) {
 		throw new Error(`${manifestPath.base} requires a lock file. Use your preferred package manager to generate the lock file.`);
 	}

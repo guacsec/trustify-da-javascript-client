@@ -6,7 +6,7 @@ import { runLicenseCheck } from "./license/index.js";
 import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
 import { addProxyAgent, getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
 
-export default { requestComponent, requestStack, requestImages, validateToken }
+export default { requestComponent, requestStack, requestStackBatch, requestImages, validateToken }
 
 /**
  * Send a stack analysis request and get the report as 'text/html' or 'application/json'.
@@ -135,6 +135,54 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	}
 
 	return Promise.resolve(result)
+}
+
+/**
+ * Send a batch stack analysis request for multiple manifests (SBOMs keyed by purl).
+ * @param {Object.<string, object>} sbomByPurl - Map of root purl to CycloneDX SBOM object
+ * @param {string} url - the backend url
+ * @param {boolean} [html=false] - true returns HTML, false returns JSON
+ * @param {import("index.js").Options} [opts={}]
+ * @returns {Promise<string|Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>>}
+ */
+async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
+	const finalUrl = new URL(`${url}/api/v5/batch-analysis`)
+	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+		finalUrl.searchParams.append('recommend', 'false')
+	}
+
+	const fetchOptions = addProxyAgent({
+		method: 'POST',
+		headers: {
+			'Accept': html ? 'text/html' : 'application/json',
+			'Content-Type': 'application/json',
+			...getTokenHeaders(opts)
+		},
+		body: JSON.stringify(sbomByPurl)
+	}, opts)
+
+	const resp = await fetch(finalUrl, fetchOptions)
+
+	if (resp.status === 200) {
+		let result
+		if (!html) {
+			result = await resp.json()
+		} else {
+			result = await resp.text()
+		}
+		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
+			const exRequestId = resp.headers.get("ex-request-id")
+			if (exRequestId) {
+				console.log("Unique Identifier associated with this request - ex-request-id=" + exRequestId)
+			}
+			console.log("Response body received from Trustify DA backend server : " + EOL + EOL)
+			console.log(JSON.stringify(result, null, 4))
+			console.log("Ending time of sending batch stack analysis request to Trustify DA backend server= " + new Date())
+		}
+		return result
+	} else {
+		throw new Error(`Got error response from Trustify DA backend - http return code : ${resp.status}, ex-request-id: ${resp.headers.get("ex-request-id")}  error message =>  ${await resp.text()}`)
+	}
 }
 
 /**

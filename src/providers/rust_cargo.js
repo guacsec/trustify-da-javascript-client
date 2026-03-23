@@ -6,7 +6,7 @@ import { parse as parseToml } from 'smol-toml'
 
 import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
-import { getCustomPath, invokeCommand } from '../tools.js'
+import { getCustom, getCustomPath, invokeCommand } from '../tools.js'
 
 export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest }
 
@@ -102,10 +102,19 @@ function readLicenseFromManifest(manifestPath) {
  * up the directory tree looking for Cargo.lock (stopping when we find a
  * Cargo.toml that contains a [workspace] section, or when we reach the
  * filesystem root).
+ * When workspaceDir is provided (e.g. from TRUSTIFY_DA_WORKSPACE_DIR or opts.workspaceDir),
+ * checks only that directory for Cargo.lock — no walk-up.
  * @param {string} manifestDir - the directory where the manifest lies
+ * @param {{workspaceDir?: string, TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional workspace root
  * @returns {boolean} true if Cargo.lock is found
  */
-function validateLockFile(manifestDir) {
+function validateLockFile(manifestDir, opts = {}) {
+	const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts) ?? opts.workspaceDir
+	if (workspaceDir) {
+		const dir = path.resolve(workspaceDir)
+		return fs.existsSync(path.join(dir, 'Cargo.lock'))
+	}
+
 	let dir = path.resolve(manifestDir)
 	let parent = dir
 

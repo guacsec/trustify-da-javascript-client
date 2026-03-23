@@ -32,6 +32,11 @@ let stackAnalysis = await client.stackAnalysis('/path/to/pom.xml')
 let stackAnalysisHtml = await client.stackAnalysis('/path/to/pom.xml', true)
 // Get component analysis in JSON format
 let componentAnalysis = await client.componentAnalysis('/path/to/pom.xml')
+// For monorepos, pass workspace root so the client finds the lock file
+let monorepoOpts = { workspaceDir: '/path/to/workspace-root' }
+let stackAnalysisMonorepo = await client.stackAnalysis('/path/to/package.json', false, monorepoOpts)
+// Batch analysis for entire workspace (Cargo or JS/TS); optional parallel SBOM generation
+let batchReport = await client.stackAnalysisBatch('/path/to/workspace-root', false, { batchConcurrency: 10 })
 // Get image analysis in JSON format
 let imageAnalysis = await client.imageAnalysis(['docker.io/library/node:18'])
 // Get image analysis in HTML format (string)
@@ -101,8 +106,9 @@ $ npx @trustify-da/trustify-da-javascript-client help
 Usage: trustify-da-javascript-client {component|stack|image|validate-token|license}
 
 Commands:
-  trustify-da-javascript-client stack </path/to/manifest> [--html|--summary]               produce stack report for manifest path
-  trustify-da-javascript-client component <path/to/manifest> [--summary]   produce component report for a manifest type and content
+  trustify-da-javascript-client stack </path/to/manifest> [--workspace-dir <path>] [--html|--summary]               produce stack report for manifest path
+  trustify-da-javascript-client stack-batch </path/to/workspace-root> [--html|--summary]   produce stack report for all packages/crates in workspace
+  trustify-da-javascript-client component <path/to/manifest> [--workspace-dir <path>]   produce component report for a manifest type and content
   trustify-da-javascript-client image <image-refs..> [--html|--summary]               produce image analysis report for OCI image references
   trustify-da-javascript-client license </path/to/manifest>               display project license information from manifest and LICENSE file in JSON format
 
@@ -121,8 +127,20 @@ $ npx @trustify-da/trustify-da-javascript-client stack /path/to/pom.xml --summar
 # get stack analysis in html format format
 $ npx @trustify-da/trustify-da-javascript-client stack /path/to/pom.xml --html
 
+# get stack analysis for monorepo (lock file at workspace root)
+$ npx @trustify-da/trustify-da-javascript-client stack /path/to/package.json --workspace-dir /path/to/workspace-root
+
 # get component analysis
 $ npx @trustify-da/trustify-da-javascript-client component /path/to/pom.xml
+
+# get component analysis for monorepo
+$ npx @trustify-da/trustify-da-javascript-client component /path/to/package.json -w /path/to/workspace-root
+
+# batch stack analysis for entire workspace (Cargo or JS/TS)
+$ npx @trustify-da/trustify-da-javascript-client stack-batch /path/to/workspace-root
+
+# optional: extra discovery excludes (merged with defaults); repeat --ignore or use TRUSTIFY_DA_WORKSPACE_DISCOVERY_IGNORE
+$ npx @trustify-da/trustify-da-javascript-client stack-batch /path/to/workspace-root --ignore '**/fixtures/**'
 
 # get image analysis in json format
 $ npx @trustify-da/trustify-da-javascript-client image docker.io/library/node:18
@@ -162,8 +180,20 @@ $ trustify-da-javascript-client stack /path/to/pom.xml --summary
 # get stack analysis in html format format
 $ trustify-da-javascript-client stack /path/to/pom.xml --html
 
+# get stack analysis for monorepo (lock file at workspace root)
+$ trustify-da-javascript-client stack /path/to/package.json --workspace-dir /path/to/workspace-root
+
 # get component analysis
 $ trustify-da-javascript-client component /path/to/pom.xml
+
+# get component analysis for monorepo
+$ trustify-da-javascript-client component /path/to/package.json -w /path/to/workspace-root
+
+# batch stack analysis for entire workspace
+$ trustify-da-javascript-client stack-batch /path/to/workspace-root
+
+# with extra discovery excludes
+$ trustify-da-javascript-client stack-batch /path/to/workspace-root -i '**/vendor/**'
 
 # get image analysis in json format
 $ trustify-da-javascript-client image docker.io/library/node:18
@@ -382,6 +412,8 @@ let options = {
   'TRUSTIFY_DA_PIP_PATH' : '/path/to/pip',
   'TRUSTIFY_DA_GRADLE_PATH' : '/path/to/gradle',
   'TRUSTIFY_DA_CARGO_PATH' : '/path/to/cargo',
+  // Workspace root for monorepos (Cargo, npm/pnpm/yarn); lock file expected here
+  'workspaceDir': '/path/to/workspace-root',
   // Configure proxy for all requests
   'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080'
 }
@@ -402,6 +434,21 @@ let imageAnalysisHtml = await client.imageAnalysis(['docker.io/library/node:18']
 let imageAnalysisWithArch = await client.imageAnalysis(['httpd:2.4.49^^amd64'], false, options)
 ```
  **_Environment variables takes precedence._**
+</p>
+
+<h4>Monorepo / Workspace Support</h4>
+<p>
+For monorepos (Cargo workspaces, npm/pnpm/yarn workspaces) where the lock file lives at the workspace root rather than next to the manifest, pass the workspace root via <code>workspaceDir</code> or <code>TRUSTIFY_DA_WORKSPACE_DIR</code>:
+</p>
+<ul>
+<li><strong>Cargo:</strong> When set, the client checks only the given directory for <code>Cargo.lock</code> instead of walking up from the manifest.</li>
+<li><strong>JavaScript (npm, pnpm, yarn):</strong> When set, the client looks for the lock file (<code>package-lock.json</code>, <code>pnpm-lock.yaml</code>, <code>yarn.lock</code>) at the workspace root.</li>
+</ul>
+<p>
+Use <code>stackAnalysisBatch(workspaceRoot, html, opts)</code> to analyze all packages/crates in a workspace in one request. Supports Cargo workspaces and JS/TS workspaces (pnpm, npm, yarn). Optional <code>batchConcurrency</code> (or <code>TRUSTIFY_DA_BATCH_CONCURRENCY</code>) limits parallel SBOM generation (default 10). For JS/TS, each <code>package.json</code> must have non-empty <code>name</code> and <code>version</code>; invalid manifests are skipped (warnings). Per-manifest SBOM failures are skipped if at least one SBOM succeeds (unless <code>continueOnError: false</code>). Set <code>batchMetadata: true</code> (or <code>TRUSTIFY_DA_BATCH_METADATA</code>) to receive <code>{ analysis, metadata }</code> with <code>errors[]</code>. CLI: <code>stack-batch --metadata</code>, <code>--fail-fast</code>. See <a href="./docs/monorepo-implementation-plan.md">monorepo implementation plan</a> §2.3 and §3.5.
+</p>
+<p>
+See <a href="./docs/vscode-extension-integration-requirements.md">VS Code Extension Integration Requirements</a> for integration details.
 </p>
 
 <h4>Proxy Configuration</h4>
@@ -507,6 +554,11 @@ following keys for setting custom paths for the said executables.
 <td><a href="https://www.rust-lang.org/">Rust Cargo</a></td>
 <td><em>cargo</em></td>
 <td>TRUSTIFY_DA_CARGO_PATH</td>
+</tr>
+<tr>
+<td>Workspace root (monorepos)</td>
+<td>—</td>
+<td>workspaceDir / TRUSTIFY_DA_WORKSPACE_DIR</td>
 </tr>
 </table>
 

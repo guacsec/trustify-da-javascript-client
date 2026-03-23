@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
-import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from "../tools.js";
+import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from '../tools.js'
 
 import Manifest from './manifest.js';
 
@@ -112,13 +112,18 @@ export default class Base_javascript {
 	}
 
 	/**
-   * Checks if a required lock file exists in the same path as the manifest
+   * Checks if a required lock file exists in the manifest directory or at the workspace root.
+   * When workspaceDir is provided (e.g. from TRUSTIFY_DA_WORKSPACE_DIR or opts.workspaceDir),
+   * checks only that directory for the lock file.
    * @param {string} manifestDir - The base directory where the manifest is located
+   * @param {{workspaceDir?: string, TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional workspace root
    * @returns {boolean} True if the lock file exists
    */
-	validateLockFile(manifestDir) {
-		const lock = path.join(manifestDir, this._lockFileName());
-		return fs.existsSync(lock);
+	validateLockFile(manifestDir, opts = {}) {
+		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts) ?? opts.workspaceDir
+		const dirToCheck = workspaceDir ? path.resolve(workspaceDir) : manifestDir
+		const lock = path.join(dirToCheck, this._lockFileName())
+		return fs.existsSync(lock)
 	}
 
 	/**
