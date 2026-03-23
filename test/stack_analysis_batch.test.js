@@ -2,9 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { expect } from 'chai'
+import esmock from 'esmock'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import esmock from 'esmock'
 
 const BACKEND_URL = 'http://localhost:9999'
 const BACKEND_OPTS = { TRUSTIFY_DA_BACKEND_URL: BACKEND_URL }

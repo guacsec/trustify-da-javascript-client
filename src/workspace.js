@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import fg from 'fast-glob'
-import yaml from 'js-yaml'
+import { load as yamlLoad } from 'js-yaml'
 import micromatch from 'micromatch'
 
 import { getCustom, getCustomPath, invokeCommand } from './tools.js'
@@ -166,7 +166,7 @@ async function discoverFromPnpmWorkspace(root, pnpmWorkspacePath, globOpts, igno
 function parsePnpmPackages(content) {
 	let doc
 	try {
-		doc = yaml.load(content)
+		doc = yamlLoad(content)
 	} catch {
 		return []
 	}
