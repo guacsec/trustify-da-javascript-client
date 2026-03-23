@@ -281,12 +281,12 @@ function buildBatchAnalysisMetadata(root, ecosystem, totalSbomAttempts, successf
  *
  * @param {string} manifestPath
  * @param {Options} workspaceOpts - opts with `workspaceDir` set
- * @returns {SbomResult}
+ * @returns {Promise<SbomResult>}
  * @private
  */
-function generateOneSbom(manifestPath, workspaceOpts) {
+async function generateOneSbom(manifestPath, workspaceOpts) {
 	const provider = match(manifestPath, availableProviders, workspaceOpts)
-	const provided = provider.provideStack(manifestPath, workspaceOpts)
+	const provided = await provider.provideStack(manifestPath, workspaceOpts)
 	const sbom = JSON.parse(provided.content)
 	const purl = sbom?.metadata?.component?.purl || sbom?.metadata?.component?.['bom-ref']
 	if (!purl) {
@@ -373,7 +373,7 @@ async function generateSboms(manifestPaths, workspaceOpts, continueOnError, conc
 
 	if (!continueOnError) {
 		for (const manifestPath of manifestPaths) {
-			const result = generateOneSbom(manifestPath, workspaceOpts)
+			const result = await generateOneSbom(manifestPath, workspaceOpts)
 			if (!result.ok) {
 				collectedErrors.push({ manifestPath: result.manifestPath, phase: 'sbom', reason: result.reason })
 				throw new Error(`${result.manifestPath}: ${result.reason}`)
@@ -383,9 +383,9 @@ async function generateSboms(manifestPaths, workspaceOpts, continueOnError, conc
 	} else {
 		const limit = pLimit(concurrency)
 		const settled = await Promise.all(
-			manifestPaths.map(manifestPath => limit(() => {
+			manifestPaths.map(manifestPath => limit(async () => {
 				try {
-					return generateOneSbom(manifestPath, workspaceOpts)
+					return await generateOneSbom(manifestPath, workspaceOpts)
 				} catch (err) {
 					const msg = err instanceof Error ? err.message : String(err)
 					if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {

@@ -18,8 +18,8 @@ export default class Javascript_pnpm extends Base_javascript {
 		return ['install', '--frozen-lockfile'];
 	}
 
-	_buildDependencyTree(includeTransitive, manifest) {
-		const tree = super._buildDependencyTree(includeTransitive, manifest);
+	_buildDependencyTree(includeTransitive, opts = {}) {
+		const tree = super._buildDependencyTree(includeTransitive, opts);
 		if (Array.isArray(tree) && tree.length > 0) {
 			return tree[0];
 		}

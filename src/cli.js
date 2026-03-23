@@ -280,7 +280,12 @@ const stackBatch = {
 				res = summaries
 			}
 		}
-		console.log(html ? res : JSON.stringify(res, null, 2))
+		if (html) {
+			const htmlContent = res && typeof res === 'object' && 'analysis' in res ? res.analysis : res
+			console.log(htmlContent)
+		} else {
+			console.log(JSON.stringify(res, null, 2))
+		}
 	}
 }
 

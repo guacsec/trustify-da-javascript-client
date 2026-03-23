@@ -181,15 +181,18 @@ export default class Base_javascript {
 	/**
    * Builds the dependency tree for the project
    * @param {boolean} includeTransitive - Whether to include transitive dependencies
+   * @param {Object} [opts={}] - Configuration options; when `workspaceDir` is set, commands run from workspace root
    * @returns {Object} The dependency tree
    * @protected
    */
-	_buildDependencyTree(includeTransitive) {
+	_buildDependencyTree(includeTransitive, opts = {}) {
 		this._version();
-		let manifestDir = path.dirname(this.#manifest.manifestPath);
-		this.#createLockFile(manifestDir);
+		const manifestDir = path.dirname(this.#manifest.manifestPath);
+		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts) ?? opts.workspaceDir
+		const cmdDir = workspaceDir ? path.resolve(workspaceDir) : manifestDir;
+		this.#createLockFile(cmdDir);
 
-		let output = this.#executeListCmd(includeTransitive, manifestDir);
+		let output = this.#executeListCmd(includeTransitive, cmdDir);
 		output = this._parseDepTreeOutput(output);
 		return JSON.parse(output);
 	}
@@ -201,7 +204,7 @@ export default class Base_javascript {
    * @private
    */
 	#getSBOM(opts = {}) {
-		const depsObject = this._buildDependencyTree(true);
+		const depsObject = this._buildDependencyTree(true, opts);
 
 		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
 		const license = this.readLicenseFromManifest(this.#manifest.manifestPath);
@@ -260,7 +263,7 @@ export default class Base_javascript {
    * @private
    */
 	#getDirectDependencySbom(opts = {}) {
-		const depTree = this._buildDependencyTree(false);
+		const depTree = this._buildDependencyTree(false, opts);
 		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
 		const license = this.readLicenseFromManifest(this.#manifest.manifestPath);
 
