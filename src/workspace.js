@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import fg from 'fast-glob'
+import yaml from 'js-yaml'
 import micromatch from 'micromatch'
 
 import { getCustom, getCustomPath, invokeCommand } from './tools.js'
@@ -152,44 +153,44 @@ async function discoverFromPnpmWorkspace(root, pnpmWorkspacePath, globOpts, igno
 	if (packages.length === 0) {
 		return []
 	}
-	const patterns = packages.map(p => (p.startsWith('!') ? p : `${p}/package.json`))
+	const patterns = toManifestGlobPatterns(packages, 'package.json')
 	const manifestPaths = await fg(patterns, globOpts)
 	return filterManifestPathsByDiscoveryIgnore(manifestPaths, root, ignorePatterns)
 }
 
 /**
- * Parse packages array from pnpm-workspace.yaml (minimal YAML parsing).
- * @param {string} content
+ * Parse the `packages` array from pnpm-workspace.yaml content.
+ * @param {string} content - Raw YAML content
  * @returns {string[]}
  */
 function parsePnpmPackages(content) {
-	const packages = []
-	const lines = content.split('\n')
-	let inPackages = false
-	for (const line of lines) {
-		const trimmed = line.trim()
-		if (trimmed.startsWith('packages:')) {
-			inPackages = true
-			continue
-		}
-		if (inPackages) {
-			if (trimmed && !trimmed.startsWith('#')) {
-				const match = trimmed.match(/^-\s*['"]?([^'"]+)['"]?/)
-				if (match) {
-					packages.push(match[1].trim())
-				} else if (trimmed.startsWith('-')) {
-					packages.push(trimmed.slice(1).trim().replace(/^['"]|['"]$/g, ''))
-				}
-			}
-			if (trimmed && !trimmed.startsWith('-') && !trimmed.startsWith('#') && trimmed !== 'packages:') {
-				const indent = line.search(/\S/)
-				if (indent >= 0 && indent <= 2) {
-					break
-				}
-			}
-		}
+	let doc
+	try {
+		doc = yaml.load(content)
+	} catch {
+		return []
 	}
-	return packages
+	if (!doc || typeof doc !== 'object' || !Array.isArray(doc.packages)) {
+		return []
+	}
+	return doc.packages.filter(p => typeof p === 'string' && p.trim()).map(p => p.trim())
+}
+
+/**
+ * Convert workspace glob patterns to manifest-file glob patterns,
+ * correctly handling negation prefixes.
+ *
+ * @param {string[]} patterns - Workspace glob patterns (may include negations)
+ * @param {string} manifestFileName - e.g. 'package.json' or 'Cargo.toml'
+ * @returns {string[]}
+ */
+function toManifestGlobPatterns(patterns, manifestFileName) {
+	return patterns.map(p => {
+		if (p.startsWith('!')) {
+			return `!${p.slice(1)}/${manifestFileName}`
+		}
+		return `${p}/${manifestFileName}`
+	})
 }
 
 /**
@@ -211,7 +212,7 @@ async function discoverFromPackageJsonWorkspaces(root, packageJsonPath, globOpts
 		return []
 	}
 	const raw = Array.isArray(workspaces) ? workspaces : workspaces.packages || []
-	const patterns = raw.map(p => (typeof p === 'string' && p.startsWith('!') ? p : `${p}/package.json`))
+	const patterns = toManifestGlobPatterns(raw.filter(p => typeof p === 'string'), 'package.json')
 	if (patterns.length === 0) {
 		return []
 	}

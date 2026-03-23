@@ -273,6 +273,162 @@ function buildBatchAnalysisMetadata(root, ecosystem, totalSbomAttempts, successf
 }
 
 /**
+ * @typedef {{ ok: true, purl: string, sbom: object } | { ok: false, manifestPath: string, reason: string }} SbomResult
+ */
+
+/**
+ * Generate an SBOM for a single manifest, returning a normalized result.
+ *
+ * @param {string} manifestPath
+ * @param {Options} workspaceOpts - opts with `workspaceDir` set
+ * @returns {SbomResult}
+ * @private
+ */
+function generateOneSbom(manifestPath, workspaceOpts) {
+	const provider = match(manifestPath, availableProviders, workspaceOpts)
+	const provided = provider.provideStack(manifestPath, workspaceOpts)
+	const sbom = JSON.parse(provided.content)
+	const purl = sbom?.metadata?.component?.purl || sbom?.metadata?.component?.['bom-ref']
+	if (!purl) {
+		return { ok: false, manifestPath, reason: 'missing purl in SBOM' }
+	}
+	return { ok: true, purl, sbom }
+}
+
+/**
+ * Detect the workspace ecosystem and discover manifest paths.
+ *
+ * @param {string} root - Resolved workspace root
+ * @param {Options} opts
+ * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'unknown', manifestPaths: string[] }>}
+ * @private
+ */
+async function detectWorkspaceManifests(root, opts) {
+	const cargoToml = path.join(root, 'Cargo.toml')
+	const cargoLock = path.join(root, 'Cargo.lock')
+	const packageJson = path.join(root, 'package.json')
+
+	if (fs.existsSync(cargoToml) && fs.existsSync(cargoLock)) {
+		return { ecosystem: 'cargo', manifestPaths: await discoverWorkspaceCrates(root, opts) }
+	}
+
+	const hasJsLock = fs.existsSync(path.join(root, 'pnpm-lock.yaml'))
+		|| fs.existsSync(path.join(root, 'yarn.lock'))
+		|| fs.existsSync(path.join(root, 'package-lock.json'))
+
+	if (fs.existsSync(packageJson) && hasJsLock) {
+		let manifestPaths = await discoverWorkspacePackages(root, opts)
+		if (manifestPaths.length === 0) {
+			manifestPaths = [packageJson]
+		}
+		return { ecosystem: 'javascript', manifestPaths }
+	}
+
+	return { ecosystem: 'unknown', manifestPaths: [] }
+}
+
+/**
+ * Validate discovered JS package.json manifests, collecting errors.
+ *
+ * @param {string[]} manifestPaths
+ * @param {boolean} continueOnError
+ * @param {Array<{ manifestPath: string, phase: 'validation' | 'sbom', reason: string }>} collectedErrors - mutated in place
+ * @returns {{ validPaths: string[] }}
+ * @throws {Error} on first invalid manifest when `continueOnError` is false
+ * @private
+ */
+function validateJsManifests(manifestPaths, continueOnError, collectedErrors) {
+	const validPaths = []
+	for (const p of manifestPaths) {
+		const v = validatePackageJson(p)
+		if (v.valid) {
+			validPaths.push(p)
+		} else {
+			collectedErrors.push({ manifestPath: p, phase: 'validation', reason: v.error })
+			console.warn(`Skipping invalid package.json (${v.error}): ${p}`)
+			if (!continueOnError) {
+				throw new Error(`Invalid package.json (${v.error}): ${p}`)
+			}
+		}
+	}
+	return { validPaths }
+}
+
+/**
+ * Generate SBOMs for all manifests. In fail-fast mode, stops on first error.
+ * In continue-on-error mode, runs concurrently and collects failures.
+ *
+ * @param {string[]} manifestPaths
+ * @param {Options} workspaceOpts
+ * @param {boolean} continueOnError
+ * @param {number} concurrency
+ * @param {Array<{ manifestPath: string, phase: 'validation' | 'sbom', reason: string }>} collectedErrors - mutated in place
+ * @returns {Promise<Object.<string, object>>} sbomByPurl map
+ * @throws {Error} on first SBOM failure when `continueOnError` is false
+ * @private
+ */
+async function generateSboms(manifestPaths, workspaceOpts, continueOnError, concurrency, collectedErrors) {
+	/** @type {SbomResult[]} */
+	const results = []
+
+	if (!continueOnError) {
+		for (const manifestPath of manifestPaths) {
+			const result = generateOneSbom(manifestPath, workspaceOpts)
+			if (!result.ok) {
+				collectedErrors.push({ manifestPath: result.manifestPath, phase: 'sbom', reason: result.reason })
+				throw new Error(`${result.manifestPath}: ${result.reason}`)
+			}
+			results.push(result)
+		}
+	} else {
+		const limit = pLimit(concurrency)
+		const settled = await Promise.all(
+			manifestPaths.map(manifestPath => limit(() => {
+				try {
+					return generateOneSbom(manifestPath, workspaceOpts)
+				} catch (err) {
+					const msg = err instanceof Error ? err.message : String(err)
+					if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
+						console.log(`Skipping ${manifestPath}: ${msg}`)
+					}
+					return { ok: false, manifestPath, reason: msg }
+				}
+			}))
+		)
+		for (const r of settled) {
+			results.push(r)
+			if (!r.ok) {
+				collectedErrors.push({ manifestPath: r.manifestPath, phase: 'sbom', reason: r.reason })
+			}
+		}
+	}
+
+	const sbomByPurl = {}
+	for (const r of results) {
+		if (r.ok) {
+			sbomByPurl[r.purl] = r.sbom
+		}
+	}
+	return sbomByPurl
+}
+
+/**
+ * Create an Error with optional `batchMetadata` attached.
+ * @param {string} message
+ * @param {boolean} wantMetadata
+ * @param {BatchAnalysisMetadata} [metadata]
+ * @returns {Error}
+ * @private
+ */
+function batchError(message, wantMetadata, metadata) {
+	const err = new Error(message)
+	if (wantMetadata && metadata) {
+		err.batchMetadata = metadata
+	}
+	return err
+}
+
+/**
  * Get stack analysis for all workspace packages/crates (batch).
  * Detects ecosystem from workspace root: Cargo (Cargo.toml + Cargo.lock) or JS/TS (package.json + lock file).
  * SBOMs are generated in parallel (see `batchConcurrency`) unless `continueOnError: false` (fail-fast sequential).
@@ -295,54 +451,21 @@ async function stackAnalysisBatch(workspaceRoot, html = false, opts = {}) {
 	/** @type {Array<{ manifestPath: string, phase: 'validation' | 'sbom', reason: string }>} */
 	const collectedErrors = []
 
-	let manifestPaths = []
-	/** @type {'javascript' | 'cargo' | 'unknown'} */
-	let ecosystem = 'unknown'
+	const { ecosystem, manifestPaths: discovered } = await detectWorkspaceManifests(root, opts)
+	let manifestPaths = discovered
 
-	const cargoToml = path.join(root, 'Cargo.toml')
-	const cargoLock = path.join(root, 'Cargo.lock')
-	const packageJson = path.join(root, 'package.json')
-	const hasPnpmLock = fs.existsSync(path.join(root, 'pnpm-lock.yaml'))
-	const hasYarnLock = fs.existsSync(path.join(root, 'yarn.lock'))
-	const hasNpmLock = fs.existsSync(path.join(root, 'package-lock.json'))
-
-	if (fs.existsSync(cargoToml) && fs.existsSync(cargoLock)) {
-		ecosystem = 'cargo'
-		manifestPaths = await discoverWorkspaceCrates(root, opts)
-	} else if (fs.existsSync(packageJson) && (hasPnpmLock || hasYarnLock || hasNpmLock)) {
-		ecosystem = 'javascript'
-		manifestPaths = await discoverWorkspacePackages(root, opts)
-		if (manifestPaths.length === 0) {
-			manifestPaths = [packageJson]
+	if (ecosystem === 'javascript') {
+		try {
+			const { validPaths } = validateJsManifests(manifestPaths, continueOnError, collectedErrors)
+			manifestPaths = validPaths
+		} catch (err) {
+			throw batchError(err.message, wantMetadata,
+				buildBatchAnalysisMetadata(root, ecosystem, 0, 0, collectedErrors))
 		}
-		const beforeValidation = manifestPaths.length
-		const validPaths = []
-		for (const p of manifestPaths) {
-			const v = validatePackageJson(p)
-			if (v.valid) {
-				validPaths.push(p)
-			} else {
-				const reason = v.error
-				const entry = { manifestPath: p, phase: 'validation', reason }
-				collectedErrors.push(entry)
-				console.warn(`Skipping invalid package.json (${reason}): ${p}`)
-				if (!continueOnError) {
-					const err = new Error(`Invalid package.json (${reason}): ${p}`)
-					if (wantMetadata) {
-						err.batchMetadata = buildBatchAnalysisMetadata(root, ecosystem, 0, 0, collectedErrors)
-					}
-					throw err
-				}
-			}
-		}
-		manifestPaths = validPaths
-		if (manifestPaths.length === 0 && beforeValidation > 0) {
+		if (manifestPaths.length === 0 && discovered.length > 0) {
 			const detail = collectedErrors.map(e => `${e.manifestPath}: ${e.reason}`).join('; ')
-			const err = new Error(`No valid packages after validation at ${root}. ${detail}`)
-			if (wantMetadata) {
-				err.batchMetadata = buildBatchAnalysisMetadata(root, ecosystem, 0, 0, collectedErrors)
-			}
-			throw err
+			throw batchError(`No valid packages after validation at ${root}. ${detail}`, wantMetadata,
+				buildBatchAnalysisMetadata(root, ecosystem, 0, 0, collectedErrors))
 		}
 	}
 
@@ -353,102 +476,25 @@ async function stackAnalysisBatch(workspaceRoot, html = false, opts = {}) {
 	const workspaceOpts = { ...opts, workspaceDir: root }
 	const concurrency = resolveBatchConcurrency(opts)
 
-	/**
-	 * @returns {Promise<{ ok: boolean, purl?: string, sbom?: object, manifestPath?: string, reason?: string }>}
-	 */
-	async function runOneSbom(manifestPath) {
-		try {
-			const provider = match(manifestPath, availableProviders, workspaceOpts)
-			const provided = await provider.provideStack(manifestPath, opts)
-			const sbom = JSON.parse(provided.content)
-			const purl = sbom?.metadata?.component?.purl || sbom?.metadata?.component?.['bom-ref']
-			if (purl) {
-				return { ok: true, purl, sbom }
-			}
-			return { ok: false, manifestPath, reason: 'missing purl in SBOM' }
-		} catch (err) {
-			const msg = err instanceof Error ? err.message : String(err)
-			if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
-				console.log(`Skipping ${manifestPath}: ${msg}`)
-			}
-			return { ok: false, manifestPath, reason: msg }
-		}
-	}
-
-	/** @type {Array<{ ok: boolean, purl?: string, sbom?: object, manifestPath?: string, reason?: string }>} */
-	let results
-
-	if (!continueOnError) {
-		results = []
-		for (const manifestPath of manifestPaths) {
-			try {
-				const provider = match(manifestPath, availableProviders, workspaceOpts)
-				const provided = await provider.provideStack(manifestPath, opts)
-				const sbom = JSON.parse(provided.content)
-				const purl = sbom?.metadata?.component?.purl || sbom?.metadata?.component?.['bom-ref']
-				if (!purl) {
-					throw new Error('missing purl in SBOM')
-				}
-				results.push({ ok: true, purl, sbom })
-			} catch (err) {
-				const msg = err instanceof Error ? err.message : String(err)
-				collectedErrors.push({ manifestPath, phase: 'sbom', reason: msg })
-				const e = new Error(`${manifestPath}: ${msg}`)
-				if (wantMetadata) {
-					e.batchMetadata = buildBatchAnalysisMetadata(
-						root,
-						ecosystem,
-						manifestPaths.length,
-						results.length,
-						collectedErrors
-					)
-				}
-				throw e
-			}
-		}
-	} else {
-		const limit = pLimit(concurrency)
-		const tasks = manifestPaths.map(manifestPath => limit(() => runOneSbom(manifestPath)))
-		results = await Promise.all(tasks)
-		for (const r of results) {
-			if (!r.ok && r.manifestPath && r.reason) {
-				collectedErrors.push({
-					manifestPath: r.manifestPath,
-					phase: 'sbom',
-					reason: r.reason,
-				})
-			}
-		}
-	}
-
-	const sbomByPurl = {}
-	for (const r of results) {
-		if (r.ok && r.purl && r.sbom) {
-			sbomByPurl[r.purl] = r.sbom
-		}
+	let sbomByPurl
+	try {
+		sbomByPurl = await generateSboms(manifestPaths, workspaceOpts, continueOnError, concurrency, collectedErrors)
+	} catch (err) {
+		throw batchError(err.message, wantMetadata,
+			buildBatchAnalysisMetadata(root, ecosystem, manifestPaths.length, 0, collectedErrors))
 	}
 
 	if (Object.keys(sbomByPurl).length === 0) {
-		const err = new Error(`No valid SBOMs produced from ${manifestPaths.length} manifest(s) at ${root}`)
-		if (wantMetadata) {
-			err.batchMetadata = buildBatchAnalysisMetadata(
-				root,
-				ecosystem,
-				manifestPaths.length,
-				0,
-				collectedErrors
-			)
-		}
-		throw err
+		throw batchError(
+			`No valid SBOMs produced from ${manifestPaths.length} manifest(s) at ${root}`,
+			wantMetadata,
+			buildBatchAnalysisMetadata(root, ecosystem, manifestPaths.length, 0, collectedErrors)
+		)
 	}
 
 	const analysisResult = await analysis.requestStackBatch(sbomByPurl, theUrl, html, opts)
 	const meta = buildBatchAnalysisMetadata(
-		root,
-		ecosystem,
-		manifestPaths.length,
-		Object.keys(sbomByPurl).length,
-		collectedErrors
+		root, ecosystem, manifestPaths.length, Object.keys(sbomByPurl).length, collectedErrors
 	)
 
 	if (wantMetadata) {
