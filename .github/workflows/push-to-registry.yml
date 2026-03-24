@@ -31,6 +31,9 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Install latest npm
+        run: npm install -g npm@11.11.1
+
       - name: Install project modules
         run: npm ci
 

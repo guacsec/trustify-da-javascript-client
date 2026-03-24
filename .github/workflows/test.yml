@@ -79,6 +79,9 @@ jobs:
       - name: Setup skopeo
         run: sudo apt update && sudo apt-get -y install skopeo
 
+      - name: Install latest npm
+        run: npm install -g npm@11.11.1
+
       - name: Install project modules
         run: npm ci
 
