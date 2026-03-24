@@ -6,6 +6,8 @@ import esmock from 'esmock'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 
+import { CYCLONEDX_JSON_MEDIA_TYPE } from '../src/analysis.js'
+
 const BACKEND_URL = 'http://localhost:9999'
 const BACKEND_OPTS = { TRUSTIFY_DA_BACKEND_URL: BACKEND_URL }
 
@@ -73,13 +75,22 @@ function makeSbom(name, version) {
 	}
 }
 
+function mediaTypeWithoutParameters(contentType) {
+	if (!contentType) {
+		return ''
+	}
+	return contentType.split(';')[0].trim()
+}
+
 suite('stackAnalysisBatch', () => {
 	let server
 	let capturedBody
+	let capturedContentType
 
 	suiteSetup(() => {
 		server = setupServer(
 			http.post(`${BACKEND_URL}/api/v5/batch-analysis`, async ({ request }) => {
+				capturedContentType = request.headers.get('content-type')
 				capturedBody = await request.json()
 				const report = {}
 				for (const purl of Object.keys(capturedBody)) {
@@ -97,6 +108,7 @@ suite('stackAnalysisBatch', () => {
 
 	setup(() => {
 		capturedBody = null
+		capturedContentType = null
 	})
 
 	test('discovers JS workspace packages, generates SBOMs, and sends batch request', async () => {
@@ -127,6 +139,7 @@ suite('stackAnalysisBatch', () => {
 
 			expect(result).to.be.an('object')
 			expect(capturedBody).to.be.an('object')
+			expect(mediaTypeWithoutParameters(capturedContentType)).to.equal(CYCLONEDX_JSON_MEDIA_TYPE)
 			const purls = Object.keys(capturedBody)
 			expect(purls).to.include('pkg:npm/app-a@1.0.0')
 			expect(purls).to.include('pkg:npm/app-b@2.0.0')
@@ -164,6 +177,7 @@ suite('stackAnalysisBatch', () => {
 			expect(result.metadata.ecosystem).to.equal('javascript')
 			expect(result.metadata.successful).to.equal(2)
 			expect(result.metadata.failed).to.equal(0)
+			expect(mediaTypeWithoutParameters(capturedContentType)).to.equal(CYCLONEDX_JSON_MEDIA_TYPE)
 		} finally {
 			cleanup()
 		}
@@ -196,6 +210,7 @@ suite('stackAnalysisBatch', () => {
 			expect(result.metadata.failed).to.be.at.least(1)
 			expect(result.metadata.errors.some(e => e.phase === 'validation')).to.be.true
 			expect(capturedBody).to.be.an('object')
+			expect(mediaTypeWithoutParameters(capturedContentType)).to.equal(CYCLONEDX_JSON_MEDIA_TYPE)
 			expect(Object.keys(capturedBody)).to.include('pkg:npm/good@1.0.0')
 		} finally {
 			cleanup()
@@ -281,6 +296,7 @@ suite('stackAnalysisBatch', () => {
 
 			expect(result).to.be.an('object')
 			expect(capturedBody).to.be.an('object')
+			expect(mediaTypeWithoutParameters(capturedContentType)).to.equal(CYCLONEDX_JSON_MEDIA_TYPE)
 			expect(Object.keys(capturedBody)).to.include('pkg:npm/web@1.0.0')
 		} finally {
 			cleanup()

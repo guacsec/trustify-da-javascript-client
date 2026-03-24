@@ -6,6 +6,9 @@ import { runLicenseCheck } from "./license/index.js";
 import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
 import { addProxyAgent, getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
 
+/** Media type for CycloneDX JSON batch payloads (batch-analysis API). */
+export const CYCLONEDX_JSON_MEDIA_TYPE = 'application/vnd.cyclonedx+json'
+
 export default { requestComponent, requestStack, requestStackBatch, requestImages, validateToken }
 
 /**
@@ -155,7 +158,7 @@ async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
 		method: 'POST',
 		headers: {
 			'Accept': html ? 'text/html' : 'application/json',
-			'Content-Type': 'application/json',
+			'Content-Type': CYCLONEDX_JSON_MEDIA_TYPE,
 			...getTokenHeaders(opts)
 		},
 		body: JSON.stringify(sbomByPurl)
@@ -208,7 +211,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 		method: 'POST',
 		headers: {
 			'Accept': html ? 'text/html' : 'application/json',
-			'Content-Type': 'application/vnd.cyclonedx+json',
+			'Content-Type': CYCLONEDX_JSON_MEDIA_TYPE,
 			...getTokenHeaders(opts)
 		},
 		body: JSON.stringify(imageSboms),
