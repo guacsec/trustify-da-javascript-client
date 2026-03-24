@@ -37,7 +37,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.11.1
 
       - name: Configure git
         run: |
@@ -103,7 +103,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.11.1
 
       - name: Install project modules
         run: npm ci
