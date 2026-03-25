@@ -141,9 +141,6 @@ export default class Base_javascript {
 				return dir
 			}
 
-			// If this directory has a package.json with "workspaces", the lock
-			// file should have been here — stop searching (analogous to Cargo's
-			// [workspace] boundary).
 			const pkgJsonPath = path.join(dir, 'package.json')
 			if (fs.existsSync(pkgJsonPath)) {
 				try {
@@ -152,7 +149,7 @@ export default class Base_javascript {
 						return null
 					}
 				} catch (_) {
-					// ignore parse errors, keep searching
+					// ignore parse errors
 				}
 			}
 
@@ -163,14 +160,8 @@ export default class Base_javascript {
 	}
 
 	/**
-   * Checks if a required lock file exists in the manifest directory, a parent
-   * directory, or at the workspace root.  Walks up the directory tree following
-   * the same pattern as the Cargo provider.
-   *
-   * When TRUSTIFY_DA_WORKSPACE_DIR is provided (via env var or opts),
-   * checks only that directory for the lock file.
    * @param {string} manifestDir - The base directory where the manifest is located
-   * @param {{TRUSTIFY_DA_WORKSPACE_DIR?: string}} [opts={}] - optional workspace root
+   * @param {Object} [opts={}] - optional; may contain TRUSTIFY_DA_WORKSPACE_DIR
    * @returns {boolean} True if the lock file exists
    */
 	validateLockFile(manifestDir, opts = {}) {
@@ -360,7 +351,7 @@ export default class Base_javascript {
    */
 	#executeListCmd(includeTransitive, manifestDir) {
 		const listArgs = this._listCmdArgs(includeTransitive, manifestDir);
-		return this.#invokeCommand(listArgs);
+		return this.#invokeCommand(listArgs, { cwd: manifestDir });
 	}
 
 	/**
@@ -382,14 +373,12 @@ export default class Base_javascript {
 		const isWindows = os.platform() === 'win32';
 
 		if (isWindows) {
-			// On Windows, --prefix flag doesn't work as expected
-			// Instead of installing from the prefix folder, it installs from current working directory
 			process.chdir(manifestDir);
 		}
 
 		try {
 			const args = this._updateLockFileCmdArgs(manifestDir);
-			this.#invokeCommand(args);
+			this.#invokeCommand(args, { cwd: manifestDir });
 		} finally {
 			if (isWindows) {
 				process.chdir(originalDir);
