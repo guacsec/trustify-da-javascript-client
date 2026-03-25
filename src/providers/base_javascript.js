@@ -124,6 +124,24 @@ export default class Base_javascript {
    * @returns {string|null} The directory containing the lock file, or null
    * @protected
    */
+	_isWorkspaceRoot(dir) {
+		if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
+			return true
+		}
+		const pkgJsonPath = path.join(dir, 'package.json')
+		if (fs.existsSync(pkgJsonPath)) {
+			try {
+				const content = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'))
+				if (content.workspaces) {
+					return true
+				}
+			} catch (_) {
+				// ignore parse errors
+			}
+		}
+		return false
+	}
+
 	_findLockFileDir(manifestDir, opts = {}) {
 		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts)
 		if (workspaceDir) {
@@ -141,16 +159,8 @@ export default class Base_javascript {
 				return dir
 			}
 
-			const pkgJsonPath = path.join(dir, 'package.json')
-			if (fs.existsSync(pkgJsonPath)) {
-				try {
-					const content = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'))
-					if (content.workspaces) {
-						return null
-					}
-				} catch (_) {
-					// ignore parse errors
-				}
+			if (this._isWorkspaceRoot(dir)) {
+				return null
 			}
 
 			parent = path.dirname(dir)

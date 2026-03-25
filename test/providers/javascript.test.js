@@ -191,6 +191,12 @@ suite('testing the javascript-npm data provider', async () => {
 		expect(provider.isSupported('package.json')).to.be.true
 	})
 
+	test('verify pnpm workspace member stops at pnpm-workspace.yaml boundary', () => {
+		const manifest = 'test/providers/provider_manifests/pnpm/workspace_member_without_lock/packages/module-a/package.json'
+		expect(() => match(manifest, availableProviders))
+			.to.throw('package.json requires a lock file')
+	})
+
 	test('verify match with wrong TRUSTIFY_DA_WORKSPACE_DIR fails even when walk-up would succeed', () => {
 		const manifest = 'test/providers/provider_manifests/npm/workspace_member_with_lock/packages/module-a/package.json'
 		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: 'test/providers/provider_manifests/npm/workspace_member_without_lock' }
