@@ -53,6 +53,8 @@ suite('testing the javascript-npm data provider', async () => {
 	[
 		{ name: 'npm/with_lock_file', validation: true },
 		{ name: 'npm/without_lock_file', validation: false },
+		{ name: 'npm/workspace_member_with_lock/packages/module-a', validation: true },
+		{ name: 'npm/workspace_member_without_lock/packages/module-a', validation: false },
 		{ name: 'pnpm/with_lock_file', validation: true },
 		{ name: 'pnpm/without_lock_file', validation: false },
 		{ name: 'yarn-classic/with_lock_file', validation: true },
@@ -166,6 +168,34 @@ suite('testing the javascript-npm data provider', async () => {
 		const provider = match(manifest, availableProviders, opts)
 		expect(provider).to.not.be.null
 		expect(provider.isSupported('package.json')).to.be.true
+	})
+
+	test('verify workspace member walks up and finds lock file at workspace root', () => {
+		const manifest = 'test/providers/provider_manifests/npm/workspace_member_with_lock/packages/module-a/package.json'
+		const provider = match(manifest, availableProviders)
+		expect(provider).to.not.be.null
+		expect(provider.isSupported('package.json')).to.be.true
+	})
+
+	test('verify workspace member throws when workspace root has no lock file', () => {
+		const manifest = 'test/providers/provider_manifests/npm/workspace_member_without_lock/packages/module-a/package.json'
+		expect(() => match(manifest, availableProviders))
+			.to.throw('package.json requires a lock file')
+	})
+
+	test('verify match with opts.TRUSTIFY_DA_WORKSPACE_DIR overrides walk-up for workspace member', () => {
+		const manifest = 'test/providers/provider_manifests/npm/workspace_member_with_lock/packages/module-a/package.json'
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: 'test/providers/provider_manifests/npm/workspace_member_with_lock' }
+		const provider = match(manifest, availableProviders, opts)
+		expect(provider).to.not.be.null
+		expect(provider.isSupported('package.json')).to.be.true
+	})
+
+	test('verify match with wrong TRUSTIFY_DA_WORKSPACE_DIR fails even when walk-up would succeed', () => {
+		const manifest = 'test/providers/provider_manifests/npm/workspace_member_with_lock/packages/module-a/package.json'
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: 'test/providers/provider_manifests/npm/workspace_member_without_lock' }
+		expect(() => match(manifest, availableProviders, opts))
+			.to.throw('package.json requires a lock file')
 	})
 
 }).beforeAll(() => clock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z'))).afterAll(() => clock.restore());
