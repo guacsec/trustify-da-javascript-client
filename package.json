@@ -58,7 +58,7 @@
 		"js-yaml": "^4.1.1",
 		"micromatch": "^4.0.8",
 		"node-fetch": "^3.3.2",
-		"p-limit": "^5.0.0",
+		"p-limit": "^4.0.0",
 		"packageurl-js": "~1.0.2",
 		"smol-toml": "^1.6.0",
 		"tree-sitter-requirements": "github:Strum355/tree-sitter-requirements#d0261ee76b84253997fe70d7d397e78c006c3801",
