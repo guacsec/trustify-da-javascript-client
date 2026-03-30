@@ -149,7 +149,7 @@ function execSyft(imageRef, opts = {}) {
 function getSyftEnvs(dockerPath, podmanPath) {
 	let path = null;
 	if (dockerPath && podmanPath) {
-		path = `${dockerPath}${File.pathSeparator}${podmanPath}`;
+		path = `${dockerPath}${delimiter}${podmanPath}`;
 	} else if (dockerPath) {
 		path = dockerPath;
 	} else if (podmanPath) {
@@ -302,7 +302,13 @@ function podmanGetVariant(opts = {}) {
  * @returns {string} - The information
  */
 function dockerPodmanInfo(dockerSupplier, podmanSupplier, opts = {}) {
-	return dockerSupplier(opts) || podmanSupplier(opts);
+	try {
+		const result = dockerSupplier(opts);
+		if (result) { return result; }
+	} catch (_) {
+		// docker not available, fall through to podman
+	}
+	return podmanSupplier(opts);
 }
 
 /**
