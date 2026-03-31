@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import esmock from 'esmock'
 import { afterEach } from 'mocha'
 import { http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -200,6 +201,77 @@ suite('testing the analysis module for sending api requests', () => {
 			async () => {
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ ok: 'ok' })
+			}
+		))
+	})
+
+	suite('verify proxy configuration for requestImages', () => {
+		let mockAnalysis
+
+		setup(async () => {
+			mockAnalysis = await esmock('../src/analysis.js', {
+				'../src/oci_image/utils.js': {
+					parseImageRef: () => ({
+						getPackageURL: () => ({ toString: () => `pkg:oci/fake-image@sha256:abc123` })
+					}),
+					generateImageSBOM: () => ({
+						metadata: { component: { purl: 'pkg:oci/fake-image@sha256:abc123' } },
+						components: []
+					})
+				}
+			})
+		})
+
+		afterEach(() => {
+			delete process.env['TRUSTIFY_DA_PROXY_URL']
+		})
+
+		test('when HTTP proxy is configured, verify agent is set correctly', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
+				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
+			}),
+			async () => {
+				const httpProxyUrl = 'http://proxy.example.com:8080'
+				const options = {
+					'TRUSTIFY_DA_PROXY_URL': httpProxyUrl
+				}
+				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl, false, options)
+				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+			}
+		))
+
+		test('when HTTPS proxy is configured, verify agent is set correctly', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
+				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
+			}),
+			async () => {
+				const httpsProxyUrl = 'https://proxy.example.com:8080'
+				const options = {
+					'TRUSTIFY_DA_PROXY_URL': httpsProxyUrl
+				}
+				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl, false, options)
+				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+			}
+		))
+
+		test('when proxy is configured via environment variable, verify agent is set correctly', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
+				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
+			}),
+			async () => {
+				process.env['TRUSTIFY_DA_PROXY_URL'] = 'http://proxy.example.com:8080'
+				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl)
+				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+			}
+		))
+
+		test('when no proxy is configured, verify no agent is set', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
+				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
+			}),
+			async () => {
+				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl)
+				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
 			}
 		))
 	})
