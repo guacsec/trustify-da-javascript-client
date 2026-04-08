@@ -1,11 +1,13 @@
 import { expect } from 'chai'
 import esmock from 'esmock'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 import { afterEach } from 'mocha'
-import { http } from 'msw'
+import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { stub } from 'sinon'
 
 import analysis from '../src/analysis.js'
+import { addProxyAgent } from '../src/tools.js'
 
 // utility function creating a dummy server, intercepting a handler,
 // running a test, and shutting the server down
@@ -205,7 +207,41 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 	})
 
-	suite('verify proxy configuration for requestImages', () => {
+	suite('addProxyAgent', () => {
+		afterEach(() => {
+			delete process.env['TRUSTIFY_DA_PROXY_URL']
+		})
+
+		test('should set HttpsProxyAgent when proxy URL is provided via options', () => {
+			const options = { method: 'POST' }
+			const result = addProxyAgent(options, { 'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080' })
+			expect(result.agent).to.be.instanceOf(HttpsProxyAgent)
+			expect(result.agent.proxy.href).to.equal('http://proxy.example.com:8080/')
+		})
+
+		test('should set HttpsProxyAgent for HTTPS proxy URL', () => {
+			const options = { method: 'POST' }
+			const result = addProxyAgent(options, { 'TRUSTIFY_DA_PROXY_URL': 'https://proxy.example.com:8443' })
+			expect(result.agent).to.be.instanceOf(HttpsProxyAgent)
+			expect(result.agent.proxy.href).to.equal('https://proxy.example.com:8443/')
+		})
+
+		test('should set HttpsProxyAgent when proxy URL is provided via environment variable', () => {
+			process.env['TRUSTIFY_DA_PROXY_URL'] = 'http://proxy.example.com:8080'
+			const options = { method: 'POST' }
+			const result = addProxyAgent(options, {})
+			expect(result.agent).to.be.instanceOf(HttpsProxyAgent)
+			expect(result.agent.proxy.href).to.equal('http://proxy.example.com:8080/')
+		})
+
+		test('should not set agent when no proxy is configured', () => {
+			const options = { method: 'POST' }
+			const result = addProxyAgent(options, {})
+			expect(result.agent).to.be.undefined
+		})
+	})
+
+	suite('requestImages with proxy configuration', () => {
 		let mockAnalysis
 
 		setup(async () => {
@@ -222,124 +258,24 @@ suite('testing the analysis module for sending api requests', () => {
 			})
 		})
 
-		afterEach(() => {
-			delete process.env['TRUSTIFY_DA_PROXY_URL']
-		})
-
-		test('when HTTP proxy is configured, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
-				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
+		test('should succeed when proxy is configured', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/batch-analysis`, () => {
+				return HttpResponse.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
 			}),
 			async () => {
-				const httpProxyUrl = 'http://proxy.example.com:8080'
-				const options = {
-					'TRUSTIFY_DA_PROXY_URL': httpProxyUrl
-				}
+				const options = { 'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080' }
 				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl, false, options)
 				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
 			}
 		))
 
-		test('when HTTPS proxy is configured, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
-				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
-			}),
-			async () => {
-				const httpsProxyUrl = 'https://proxy.example.com:8080'
-				const options = {
-					'TRUSTIFY_DA_PROXY_URL': httpsProxyUrl
-				}
-				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl, false, options)
-				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
-			}
-		))
-
-		test('when proxy is configured via environment variable, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
-				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
-			}),
-			async () => {
-				process.env['TRUSTIFY_DA_PROXY_URL'] = 'http://proxy.example.com:8080'
-				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl)
-				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
-			}
-		))
-
-		test('when no proxy is configured, verify no agent is set', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/batch-analysis`, (req, res, ctx) => {
-				return res(ctx.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } }))
+		test('should succeed when no proxy is configured', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/batch-analysis`, () => {
+				return HttpResponse.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
 			}),
 			async () => {
 				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl)
 				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
-			}
-		))
-	})
-
-	suite('verify proxy configuration', () => {
-		let fakeManifest = 'fake-file.typ'
-		let stackProviderStub = stub()
-		stackProviderStub.withArgs(fakeManifest).returns(fakeProvided)
-		let fakeProvider = {
-			provideComponent: () => { },
-			provideStack: stackProviderStub,
-			isSupported: () => { }
-		};
-
-		afterEach(() => {
-			delete process.env['TRUSTIFY_DA_PROXY_URL']
-		})
-
-		test('when HTTP proxy is configured, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				// The request should go through the proxy
-				return res(ctx.json({ ok: 'ok' }))
-			}),
-			async () => {
-				const httpProxyUrl = 'http://proxy.example.com:8080'
-				const options = {
-					'TRUSTIFY_DA_PROXY_URL': httpProxyUrl
-				}
-				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, false, options)
-				expect(res).to.deep.equal({ ok: 'ok' })
-			}
-		))
-
-		test('when HTTPS proxy is configured, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				// The request should go through the proxy
-				return res(ctx.json({ ok: 'ok' }))
-			}),
-			async () => {
-				const httpsProxyUrl = 'https://proxy.example.com:8080'
-				const options = {
-					'TRUSTIFY_DA_PROXY_URL': httpsProxyUrl
-				}
-				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, false, options)
-				expect(res).to.deep.equal({ ok: 'ok' })
-			}
-		))
-
-		test('when proxy is configured via environment variable, verify agent is set correctly', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				// The request should go through the proxy
-				return res(ctx.json({ ok: 'ok' }))
-			}),
-			async () => {
-				process.env['TRUSTIFY_DA_PROXY_URL'] = 'http://proxy.example.com:8080'
-				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
-				expect(res).to.deep.equal({ ok: 'ok' })
-			}
-		))
-
-		test('when no proxy is configured, verify no agent is set', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				// The request should go directly without proxy
-				return res(ctx.json({ ok: 'ok' }))
-			}),
-			async () => {
-				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
-				expect(res).to.deep.equal({ ok: 'ok' })
 			}
 		))
 	})
