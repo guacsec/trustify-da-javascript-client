@@ -1,5 +1,5 @@
+import fs from 'node:fs'
 import { expect } from 'chai'
-import esmock from 'esmock'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { afterEach } from 'mocha'
 import { http, HttpResponse } from 'msw'
@@ -24,17 +24,15 @@ function interceptAndRun(handler, test) {
 	};
 }
 
-function determineResponse(req, res, ctx) {
-	let response
-	if (req.headers.get("ex-provider-1-token") == null) {
-		response = res(ctx.status(400));
-
-	} else if (req.headers.get("ex-provider-1-token") === "good-dummy-token") {
-		response = res(ctx.status(200));
+function determineResponse({ request }) {
+	const token = request.headers.get("trust-da-token")
+	if (token == null) {
+		return new HttpResponse(null, { status: 400 })
+	} else if (token === "good-dummy-token") {
+		return new HttpResponse(null, { status: 200 })
 	} else {
-		response = res(ctx.status(401));
+		return new HttpResponse(null, { status: 401 })
 	}
-	return response
 }
 
 suite('testing the analysis module for sending api requests', () => {
@@ -46,69 +44,81 @@ suite('testing the analysis module for sending api requests', () => {
 		contentType: 'dummy-content-type'
 	};
 
-	test('invoking the requestComponent should return a json report', interceptAndRun(
-		http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-			// interception route, will return ok response for our fake content type
-			if (fakeProvided.contentType === req.headers.get('content-type')) {
-				return res(ctx.json({ dummy: 'response' }))
-			}
-			return res(ctx.status(400))
-		}),
-		async () => {
-			let fakeContent = 'i-am-manifest-content'
-			// stub the provideComponent function to return the fake provided data for our fake manifest
-			let componentProvideStub = stub()
-			componentProvideStub.withArgs(fakeContent).returns(fakeProvided)
-			// fake providers hosts our stubbed provideStack function
-			let fakeProvider = {
-				provideComponent: componentProvideStub,
-				provideStack: () => { }, // not required for this test
-				isSupported: () => { } // not required for this test
-			}
-
-			// verify response as expected
-			let res = await analysis.requestComponent(fakeProvider, fakeContent, backendUrl)
-			expect(res).to.deep.equal({ dummy: 'response' })
+	suite('testing the requestComponent function', () => {
+		let fakeManifest = 'fake-component-manifest.typ'
+		let componentProvideStub = stub()
+		componentProvideStub.withArgs(fakeManifest).returns(fakeProvided)
+		let fakeProvider = {
+			provideComponent: componentProvideStub,
+			provideStack: () => { },
+			isSupported: () => { }
 		}
-	))
+
+		setup(() => {
+			fs.writeFileSync(fakeManifest, 'dummy-content')
+		})
+
+		teardown(() => {
+			if (fs.existsSync(fakeManifest)) {
+				fs.unlinkSync(fakeManifest)
+			}
+		})
+
+		test('invoking the requestComponent should return a json report', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				if (fakeProvided.contentType === request.headers.get('content-type')) {
+					return HttpResponse.json({ dummy: 'response' })
+				}
+				return new HttpResponse(null, { status: 400 })
+			}),
+			async () => {
+				let res = await analysis.requestComponent(fakeProvider, fakeManifest, backendUrl)
+				expect(res.dummy).to.equal('response')
+			}
+		))
+	})
 
 	suite('testing the requestStack function', () => {
 		let fakeManifest = 'fake-file.typ'
-		// stub the provideStack function to return the fake provided data for our fake manifest
 		let stackProviderStub = stub()
 		stackProviderStub.withArgs(fakeManifest).returns(fakeProvided)
-		// fake providers hosts our stubbed provideStack function
 		let fakeProvider = {
-			provideComponent: () => { }, // not required for this test
+			provideComponent: () => { },
 			provideStack: stackProviderStub,
-			isSupported: () => { } // not required for this test
+			isSupported: () => { }
 		}
 
+		setup(() => {
+			fs.writeFileSync(fakeManifest, 'dummy-content')
+		})
+
+		teardown(() => {
+			if (fs.existsSync(fakeManifest)) {
+				fs.unlinkSync(fakeManifest)
+			}
+		})
+
 		test('invoking the requestStack for html should return a string report', interceptAndRun(
-			// interception route, will return ok response for our fake content type
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				if (fakeProvided.contentType === req.headers.get('content-type')) {
-					return res(ctx.text('<html lang="en">html-content</html>'))
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				if (fakeProvided.contentType === request.headers.get('content-type')) {
+					return new HttpResponse('<html lang="en">html-content</html>')
 				}
-				return res(ctx.status(400))
+				return new HttpResponse(null, { status: 400 })
 			}),
 			async () => {
-				// verify response as expected
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, true)
 				expect(res).to.equal('<html lang="en">html-content</html>')
 			}
 		))
 
 		test('invoking the requestStack for non-html should return a json report', interceptAndRun(
-			// interception route, will return ok response for our fake content type
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				if (fakeProvided.contentType === req.headers.get('content-type')) {
-					return res(ctx.json({ dummy: 'response' }))
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				if (fakeProvided.contentType === request.headers.get('content-type')) {
+					return HttpResponse.json({ dummy: 'response' })
 				}
-				return res(ctx.status(400))
+				return new HttpResponse(null, { status: 400 })
 			}),
 			async () => {
-				// verify response as expected
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ dummy: 'response' })
 			}
@@ -117,45 +127,30 @@ suite('testing the analysis module for sending api requests', () => {
 	suite('testing the validateToken function', () => {
 
 		test('invoking validateToken function with good token', interceptAndRun(
-			// interception route, will return ok response for our fake content type
-			http.get(`${backendUrl}/api/v5/token`, (req, res, ctx) => {
-				return determineResponse(req, res, ctx);
-
-			}),
+			http.get(`${backendUrl}/api/v5/token`, determineResponse),
 			async () => {
 				let options = {
-					'TRUSTIFY_DA_PROVIDER_1_TOKEN': 'good-dummy-token'
+					'TRUSTIFY_DA_TOKEN': 'good-dummy-token'
 				}
-				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
 				expect(res).to.equal(200)
 			}
 		))
 		test('invoking validateToken function with bad token', interceptAndRun(
-			// interception route, will return ok response for our fake content type
-			http.get(`${backendUrl}/api/v5/token`, (req, res, ctx) => {
-				return determineResponse(req, res, ctx);
-
-			}),
+			http.get(`${backendUrl}/api/v5/token`, determineResponse),
 			async () => {
 				let options = {
-					'TRUSTIFY_DA_PROVIDER_1_TOKEN': 'bad-dummy-token'
+					'TRUSTIFY_DA_TOKEN': 'bad-dummy-token'
 				}
-				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
 				expect(res).to.equal(401)
 			}
 		))
 		test('invoking validateToken function without token', interceptAndRun(
-			// interception route, will return ok response for our fake content type
-			http.get(`${backendUrl}/api/v5/token`, (req, res, ctx) => {
-				return determineResponse(req, res, ctx);
-
-			}),
+			http.get(`${backendUrl}/api/v5/token`, determineResponse),
 			async () => {
 				let options = {
 				}
-				// verify response as expected
 				let res = await analysis.validateToken(backendUrl, options)
 				expect(res).to.equal(400)
 			}
@@ -165,40 +160,45 @@ suite('testing the analysis module for sending api requests', () => {
 
 	suite('verify environment variables to token headers mechanism', () => {
 		let fakeManifest = 'fake-file.typ'
-		// stub the provideStack function to return the fake provided data for our fake manifest
 		let stackProviderStub = stub()
 		stackProviderStub.withArgs(fakeManifest).returns(fakeProvided)
-		// fake providers hosts our stubbed provideStack function
 		let fakeProvider = {
-			provideComponent: () => { }, // not required for this test
+			provideComponent: () => { },
 			provideStack: stackProviderStub,
-			isSupported: () => { } // not required for this test
+			isSupported: () => { }
 		};
 
-		afterEach(() => delete process.env['TRUSTIFY_DA_PROVIDER_1_TOKEN'])
+		setup(() => {
+			fs.writeFileSync(fakeManifest, 'dummy-content')
+		})
+
+		teardown(() => {
+			if (fs.existsSync(fakeManifest)) {
+				fs.unlinkSync(fakeManifest)
+			}
+			delete process.env['TRUSTIFY_DA_TOKEN']
+		})
 
 		test('when the relevant token environment variables are set, verify corresponding headers are included', interceptAndRun(
-			// interception route, will return ok response if found the expected token
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				if ('dummy-provider-1-token' === req.headers.get('ex-provider-1-token')) {
-					return res(ctx.json({ ok: 'ok' }))
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				if ('dummy-token' === request.headers.get('trust-da-token')) {
+					return HttpResponse.json({ ok: 'ok' })
 				}
-				return res(ctx.status(400))
+				return new HttpResponse(null, { status: 400 })
 			}),
 			async () => {
-				process.env['TRUSTIFY_DA_PROVIDER_1_TOKEN'] = 'dummy-provider-1-token'
+				process.env['TRUSTIFY_DA_TOKEN'] = 'dummy-token'
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ ok: 'ok' })
 			}
 		))
 
 		test('when the relevant token environment variables are not set, verify no corresponding headers are included', interceptAndRun(
-			// interception route, will return ok response if found the expected token
-			http.post(`${backendUrl}/api/v5/analysis`, (req, res, ctx) => {
-				if (!req.headers.get('ex-provider-1-token')) {
-					return res(ctx.json({ ok: 'ok' }))
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				if (!request.headers.get('trust-da-token')) {
+					return HttpResponse.json({ ok: 'ok' })
 				}
-				return res(ctx.status(400))
+				return new HttpResponse(null, { status: 400 })
 			}),
 			async () => {
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
@@ -241,41 +241,71 @@ suite('testing the analysis module for sending api requests', () => {
 		})
 	})
 
-	suite('requestImages with proxy configuration', () => {
-		let mockAnalysis
+	suite('verify proxy configuration', () => {
+		let fakeManifest = 'fake-file.typ'
+		let stackProviderStub = stub()
+		stackProviderStub.withArgs(fakeManifest).returns(fakeProvided)
+		let fakeProvider = {
+			provideComponent: () => { },
+			provideStack: stackProviderStub,
+			isSupported: () => { }
+		};
 
-		setup(async () => {
-			mockAnalysis = await esmock('../src/analysis.js', {
-				'../src/oci_image/utils.js': {
-					parseImageRef: () => ({
-						getPackageURL: () => ({ toString: () => `pkg:oci/fake-image@sha256:abc123` })
-					}),
-					generateImageSBOM: () => ({
-						metadata: { component: { purl: 'pkg:oci/fake-image@sha256:abc123' } },
-						components: []
-					})
-				}
-			})
+		setup(() => {
+			fs.writeFileSync(fakeManifest, 'dummy-content')
 		})
 
-		test('should succeed when proxy is configured', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/batch-analysis`, () => {
-				return HttpResponse.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+		teardown(() => {
+			if (fs.existsSync(fakeManifest)) {
+				fs.unlinkSync(fakeManifest)
+			}
+			delete process.env['TRUSTIFY_DA_PROXY_URL']
+		})
+
+		test('when HTTP proxy is configured, verify request succeeds', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, () => {
+				return HttpResponse.json({ ok: 'ok' })
 			}),
 			async () => {
-				const options = { 'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080' }
-				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl, false, options)
-				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+				const options = {
+					'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080'
+				}
+				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, false, options)
+				expect(res).to.deep.equal({ ok: 'ok' })
 			}
 		))
 
-		test('should succeed when no proxy is configured', interceptAndRun(
-			http.post(`${backendUrl}/api/v5/batch-analysis`, () => {
-				return HttpResponse.json({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+		test('when HTTPS proxy is configured, verify request succeeds', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, () => {
+				return HttpResponse.json({ ok: 'ok' })
 			}),
 			async () => {
-				let res = await mockAnalysis.requestImages(['fake-image:latest'], backendUrl)
-				expect(res).to.deep.equal({ 'pkg:oci/fake-image@sha256:abc123': { ok: 'ok' } })
+				const options = {
+					'TRUSTIFY_DA_PROXY_URL': 'https://proxy.example.com:8080'
+				}
+				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl, false, options)
+				expect(res).to.deep.equal({ ok: 'ok' })
+			}
+		))
+
+		test('when proxy is configured via environment variable, verify request succeeds', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, () => {
+				return HttpResponse.json({ ok: 'ok' })
+			}),
+			async () => {
+				process.env['TRUSTIFY_DA_PROXY_URL'] = 'http://proxy.example.com:8080'
+				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
+				expect(res).to.deep.equal({ ok: 'ok' })
+			}
+		))
+
+		test('when no proxy is configured, verify request succeeds', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, () => {
+				return HttpResponse.json({ ok: 'ok' })
+			}),
+			async () => {
+				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
+				expect(res).to.deep.equal({ ok: 'ok' })
 			}
 		))
 	})

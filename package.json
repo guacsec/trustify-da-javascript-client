@@ -38,7 +38,7 @@
 		"lint": "eslint src test --ext js",
 		"lint:fix": "eslint src test --ext js --fix",
 		"test": "c8 npm run tests",
-		"tests": "mocha --config .mocharc.json --grep \".*analysis module.*\" --invert",
+		"tests": "mocha --config .mocharc.json",
 		"tests:rep": "mocha --reporter-option maxDiffSize=0 --reporter json > unit-tests-result.json",
 		"pretest": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm src/providers/tree-sitter-gomod.wasm",
 		"precompile": "rm -rf dist",
