@@ -97,7 +97,7 @@ export default class Python_controller {
 
 	/**
 	 * Parse the requirements.txt file using tree-sitter and return structured requirement data.
-	 * @return {Promise<{name: string, version: string|null}[]>}
+	 * @return {Promise<{name: string, version: string|null, hasMarker: boolean}[]>}
 	 */
 	async #parseRequirements() {
 		const content = fs.readFileSync(this.pathToRequirements).toString();
@@ -109,7 +109,8 @@ export default class Python_controller {
 			const version = versionMatches.length > 0
 				? versionMatches[0].captures.find(c => c.name === 'version').node.text
 				: null;
-			return { name, version };
+			const hasMarker = reqNode.children.some(c => c.type === 'marker_spec');
+			return { name, version, hasMarker };
 		}));
 	}
 
@@ -224,7 +225,10 @@ export default class Python_controller {
 				CachedEnvironmentDeps[packageName.replace("_", "-")] = pipDepTreeEntryForCache
 			})
 		}
-		parsedRequirements.forEach(({ name: depName, version: manifestVersion }) => {
+		parsedRequirements.forEach(({ name: depName, version: manifestVersion, hasMarker }) => {
+			if(hasMarker && CachedEnvironmentDeps[depName.toLowerCase()] === undefined) {
+				return
+			}
 			if(matchManifestVersions === "true" && manifestVersion != null) {
 				let installedVersion
 				if(CachedEnvironmentDeps[depName.toLowerCase()] !== undefined) {

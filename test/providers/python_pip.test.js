@@ -115,3 +115,41 @@ suite('testing the python-pip data provider with virtual environment', () => {
 	})
 
 }).beforeAll(() => {clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z'))}).afterAll(()=> clock.restore());
+
+suite('testing python-pip PEP 508 marker handling', () => {
+	const markerTestCase = 'pip_requirements_txt_marker_skip'
+
+	/** Verify that packages with environment markers (PEP 508) that are not installed
+	 *  in the current environment are silently skipped, while marker-constrained
+	 *  packages that ARE installed are still included in the SBOM. */
+	test('verify marker-constrained uninstalled packages are skipped in component analysis', async () => {
+		// given: pip environment where only six and certifi are installed (pywin32 is Windows-only)
+		const pipFreezeOutput = 'six==1.16.0\ncertifi==2023.7.22\n'
+		const pipShowOutput =
+			'Name: certifi\nVersion: 2023.7.22\nSummary: Python package for providing Mozilla\'s CA Bundle.\nRequires: \nRequired-by: ' +
+			'\n---\n' +
+			'Name: six\nVersion: 1.16.0\nSummary: Python 2 and 3 compatibility utilities\nRequires: \nRequired-by: '
+
+		process.env['TRUSTIFY_DA_PIP_FREEZE'] = Buffer.from(pipFreezeOutput).toString('base64')
+		process.env['TRUSTIFY_DA_PIP_SHOW'] = Buffer.from(pipShowOutput).toString('base64')
+
+		try {
+			// when: component analysis is run against a manifest with a Windows-only marker package
+			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/pip/${markerTestCase}/expected_component_sbom.json`).toString().trim()
+			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+
+			let result = await pythonPip.provideComponent(`test/providers/tst_manifests/pip/${markerTestCase}/requirements.txt`, {})
+
+			// then: SBOM contains six and certifi but not pywin32
+			expect(result).to.deep.equal({
+				ecosystem: 'pip',
+				contentType: 'application/vnd.cyclonedx+json',
+				content: expectedSbom
+			})
+		} finally {
+			delete process.env['TRUSTIFY_DA_PIP_FREEZE']
+			delete process.env['TRUSTIFY_DA_PIP_SHOW']
+		}
+	}).timeout(10000)
+
+}).beforeAll(() => clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z'))).afterAll(() => clock.restore());
