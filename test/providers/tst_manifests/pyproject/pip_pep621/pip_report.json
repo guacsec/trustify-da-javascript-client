@@ -1,0 +1,62 @@
+{
+	"version": "1",
+	"pip_version": "24.0",
+	"install": [
+		{
+			"download_info": {"url": "file:///project", "dir_info": {}},
+			"requested": true,
+			"metadata": {
+				"name": "test-project",
+				"version": "1.0.0",
+				"requires_dist": ["requests>=2.32"]
+			}
+		},
+		{
+			"download_info": {"url": "https://pypi.org/requests-2.33.1.whl", "archive_info": {}},
+			"requested": false,
+			"metadata": {
+				"name": "requests",
+				"version": "2.33.1",
+				"requires_dist": [
+					"charset_normalizer<4,>=2",
+					"idna<4,>=2.5",
+					"urllib3<3,>=1.21.1",
+					"certifi>=2017.4.17",
+					"PySocks!=1.5.7,>=1.5.6; extra == \"socks\""
+				]
+			}
+		},
+		{
+			"download_info": {"url": "https://pypi.org/charset_normalizer-3.4.7.whl", "archive_info": {}},
+			"requested": false,
+			"metadata": {
+				"name": "charset-normalizer",
+				"version": "3.4.7"
+			}
+		},
+		{
+			"download_info": {"url": "https://pypi.org/idna-3.11.whl", "archive_info": {}},
+			"requested": false,
+			"metadata": {
+				"name": "idna",
+				"version": "3.11"
+			}
+		},
+		{
+			"download_info": {"url": "https://pypi.org/urllib3-2.6.3.whl", "archive_info": {}},
+			"requested": false,
+			"metadata": {
+				"name": "urllib3",
+				"version": "2.6.3"
+			}
+		},
+		{
+			"download_info": {"url": "https://pypi.org/certifi-2026.2.2.whl", "archive_info": {}},
+			"requested": false,
+			"metadata": {
+				"name": "certifi",
+				"version": "2026.2.2"
+			}
+		}
+	]
+}

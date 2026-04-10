@@ -4,6 +4,7 @@ import path from 'path'
 import { expect } from 'chai'
 import { useFakeTimers } from 'sinon'
 
+import Python_pip_pyproject from '../../src/providers/python_pip_pyproject.js'
 import Python_poetry from '../../src/providers/python_poetry.js'
 import Python_uv from '../../src/providers/python_uv.js'
 
@@ -13,6 +14,7 @@ const TIMEOUT = process.env.GITHUB_ACTIONS ? 30000 : 10000
 
 const uvProvider = new Python_uv()
 const poetryProvider = new Python_poetry()
+const pipProvider = new Python_pip_pyproject()
 
 suite('testing the python-pyproject data provider', () => {
 	[
@@ -181,6 +183,126 @@ suite('testing the python-pyproject data provider', () => {
 				contentType: 'application/vnd.cyclonedx+json',
 				content: expectedSbom
 			})
+		}).timeout(TIMEOUT)
+	})
+
+	/** Verifies the pip provider's validateLockFile always returns true (fallback). */
+	test('verify pip validateLockFile always returns true (fallback provider)', () => {
+		expect(pipProvider.validateLockFile('test/providers/tst_manifests/pyproject/pip_pep621')).to.equal(true)
+		expect(pipProvider.validateLockFile('/nonexistent/dir')).to.equal(true)
+	})
+
+	suite('pip projects (via pip --dry-run --report)', () => {
+		const pipFixtureDir = 'test/providers/tst_manifests/pyproject/pip_pep621'
+		const pipIgnoreDir = 'test/providers/tst_manifests/pyproject/pip_pep621_ignore'
+		let savedEnv
+
+		setup(() => {
+			savedEnv = process.env.TRUSTIFY_DA_PIP_REPORT
+			let report = fs.readFileSync(path.join(pipFixtureDir, 'pip_report.json'), 'utf-8')
+			process.env.TRUSTIFY_DA_PIP_REPORT = Buffer.from(report).toString('base64')
+		})
+
+		teardown(() => {
+			if (savedEnv === undefined) {
+				delete process.env.TRUSTIFY_DA_PIP_REPORT
+			} else {
+				process.env.TRUSTIFY_DA_PIP_REPORT = savedEnv
+			}
+		})
+
+		/** Verifies stack analysis produces correct SBOM with transitive deps. */
+		test('verify pyproject.toml sbom provided for stack analysis with pip', async () => {
+			// Given a PEP 621 pyproject.toml and pre-recorded pip report
+			let expectedSbom = fs.readFileSync(path.join(pipFixtureDir, 'expected_stack_sbom.json')).toString()
+			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+
+			// When running stack analysis
+			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
+
+			// Then the SBOM matches expected output
+			expect(result).to.deep.equal({
+				ecosystem: 'pip',
+				contentType: 'application/vnd.cyclonedx+json',
+				content: expectedSbom
+			})
+		}).timeout(TIMEOUT)
+
+		/** Verifies component analysis produces correct SBOM with direct deps only. */
+		test('verify pyproject.toml sbom provided for component analysis with pip', async () => {
+			// Given a PEP 621 pyproject.toml and pre-recorded pip report
+			let expectedSbom = fs.readFileSync(path.join(pipFixtureDir, 'expected_component_sbom.json')).toString().trim()
+			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+
+			// When running component analysis
+			let result = await pipProvider.provideComponent(path.join(pipFixtureDir, 'pyproject.toml'))
+
+			// Then the SBOM matches expected output
+			expect(result).to.deep.equal({
+				ecosystem: 'pip',
+				contentType: 'application/vnd.cyclonedx+json',
+				content: expectedSbom
+			})
+		}).timeout(TIMEOUT)
+
+		/** Verifies direct and transitive deps are correctly classified in stack SBOM. */
+		test('stack analysis classifies direct and transitive dependencies correctly', async () => {
+			// When running stack analysis
+			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
+			let sbom = JSON.parse(result.content)
+
+			// Then requests is a direct dep of the root
+			let rootDep = sbom.dependencies.find(d => d.ref.includes('/test-project@'))
+			expect(rootDep.dependsOn).to.have.lengthOf(1)
+			expect(rootDep.dependsOn[0]).to.include('/requests@')
+
+			// And requests has its own transitive deps
+			let requestsDep = sbom.dependencies.find(d => d.ref.includes('/requests@'))
+			let transNames = requestsDep.dependsOn.map(d => d.split('/').pop().split('@')[0])
+			expect(transNames).to.include('certifi')
+			expect(transNames).to.include('charset-normalizer')
+			expect(transNames).to.include('idna')
+			expect(transNames).to.include('urllib3')
+		}).timeout(TIMEOUT)
+
+		/** Verifies extras-only dependencies (e.g. PySocks for socks extra) are excluded. */
+		test('extras-only dependencies are filtered from the dependency tree', async () => {
+			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
+			let sbom = JSON.parse(result.content)
+			let names = sbom.components.map(c => c.name)
+			expect(names).to.not.include('PySocks')
+			expect(names).to.not.include('pysocks')
+		}).timeout(TIMEOUT)
+
+		/** Verifies exhortignore marker in PEP 621 dependencies excludes the dep. */
+		test('exhortignore marker excludes dep from component analysis', async () => {
+			// Given a pyproject.toml with requests marked as exhortignore
+			let result = await pipProvider.provideComponent(path.join(pipIgnoreDir, 'pyproject.toml'))
+			let sbom = JSON.parse(result.content)
+
+			// Then requests is excluded
+			let names = sbom.components.map(c => c.name)
+			expect(names).to.not.include('requests')
+		}).timeout(TIMEOUT)
+
+		/** Verifies exhortignore excludes dep and its exclusive transitive deps from stack analysis. */
+		test('exhortignore marker excludes dep from stack analysis', async () => {
+			// Given a pyproject.toml with requests marked as exhortignore
+			let result = await pipProvider.provideStack(path.join(pipIgnoreDir, 'pyproject.toml'))
+			let sbom = JSON.parse(result.content)
+
+			// Then requests and all its exclusive transitive deps are excluded
+			let names = sbom.components.map(c => c.name)
+			expect(names).to.not.include('requests')
+		}).timeout(TIMEOUT)
+
+		/** Verifies name canonicalization (charset_normalizer → charset-normalizer). */
+		test('name canonicalization: charset_normalizer resolved as charset-normalizer', async () => {
+			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
+			let sbom = JSON.parse(result.content)
+			let pkg = sbom.components.find(c => c.name === 'charset-normalizer')
+			expect(pkg).to.exist
+			expect(pkg.version).to.equal('3.4.7')
 		}).timeout(TIMEOUT)
 	})
 
