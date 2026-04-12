@@ -21,7 +21,7 @@ export { parseImageRef } from "./oci_image/utils.js";
 export { ImageRef } from "./oci_image/images.js";
 export { getProjectLicense, findLicenseFilePath, identifyLicense, getLicenseDetails, licensesFromReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility } from "./license/index.js";
 
-export default { componentAnalysis, stackAnalysis, stackAnalysisBatch, imageAnalysis, validateToken }
+export default { componentAnalysis, stackAnalysis, stackAnalysisBatch, imageAnalysis, validateToken, generateSbom }
 export {
 	discoverWorkspacePackages,
 	discoverWorkspaceCrates,
@@ -270,6 +270,23 @@ function buildBatchAnalysisMetadata(root, ecosystem, totalSbomAttempts, successf
 		failed: errors.length,
 		errors: [...errors],
 	}
+}
+
+/**
+ * Generate a CycloneDX SBOM from a manifest file. No backend HTTP request is made.
+ *
+ * @param {string} manifestPath - path to the manifest file (e.g. pom.xml, package.json)
+ * @param {Options} [opts={}] - optional options (e.g. workspace dir, tool paths)
+ * @returns {Promise<object>} parsed CycloneDX SBOM JSON object
+ * @throws {Error} if the manifest is unsupported or SBOM generation fails
+ */
+export async function generateSbom(manifestPath, opts = {}) {
+	fs.accessSync(manifestPath, fs.constants.R_OK)
+	const result = await generateOneSbom(manifestPath, opts)
+	if (!result.ok) {
+		throw new Error(`Failed to generate SBOM for ${result.manifestPath}: ${result.reason}`)
+	}
+	return result.sbom
 }
 
 /**

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs'
 import * as path from "path";
 
 import yargs from 'yargs'
@@ -7,7 +8,7 @@ import { hideBin } from 'yargs/helpers'
 
 import { getProjectLicense, getLicenseDetails } from './license/index.js'
 
-import client, { selectTrustifyDABackend } from './index.js'
+import client, { selectTrustifyDABackend, generateSbom } from './index.js'
 
 
 // command for component analysis take manifest type and content
@@ -361,15 +362,64 @@ const license = {
 	}
 }
 
+const sbom = {
+	command: 'sbom </path/to/manifest> [--output]',
+	desc: 'generate a CycloneDX SBOM from a manifest file',
+	builder: yargs => yargs.positional(
+		'/path/to/manifest',
+		{
+			desc: 'manifest path for SBOM generation',
+			type: 'string',
+			normalize: true,
+		}
+	).options({
+		output: {
+			alias: 'o',
+			desc: 'Write SBOM JSON to a file instead of stdout',
+			type: 'string',
+			normalize: true,
+		},
+		workspaceDir: {
+			alias: 'w',
+			desc: 'Workspace root directory (for monorepos; lock file is expected here)',
+			type: 'string',
+			normalize: true,
+		}
+	}),
+	handler: async args => {
+		let manifest = args['/path/to/manifest']
+		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		let result
+		try {
+			result = await generateSbom(manifest, opts)
+		} catch (err) {
+			console.error(JSON.stringify({ error: `Failed to generate SBOM: ${err.message}` }, null, 2))
+			process.exit(1)
+		}
+		const json = JSON.stringify(result, null, 2)
+		if (args.output) {
+			try {
+				fs.writeFileSync(args.output, json)
+			} catch (err) {
+				console.error(JSON.stringify({ error: `Failed to write output file: ${err.message}` }, null, 2))
+				process.exit(1)
+			}
+		} else {
+			console.log(json)
+		}
+	}
+}
+
 // parse and invoke the command
 yargs(hideBin(process.argv))
-	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|stack-batch|image|validate-token|license}`)
+	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|stack-batch|image|validate-token|license|sbom}`)
 	.command(stack)
 	.command(stackBatch)
 	.command(component)
 	.command(image)
 	.command(validateToken)
 	.command(license)
+	.command(sbom)
 	.scriptName('')
 	.version(false)
 	.demandCommand(1)
