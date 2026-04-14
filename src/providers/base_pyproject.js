@@ -168,6 +168,17 @@ export default class Base_pyproject {
 
 	/**
 	 * Resolve dependencies using the tool-specific command and parser.
+	 *
+	 * Called by {@link _createSbom} with two directory parameters:
+	 * - `manifestDir` is where `pyproject.toml` lives (the project directory).
+	 * - `workspaceDir` is where the lock file lives, resolved by `_findLockFileDir()`.
+	 *   Falls back to `manifestDir` when no lock file is found.
+	 *
+	 * Lock-file-based providers (uv, poetry) use `workspaceDir` for lock-file
+	 * operations. Non-lock-file providers (pip) must use `manifestDir` because
+	 * commands like `pip install .` run relative to the project directory.
+	 * Subclasses that ignore `workspaceDir` should prefix it with `_`.
+	 *
 	 * @param {string} manifestDir - directory containing the target pyproject.toml
 	 * @param {string} workspaceDir - workspace root (where the lock file lives), or same as manifestDir for standalone projects
 	 * @param {object} parsed - parsed pyproject.toml
