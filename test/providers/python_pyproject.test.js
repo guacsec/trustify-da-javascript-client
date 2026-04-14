@@ -16,7 +16,15 @@ const uvProvider = new Python_uv()
 const poetryProvider = new Python_poetry()
 const pipProvider = new Python_pip_pyproject()
 
+const MANIFESTS = 'test/providers/tst_manifests/pyproject'
+
+const SBOM_CASES = [
+	{type: 'stack', method: 'provideStack', fixture: 'expected_stack_sbom.json'},
+	{type: 'component', method: 'provideComponent', fixture: 'expected_component_sbom.json'},
+]
+
 suite('testing the python-pyproject data provider', () => {
+	/** Verifies isSupported correctly identifies pyproject.toml manifests. */
 	[
 		{name: 'pyproject.toml', expected: true},
 		{name: 'requirements.txt', expected: false},
@@ -25,49 +33,40 @@ suite('testing the python-pyproject data provider', () => {
 		test(`verify isSupported returns ${testCase.expected} for ${testCase.name}`, () =>
 			expect(uvProvider.isSupported(testCase.name)).to.equal(testCase.expected)
 		)
-	})
+	});
 
-	test('verify uv validateLockFile returns true when uv.lock exists', () => {
-		expect(uvProvider.validateLockFile('test/providers/tst_manifests/pyproject/uv_lock')).to.equal(true)
-	})
-
-	test('verify uv validateLockFile returns false when uv.lock is missing', () => {
-		expect(uvProvider.validateLockFile('test/providers/tst_manifests/pyproject/poetry_lock')).to.equal(false)
-	})
-
-	test('verify poetry validateLockFile returns true when poetry.lock exists', () => {
-		expect(poetryProvider.validateLockFile('test/providers/tst_manifests/pyproject/poetry_lock')).to.equal(true)
-	})
-
-	test('verify poetry validateLockFile returns false when poetry.lock is missing', () => {
-		expect(poetryProvider.validateLockFile('test/providers/tst_manifests/pyproject/uv_lock')).to.equal(false)
+	/** Verifies each provider's validateLockFile detects or rejects its lock file. */
+	[
+		{provider: uvProvider, name: 'uv', dir: 'uv_lock', expected: true},
+		{provider: uvProvider, name: 'uv', dir: 'poetry_lock', expected: false},
+		{provider: poetryProvider, name: 'poetry', dir: 'poetry_lock', expected: true},
+		{provider: poetryProvider, name: 'poetry', dir: 'uv_lock', expected: false},
+	].forEach(({provider, name, dir, expected}) => {
+		test(`verify ${name} validateLockFile returns ${expected} for ${dir}`, () => {
+			expect(provider.validateLockFile(`${MANIFESTS}/${dir}`)).to.equal(expected)
+		})
 	})
 
 	suite('uv projects (via uv export)', () => {
-		test('verify pyproject.toml sbom provided for stack analysis with uv', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/expected_stack_sbom.json').toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideStack('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		const fixtureDir = `${MANIFESTS}/pep621_ignore_and_extras`
 
-		test('verify pyproject.toml sbom provided for component analysis with uv', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/expected_component_sbom.json').toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideComponent('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		/** Verifies stack and component SBOM output matches expected fixtures. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`verify pyproject.toml sbom provided for ${type} analysis with uv`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(fixtureDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await uvProvider[method](path.join(fixtureDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
 
+		/** Verifies exhortignore and trustify-da-ignore markers exclude deps from component analysis. */
 		test('exhortignore and trustify-da-ignore exclude deps from component analysis', async () => {
-			let result = await uvProvider.provideComponent('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/pyproject.toml')
+			let result = await uvProvider.provideComponent(path.join(fixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
 			let names = sbom.components.map(c => c.name)
 			expect(names).to.not.include('uvicorn')
@@ -76,8 +75,9 @@ suite('testing the python-pyproject data provider', () => {
 			expect(names).to.include('requests')
 		}).timeout(TIMEOUT)
 
+		/** Verifies ignored transitive deps are pruned from the stack dependency tree. */
 		test('ignored transitive dep excluded from stack analysis tree', async () => {
-			let result = await uvProvider.provideStack('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/pyproject.toml')
+			let result = await uvProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
 			let names = sbom.components.map(c => c.name)
 			expect(names).to.not.include('uvicorn')
@@ -87,8 +87,9 @@ suite('testing the python-pyproject data provider', () => {
 			expect(jinja2Dep.dependsOn).to.deep.equal([])
 		}).timeout(TIMEOUT)
 
+		/** Verifies name canonicalization normalizes underscores to hyphens. */
 		test('name canonicalization: typing_extensions matches typing-extensions', async () => {
-			let result = await uvProvider.provideComponent('test/providers/tst_manifests/pyproject/pep621_ignore_and_extras/pyproject.toml')
+			let result = await uvProvider.provideComponent(path.join(fixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
 			let typingExt = sbom.components.find(c => c.name === 'typing-extensions')
 			expect(typingExt).to.exist
@@ -97,54 +98,43 @@ suite('testing the python-pyproject data provider', () => {
 	})
 
 	suite('uv projects - uv_lock manifest', () => {
-		test('verify pyproject.toml sbom provided for stack analysis with uv_lock', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/uv_lock/expected_stack_sbom.json').toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideStack('test/providers/tst_manifests/pyproject/uv_lock/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		const fixtureDir = `${MANIFESTS}/uv_lock`
 
-		test('verify pyproject.toml sbom provided for component analysis with uv_lock', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/uv_lock/expected_component_sbom.json').toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideComponent('test/providers/tst_manifests/pyproject/uv_lock/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		/** Verifies stack and component SBOM output matches expected fixtures. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`verify pyproject.toml sbom provided for ${type} analysis with uv_lock`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(fixtureDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await uvProvider[method](path.join(fixtureDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
 	})
 
 	suite('poetry projects (via poetry show)', () => {
-		test('verify pyproject.toml sbom provided for stack analysis with poetry', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/poetry_lock/expected_stack_sbom.json').toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await poetryProvider.provideStack('test/providers/tst_manifests/pyproject/poetry_lock/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		const fixtureDir = `${MANIFESTS}/poetry_lock`
 
-		test('verify pyproject.toml sbom provided for component analysis with poetry', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/poetry_lock/expected_component_sbom.json').toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await poetryProvider.provideComponent('test/providers/tst_manifests/pyproject/poetry_lock/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		/** Verifies stack and component SBOM output matches expected fixtures. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`verify pyproject.toml sbom provided for ${type} analysis with poetry`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(fixtureDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await poetryProvider[method](path.join(fixtureDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
 
+		/** Verifies resolved versions come from poetry show --all, not dependency constraints. */
 		test('resolved versions come from poetry show --all, not constraints', async () => {
-			let result = await poetryProvider.provideStack('test/providers/tst_manifests/pyproject/poetry_lock/pyproject.toml')
+			let result = await poetryProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
 			let markupsafe = sbom.components.find(c => c.name === 'markupsafe')
 			expect(markupsafe.version).to.equal('3.0.3')
@@ -152,8 +142,9 @@ suite('testing the python-pyproject data provider', () => {
 			expect(urllib3.version).to.equal('2.6.3')
 		}).timeout(TIMEOUT)
 
+		/** Verifies exhortignore filtering excludes click and its exclusive transitive deps. */
 		test('exhortignore filtering excludes click and its exclusive transitive deps', async () => {
-			let result = await poetryProvider.provideStack('test/providers/tst_manifests/pyproject/poetry_lock/pyproject.toml')
+			let result = await poetryProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
 			let names = sbom.components.map(c => c.name)
 			expect(names).to.not.include('click')
@@ -163,38 +154,32 @@ suite('testing the python-pyproject data provider', () => {
 	})
 
 	suite('poetry projects - poetry_only_deps manifest', () => {
-		test('verify pyproject.toml sbom provided for stack analysis with poetry_only_deps', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/poetry_only_deps/expected_stack_sbom.json').toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await poetryProvider.provideStack('test/providers/tst_manifests/pyproject/poetry_only_deps/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		const fixtureDir = `${MANIFESTS}/poetry_only_deps`
 
-		test('verify pyproject.toml sbom provided for component analysis with poetry_only_deps', async () => {
-			let expectedSbom = fs.readFileSync('test/providers/tst_manifests/pyproject/poetry_only_deps/expected_component_sbom.json').toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await poetryProvider.provideComponent('test/providers/tst_manifests/pyproject/poetry_only_deps/pyproject.toml')
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		/** Verifies stack and component SBOM output matches expected fixtures. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`verify pyproject.toml sbom provided for ${type} analysis with poetry_only_deps`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(fixtureDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await poetryProvider[method](path.join(fixtureDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
 	})
 
 	/** Verifies the pip provider's validateLockFile always returns true (fallback). */
 	test('verify pip validateLockFile always returns true (fallback provider)', () => {
-		expect(pipProvider.validateLockFile('test/providers/tst_manifests/pyproject/pip_pep621')).to.equal(true)
+		expect(pipProvider.validateLockFile(`${MANIFESTS}/pip_pep621`)).to.equal(true)
 		expect(pipProvider.validateLockFile('/nonexistent/dir')).to.equal(true)
 	})
 
 	suite('pip projects (via pip --dry-run --report)', () => {
-		const pipFixtureDir = 'test/providers/tst_manifests/pyproject/pip_pep621'
-		const pipIgnoreDir = 'test/providers/tst_manifests/pyproject/pip_pep621_ignore'
+		const pipFixtureDir = `${MANIFESTS}/pip_pep621`
+		const pipIgnoreDir = `${MANIFESTS}/pip_pep621_ignore`
 		let savedEnv
 
 		setup(() => {
@@ -211,52 +196,27 @@ suite('testing the python-pyproject data provider', () => {
 			}
 		})
 
-		/** Verifies stack analysis produces correct SBOM with transitive deps. */
-		test('verify pyproject.toml sbom provided for stack analysis with pip', async () => {
-			// Given a PEP 621 pyproject.toml and pre-recorded pip report
-			let expectedSbom = fs.readFileSync(path.join(pipFixtureDir, 'expected_stack_sbom.json')).toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-
-			// When running stack analysis
-			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
-
-			// Then the SBOM matches expected output
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
-
-		/** Verifies component analysis produces correct SBOM with direct deps only. */
-		test('verify pyproject.toml sbom provided for component analysis with pip', async () => {
-			// Given a PEP 621 pyproject.toml and pre-recorded pip report
-			let expectedSbom = fs.readFileSync(path.join(pipFixtureDir, 'expected_component_sbom.json')).toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-
-			// When running component analysis
-			let result = await pipProvider.provideComponent(path.join(pipFixtureDir, 'pyproject.toml'))
-
-			// Then the SBOM matches expected output
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
+		/** Verifies stack and component SBOM output matches expected pip fixtures. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`verify pyproject.toml sbom provided for ${type} analysis with pip`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(pipFixtureDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await pipProvider[method](path.join(pipFixtureDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
 
 		/** Verifies direct and transitive deps are correctly classified in stack SBOM. */
 		test('stack analysis classifies direct and transitive dependencies correctly', async () => {
-			// When running stack analysis
 			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
-
-			// Then requests is a direct dep of the root
 			let rootDep = sbom.dependencies.find(d => d.ref.includes('/test-project@'))
 			expect(rootDep.dependsOn).to.have.lengthOf(1)
 			expect(rootDep.dependsOn[0]).to.include('/requests@')
-
-			// And requests has its own transitive deps
 			let requestsDep = sbom.dependencies.find(d => d.ref.includes('/requests@'))
 			let transNames = requestsDep.dependsOn.map(d => d.split('/').pop().split('@')[0])
 			expect(transNames).to.include('certifi')
@@ -276,27 +236,21 @@ suite('testing the python-pyproject data provider', () => {
 
 		/** Verifies exhortignore marker in PEP 621 dependencies excludes the dep. */
 		test('exhortignore marker excludes dep from component analysis', async () => {
-			// Given a pyproject.toml with requests marked as exhortignore
 			let result = await pipProvider.provideComponent(path.join(pipIgnoreDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
-
-			// Then requests is excluded
 			let names = sbom.components.map(c => c.name)
 			expect(names).to.not.include('requests')
 		}).timeout(TIMEOUT)
 
 		/** Verifies exhortignore excludes dep and its exclusive transitive deps from stack analysis. */
 		test('exhortignore marker excludes dep from stack analysis', async () => {
-			// Given a pyproject.toml with requests marked as exhortignore
 			let result = await pipProvider.provideStack(path.join(pipIgnoreDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
-
-			// Then requests and all its exclusive transitive deps are excluded
 			let names = sbom.components.map(c => c.name)
 			expect(names).to.not.include('requests')
 		}).timeout(TIMEOUT)
 
-		/** Verifies name canonicalization (charset_normalizer → charset-normalizer). */
+		/** Verifies name canonicalization (charset_normalizer -> charset-normalizer). */
 		test('name canonicalization: charset_normalizer resolved as charset-normalizer', async () => {
 			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
 			let sbom = JSON.parse(result.content)
@@ -306,8 +260,9 @@ suite('testing the python-pyproject data provider', () => {
 		}).timeout(TIMEOUT)
 	})
 
+	/** Verifies uv and poetry validateLockFile returns false when no lock file is present. */
 	test('validateLockFile returns false when no lock file is present', () => {
-		let tmpDir = 'test/providers/tst_manifests/pyproject/no_lock_file_dummy'
+		let tmpDir = `${MANIFESTS}/no_lock_file_dummy`
 		fs.mkdirSync(tmpDir, { recursive: true })
 		fs.writeFileSync(`${tmpDir}/pyproject.toml`,
 			'[project]\nname = "test"\nversion = "1.0.0"\ndependencies = ["requests>=2.0"]')
@@ -320,18 +275,20 @@ suite('testing the python-pyproject data provider', () => {
 	})
 
 	suite('workspace/monorepo support', () => {
-		const uvWorkspace = 'test/providers/tst_manifests/pyproject/uv_workspace'
+		const uvWorkspace = `${MANIFESTS}/uv_workspace`
 
+		/** Verifies uv walks up to parent directory to find uv.lock. */
 		test('uv validateLockFile finds uv.lock in parent directory', () => {
 			expect(uvProvider.validateLockFile(
 				path.join(uvWorkspace, 'packages/sub-pkg')
 			)).to.equal(true)
 		})
 
+		/** Verifies poetry does not walk up directories since it has no native workspace support. */
 		test('poetry validateLockFile does not walk up to parent directory', () => {
 			// Poetry has no native workspace support (python-poetry/poetry#2270).
 			// Each poetry project is treated independently — no lock file walk-up.
-			let tmpDir = 'test/providers/tst_manifests/pyproject/boundary_test_poetry'
+			let tmpDir = `${MANIFESTS}/boundary_test_poetry`
 			let subDir = path.join(tmpDir, 'packages', 'child')
 			fs.mkdirSync(subDir, { recursive: true })
 			fs.writeFileSync(path.join(tmpDir, 'pyproject.toml'),
@@ -340,18 +297,17 @@ suite('testing the python-pyproject data provider', () => {
 			fs.writeFileSync(path.join(subDir, 'pyproject.toml'),
 				'[tool.poetry]\nname = "child"\nversion = "0.1.0"\n')
 			try {
-				// poetry.lock exists at root but poetry should NOT walk up
 				expect(poetryProvider.validateLockFile(subDir)).to.equal(false)
 			} finally {
 				fs.rmSync(tmpDir, { recursive: true, force: true })
 			}
 		})
 
+		/** Verifies lock file search stops at uv workspace root when uv.lock is absent. */
 		test('validateLockFile stops at uv workspace root boundary when lock file is absent', () => {
-			let tmpDir = 'test/providers/tst_manifests/pyproject/boundary_test'
+			let tmpDir = `${MANIFESTS}/boundary_test`
 			let subDir = path.join(tmpDir, 'packages', 'child')
 			fs.mkdirSync(subDir, { recursive: true })
-			// root has workspace marker but no lock file
 			fs.writeFileSync(path.join(tmpDir, 'pyproject.toml'),
 				'[tool.uv.workspace]\nmembers = ["packages/*"]\n')
 			fs.writeFileSync(path.join(subDir, 'pyproject.toml'),
@@ -363,84 +319,41 @@ suite('testing the python-pyproject data provider', () => {
 			}
 		})
 
+		/** Verifies TRUSTIFY_DA_WORKSPACE_DIR override redirects lock file search. */
 		test('TRUSTIFY_DA_WORKSPACE_DIR override directs lock file search', () => {
 			let overrideDir = path.resolve(uvWorkspace)
 			expect(uvProvider.validateLockFile(
-				'test/providers/tst_manifests/pyproject/poetry_lock',
+				`${MANIFESTS}/poetry_lock`,
 				{ TRUSTIFY_DA_WORKSPACE_DIR: overrideDir }
 			)).to.equal(true)
 
 			expect(uvProvider.validateLockFile(
-				'test/providers/tst_manifests/pyproject/poetry_lock',
+				`${MANIFESTS}/poetry_lock`,
 				{ TRUSTIFY_DA_WORKSPACE_DIR: '/nonexistent/dir' }
 			)).to.equal(false)
+		});
+
+		/** Verifies SBOM output for each workspace package (root, mid-pkg, sub-pkg). */
+		[
+			{manifestPath: '', label: 'root'},
+			{manifestPath: 'packages/mid-pkg', label: 'mid-package'},
+			{manifestPath: 'packages/sub-pkg', label: 'sub-package'},
+		].forEach(({manifestPath, label}) => {
+			const pkgDir = manifestPath ? path.join(uvWorkspace, manifestPath) : uvWorkspace
+
+			SBOM_CASES.forEach(({type, method, fixture}) => {
+				test(`verify uv workspace ${label} ${type} analysis`, async () => {
+					let expectedSbom = fs.readFileSync(path.join(pkgDir, fixture)).toString().trim()
+					expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+					let result = await uvProvider[method](path.join(pkgDir, 'pyproject.toml'))
+					expect(result).to.deep.equal({
+						ecosystem: 'pip',
+						contentType: 'application/vnd.cyclonedx+json',
+						content: expectedSbom
+					})
+				}).timeout(TIMEOUT)
+			})
 		})
-
-		test('verify uv workspace root stack analysis', async () => {
-			let expectedSbom = fs.readFileSync(path.join(uvWorkspace, 'expected_stack_sbom.json')).toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideStack(path.join(uvWorkspace, 'pyproject.toml'))
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
-
-		test('verify uv workspace root component analysis', async () => {
-			let expectedSbom = fs.readFileSync(path.join(uvWorkspace, 'expected_component_sbom.json')).toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideComponent(path.join(uvWorkspace, 'pyproject.toml'))
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
-
-		test('verify uv workspace mid-package stack analysis', async () => {
-			let expectedSbom = fs.readFileSync(path.join(uvWorkspace, 'packages/mid-pkg/expected_stack_sbom.json')).toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideStack(path.join(uvWorkspace, 'packages/mid-pkg/pyproject.toml'))
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
-
-		test('verify uv workspace mid-package component analysis', async () => {
-			let expectedSbom = fs.readFileSync(path.join(uvWorkspace, 'packages/mid-pkg/expected_component_sbom.json')).toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideComponent(path.join(uvWorkspace, 'packages/mid-pkg/pyproject.toml'))
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
-
-		test('verify uv workspace sub-package stack analysis', async () => {
-			let expectedSbom = fs.readFileSync(path.join(uvWorkspace, 'packages/sub-pkg/expected_stack_sbom.json')).toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideStack(path.join(uvWorkspace, 'packages/sub-pkg/pyproject.toml'))
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
-
-		test('verify uv workspace sub-package component analysis', async () => {
-			let expectedSbom = fs.readFileSync(path.join(uvWorkspace, 'packages/sub-pkg/expected_component_sbom.json')).toString().trim()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
-			let result = await uvProvider.provideComponent(path.join(uvWorkspace, 'packages/sub-pkg/pyproject.toml'))
-			expect(result).to.deep.equal({
-				ecosystem: 'pip',
-				contentType: 'application/vnd.cyclonedx+json',
-				content: expectedSbom
-			})
-		}).timeout(TIMEOUT)
 	})
 
 }).beforeAll(() => clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z'))).afterAll(() => clock.restore())
