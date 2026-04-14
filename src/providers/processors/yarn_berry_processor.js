@@ -58,15 +58,15 @@ export default class Yarn_berry_processor extends Yarn_processor {
 		}
 
 		return new Map(
-			depTree.filter(dep => !this.#isRoot(dep.value)).map(
-				dep => {
+			depTree.filter(dep => !this.#isRoot(dep.value))
+				.map(dep => {
 					const depName = dep.value;
 					const idx = depName.lastIndexOf('@');
 					const name = depName.substring(0, idx);
 					const version = dep.children.Version;
 					return [name, toPurl(purlType, name, version)];
-				}
-			)
+				})
+				.filter(([name]) => this._manifest.dependencies.includes(name))
 		);
 	}
 
@@ -93,18 +93,93 @@ export default class Yarn_berry_processor extends Yarn_processor {
 			return;
 		}
 
+		// Build index of nodes by their value for quick lookup
+		const nodeIndex = new Map();
+		depTree.forEach(n => nodeIndex.set(n.value, n));
+
+		// Determine the set of node values reachable from root via production deps
+		const prodDeps = new Set(this._manifest.dependencies);
+		const reachable = new Set();
+		const queue = [];
+
+		// Seed with root's production dependencies
+		const rootNode = depTree.find(n => this.#isRoot(n.value));
+		if (rootNode?.children?.Dependencies) {
+			for (const d of rootNode.children.Dependencies) {
+				const to = this.#purlFromLocator(d.locator);
+				if (to) {
+					const fullName = to.namespace ? `${to.namespace}/${to.name}` : to.name;
+					if (prodDeps.has(fullName)) {
+						queue.push(d.locator);
+					}
+				}
+			}
+		}
+
+		// BFS to find all transitively reachable packages
+		while (queue.length > 0) {
+			const locator = queue.shift();
+			if (reachable.has(locator)) {continue;}
+			reachable.add(locator);
+
+			const node = nodeIndex.get(this.#nodeValueFromLocator(locator));
+			if (node?.children?.Dependencies) {
+				for (const d of node.children.Dependencies) {
+					if (!reachable.has(d.locator)) {
+						queue.push(d.locator);
+					}
+				}
+			}
+		}
+
+		// Only emit edges for root and reachable nodes
 		depTree.forEach(n => {
 			const depName = n.value;
-			const from = this.#isRoot(depName) ? toPurlFromString(sbom.getRoot().purl) : this.#purlFromNode(depName, n);
+			const isRoot = this.#isRoot(depName);
+			if (!isRoot && !this.#isReachableNode(depName, reachable)) {return;}
+
+			const from = isRoot ? toPurlFromString(sbom.getRoot().purl) : this.#purlFromNode(depName, n);
 			const deps = n.children?.Dependencies;
 			if(!deps) {return;}
 			deps.forEach(d => {
+				if (!reachable.has(d.locator)) {return;}
 				const to = this.#purlFromLocator(d.locator);
 				if(to) {
 					sbom.addDependency(from, to);
 				}
 			});
 		})
+	}
+
+	/**
+	 * Converts a locator to the node value format used in yarn info output
+	 * @param {string} locator - e.g. "express@npm:4.17.1"
+	 * @returns {string} The node value, same as locator for non-virtual
+	 * @private
+	 */
+	#nodeValueFromLocator(locator) {
+		// Virtual locators: "@scope/name@virtual:hash#npm:version" → "@scope/name@npm:version"
+		const virtualMatch = Yarn_berry_processor.VIRTUAL_LOCATOR_PATTERN.exec(locator);
+		if (virtualMatch) {
+			return `${virtualMatch[1]}@npm:${virtualMatch[2]}`;
+		}
+		return locator;
+	}
+
+	/**
+	 * Checks if a node is in the reachable set by matching its value against reachable locators
+	 * @param {string} depName - The node value (e.g. "express@npm:4.17.1")
+	 * @param {Set<string>} reachable - Set of reachable locators
+	 * @returns {boolean}
+	 * @private
+	 */
+	#isReachableNode(depName, reachable) {
+		if (reachable.has(depName)) {return true;}
+		// Check if any reachable locator resolves to this node value
+		for (const locator of reachable) {
+			if (this.#nodeValueFromLocator(locator) === depName) {return true;}
+		}
+		return false;
 	}
 
 	/**

@@ -38,13 +38,13 @@
 		"lint": "eslint src test --ext js",
 		"lint:fix": "eslint src test --ext js --fix",
 		"test": "c8 npm run tests",
-		"tests": "mocha --config .mocharc.json --grep \".*analysis module.*\" --invert",
+		"tests": "mocha --config .mocharc.json",
 		"tests:rep": "mocha --reporter-option maxDiffSize=0 --reporter json > unit-tests-result.json",
-		"pretest": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm src/providers/tree-sitter-requirements.wasm",
+		"pretest": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm src/providers/tree-sitter-gomod.wasm",
 		"precompile": "rm -rf dist",
 		"compile": "tsc -p tsconfig.json",
 		"compile:dev": "tsc -p tsconfig.dev.json",
-		"postcompile": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm dist/src/providers/tree-sitter-requirements.wasm"
+		"postcompile": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm dist/src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm dist/src/providers/tree-sitter-gomod.wasm"
 	},
 	"dependencies": {
 		"@babel/core": "^7.23.2",
@@ -61,8 +61,9 @@
 		"p-limit": "^4.0.0",
 		"packageurl-js": "~1.0.2",
 		"smol-toml": "^1.6.0",
+		"tree-sitter-gomod": "github:strum355/tree-sitter-go-mod#56326f2ad478892ace58ff247a97d492a3cbcdda",
 		"tree-sitter-requirements": "github:Strum355/tree-sitter-requirements#d0261ee76b84253997fe70d7d397e78c006c3801",
-		"web-tree-sitter": "^0.26.6",
+		"web-tree-sitter": "^0.26.7",
 		"yargs": "^18.0.0"
 	},
 	"devDependencies": {

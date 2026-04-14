@@ -75,7 +75,8 @@ suite('testing the javascript-npm data provider', async () => {
 	});
 	['npm', 'pnpm', 'yarn-classic', 'yarn-berry'].flatMap(providerName => [
 		"package_json_deps_without_exhortignore_object",
-		"package_json_deps_with_exhortignore_object"
+		"package_json_deps_with_exhortignore_object",
+		"package_json_deps_with_mixed_dep_types"
 	].map(testCase => ({ providerName, testCase }))).forEach(({ providerName, testCase }) => {
 		let scenario = testCase.replace('package_json_deps_', '').replaceAll('_', ' ')
 		test(`verify package.json data provided for ${providerName} - stack analysis - ${scenario}`, async () => {
@@ -145,6 +146,21 @@ suite('testing the javascript-npm data provider', async () => {
 			"mongoose",
 			"nodemon",
 			"axios"]);
+		expect(m.ignored).to.be.empty;
+	});
+
+	test('loads a manifest with mixed dependency types (peer, optional, bundled)', () => {
+		const testCase = 'package_json_deps_with_mixed_dep_types';
+		const manifestPath = `test/providers/tst_manifests/npm/${testCase}/package.json`;
+		const m = new Manifest(manifestPath);
+		expect(m.name).to.be.equals('mixed-deps-test');
+		expect(m.version).to.be.equals('1.0.0');
+		expect(m.dependencies).to.have.all.members([
+			'express', 'axios', 'minimist', 'lodash']);
+		expect(m.dependencies).to.not.include('jest');
+		expect(m.dependencies).to.not.include('eslint');
+		expect(m.peerDependencies).to.deep.equal({ minimist: '1.2.0' });
+		expect(m.optionalDependencies).to.deep.equal({ lodash: '4.17.19' });
 		expect(m.ignored).to.be.empty;
 	});
 

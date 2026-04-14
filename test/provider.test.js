@@ -124,6 +124,12 @@ suite('testing the matchForLicense utility function', () => {
 			expect(provider.isSupported('requirements.txt')).to.be.true;
 		});
 
+		test('should match Python pyproject provider for pyproject.toml', () => {
+			const provider = matchForLicense('/some/path/pyproject.toml', availableProviders);
+			expect(provider).to.exist;
+			expect(provider.isSupported('pyproject.toml')).to.be.true;
+		});
+
 		test('should match Rust Cargo provider for Cargo.toml', () => {
 			const provider = matchForLicense('/some/path/Cargo.toml', availableProviders);
 			expect(provider).to.exist;
@@ -138,6 +144,7 @@ suite('testing the matchForLicense utility function', () => {
 				'package.json',
 				'go.mod',
 				'requirements.txt',
+				'pyproject.toml',
 				'Cargo.toml'
 			];
 

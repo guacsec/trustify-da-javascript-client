@@ -1,0 +1,11 @@
+[project]
+name = "test-project"
+version = "1.0.0"
+dependencies = [
+    "Flask==2.0.3",
+    "typing_extensions==4.1.1",
+    "uvicorn[standard]==0.17.0",  # trustify-da-ignore
+    "MarkupSafe==2.0.1",  #exhortignore
+    "requests==2.25.1",
+    "pywin32==311; sys_platform == 'win32'",
+]

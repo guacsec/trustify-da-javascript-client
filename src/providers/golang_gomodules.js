@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { EOL } from "os";
 
 import { PackageURL } from 'packageurl-js'
 
@@ -8,7 +7,7 @@ import { readLicenseFile } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand } from "../tools.js";
 
-
+import { getParser, getRequireQuery } from './gomod_parser.js'
 
 export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest }
 
@@ -28,8 +27,8 @@ const ecosystem = 'golang'
 const defaultMainModuleVersion = "v0.0.0";
 
 /**
- * @param {string} manifestName - the subject manifest name-type
- * @returns {boolean} - return true if `pom.xml` is the manifest name-type
+ * @param {string} manifestName the subject manifest name-type
+ * @returns {boolean} return true if `pom.xml` is the manifest name-type
 */
 function isSupported(manifestName) {
 	return 'go.mod' === manifestName
@@ -37,41 +36,41 @@ function isSupported(manifestName) {
 
 /**
  * Go modules have no standard license field in go.mod
- * @param {string} manifestPath - path to go.mod
+ * @param {string} manifestPath path to go.mod
  * @returns {string|null}
 */
 // eslint-disable-next-line no-unused-vars
 function readLicenseFromManifest(manifestPath) { return readLicenseFile(manifestPath); }
 
 /**
- * @param {string} manifestDir - the directory where the manifest lies
+ * @param {string} manifestDir the directory where the manifest lies
  */
 function validateLockFile() { return true; }
 
 /**
  * Provide content and content type for maven-maven stack analysis.
- * @param {string} manifest - the manifest path or name
- * @param {{}} [opts={}] - optional various options to pass along the application
- * @returns {Provided}
+ * @param {string} manifest the manifest path or name
+ * @param {{}} [opts={}] optional various options to pass along the application
+ * @returns {Promise<Provided>}
  */
-function provideStack(manifest, opts = {}) {
+async function provideStack(manifest, opts = {}) {
 	return {
 		ecosystem,
-		content: getSBOM(manifest, opts, true),
+		content: await getSBOM(manifest, opts, true),
 		contentType: 'application/vnd.cyclonedx+json'
 	}
 }
 
 /**
  * Provide content and content type for maven-maven component analysis.
- * @param {string} manifest - path to go.mod for component report
- * @param {{}} [opts={}] - optional various options to pass along the application
- * @returns {Provided}
+ * @param {string} manifest path to go.mod for component report
+ * @param {{}} [opts={}] optional various options to pass along the application
+ * @returns {Promise<Provided>}
  */
-function provideComponent(manifest, opts = {}) {
+async function provideComponent(manifest, opts = {}) {
 	return {
 		ecosystem,
-		content: getSBOM(manifest, opts, false),
+		content: await getSBOM(manifest, opts, false),
 		contentType: 'application/vnd.cyclonedx+json'
 	}
 }
@@ -94,54 +93,54 @@ function getChildVertexFromEdge(edge) {
 }
 
 /**
- *
- * @param line one row from go.mod file
- * @return {boolean} whether line from go.mod should be considered as ignored or not
+ * Check whether a require_spec has a valid exhortignore marker.
+ * For direct dependencies: `//exhortignore` or `// exhortignore`
+ * For indirect dependencies: `// indirect; exhortignore` (semicolon-separated)
+ * @param {import('web-tree-sitter').SyntaxNode} specNode
+ * @return {boolean}
  */
-function ignoredLine(line) {
-	let result = false
-	if(line.match(".*exhortignore.*")) {
-		if(line.match(".+//\\s*exhortignore") || line.match(".+//\\sindirect (//)?\\s*exhortignore")) {
-			let trimmedRow = line.trim()
-			if(!trimmedRow.startsWith("module ") && !trimmedRow.startsWith("go ") && !trimmedRow.startsWith("require (") && !trimmedRow.startsWith("require(")
-				&& !trimmedRow.startsWith("exclude ") && !trimmedRow.startsWith("replace ") && !trimmedRow.startsWith("retract ") && !trimmedRow.startsWith("use ")
-				&& !trimmedRow.includes("=>"))
-			{
-				if( trimmedRow.startsWith("require ") || trimmedRow.match("^[a-z.0-9/-]+\\s{1,2}[vV][0-9]\\.[0-9](\\.[0-9]){0,2}.*")) {
-					result = true
-				}
-			}
+function hasExhortIgnore(specNode) {
+	// Ideally this would be the following tree-sitter query instead, but for some
+	// reason it throws an error here but not in the playground.
+	// (require_spec) ((module_path) @path (version) (comment) @comment (#match? @comment "^//.*exhortignore"))
+	// QueryError: Bad pattern structure at offset 53: '(comment) @comment (#match? @comment "^//.*exhortignore")) @spec'...
+	let comments = specNode.children.filter(c => c.type === 'comment')
+	for (let comment of comments) {
+		let text = comment.text
+		if (/^\/\/\s*indirect;\s*exhortignore/.test(text)) {
+			return true
+		}
+		if (/^\/\/\s*exhortignore/.test(text)) {
+			return true
 		}
 	}
-	return result
-}
-
-/**
- * extract package name from go.mod line that contains exhortignore comment.
- * @param line a row contains exhortignore as part of a comment
- * @return {string} the full package name + group/namespace + version
- * @private
- */
-function extractPackageName(line) {
-	let trimmedRow = line.trim();
-	let firstRemarkNotationOccurrence = trimmedRow.indexOf("//");
-	return trimmedRow.substring(0,firstRemarkNotationOccurrence).trim();
+	return false
 }
 
 /**
  *
- * @param {string } manifest - path to manifest
- * @return {[PackageURL]} list of ignored dependencies d
+ * @param {string} manifestContent go.mod file contents
+ * @param {import('web-tree-sitter').Parser} parser
+ * @param {import('web-tree-sitter').Query} requireQuery
+ * @return {PackageURL[]} list of ignored dependencies
  */
-function getIgnoredDeps(manifest) {
-	let goMod = fs.readFileSync(manifest).toString().trim()
-	let lines = goMod.split(getLineSeparatorGolang());
-	return lines.filter(line => ignoredLine(line)).map(line=> extractPackageName(line)).map(dep => toPurl(dep,/[ ]{1,3}/))
+function getIgnoredDeps(manifestContent, parser, requireQuery) {
+	let tree = parser.parse(manifestContent)
+	return requireQuery.matches(tree.rootNode)
+		.filter(match => {
+			let specNode = match.captures.find(c => c.name === 'spec').node
+			return hasExhortIgnore(specNode)
+		})
+		.map(match => {
+			let name = match.captures.find(c => c.name === 'name').node.text
+			let version = match.captures.find(c => c.name === 'version').node.text
+			return toPurl(`${name} ${version}`, /[ ]{1,3}/)
+		})
 }
 
 /**
  *
- * @param {[PackageURL]}allIgnoredDeps - list of purls of all dependencies that should be ignored
+ * @param {PackageURL[]} allIgnoredDeps list of purls of all dependencies that should be ignored
  * @param {PackageURL} purl object to be checked if needed to be ignored
  * @return {boolean}
  */
@@ -162,68 +161,30 @@ function enforceRemovingIgnoredDepsInCaseOfAutomaticVersionUpdate(ignoredDeps, s
 
 /**
  *
- * @param {[string]} lines - array of lines of go.mod manifest
- * @param {string} goMod - content of go.mod manifest
- * @return {[string]} all dependencies from go.mod file as array
+ * @param {string} manifestContent go.mod file contents
+ * @param {import('web-tree-sitter').Parser} parser
+ * @param {import('web-tree-sitter').Query} requireQuery
+ * @return {string[]} all dependencies from go.mod file as "name version" strings
  */
-function collectAllDepsFromManifest(lines, goMod) {
-	let result
-	// collect all deps that starts with require keyword
-
-	result = lines.filter((line) => line.trim().startsWith("require") && !line.includes("(")).map((dep) => dep.substring("require".length).trim())
-
-
-
-	// collect all deps that are inside `require` blocks
-	let currentSegmentOfGoMod = goMod
-	let requirePositionObject = decideRequireBlockIndex(currentSegmentOfGoMod)
-	while(requirePositionObject.index > -1) {
-		let depsInsideRequirementsBlock = currentSegmentOfGoMod.substring(requirePositionObject.index + requirePositionObject.startingOffeset).trim();
-		let endOfBlockIndex = depsInsideRequirementsBlock.indexOf(")")
-		let currentIndex = 0
-		while(currentIndex < endOfBlockIndex)
-		{
-			let endOfLinePosition = depsInsideRequirementsBlock.indexOf(EOL, currentIndex);
-			let dependency = depsInsideRequirementsBlock.substring(currentIndex, endOfLinePosition)
-			result.push(dependency.trim())
-			currentIndex = endOfLinePosition + 1
-		}
-		currentSegmentOfGoMod = currentSegmentOfGoMod.substring(endOfBlockIndex + 1).trim()
-		requirePositionObject = decideRequireBlockIndex(currentSegmentOfGoMod)
-	}
-
-	function decideRequireBlockIndex(goMod) {
-		let object = {}
-		let index = goMod.indexOf("require(")
-		object.startingOffeset = "require(".length
-		if (index === -1)
-		{
-			index = goMod.indexOf("require (")
-			object.startingOffeset = "require (".length
-			if(index === -1)
-			{
-				index = goMod.indexOf("require  (")
-				object.startingOffeset = "require  (".length
-			}
-		}
-		object.index = index
-		return object
-	}
-	return result
+function collectAllDepsFromManifest(manifestContent, parser, requireQuery) {
+	let tree = parser.parse(manifestContent)
+	return requireQuery.matches(tree.rootNode).map(match => {
+		let name = match.captures.find(c => c.name === 'name').node.text
+		let version = match.captures.find(c => c.name === 'version').node.text
+		return `${name} ${version}`
+	})
 }
 
 /**
  *
  * @param {string} rootElementName the rootElementName element of go mod graph, to compare only direct deps from go mod graph against go.mod manifest
- * @param{[string]} goModGraphOutputRows the goModGraphOutputRows from go mod graph' output
- * @param {string }manifest path to go.mod manifest on file system
+ * @param {string[]} goModGraphOutputRows the goModGraphOutputRows from go mod graph' output
+ * @param {string} manifestContent go.mod file contents
  * @private
  */
-function performManifestVersionsCheck(rootElementName, goModGraphOutputRows, manifest) {
-	let goMod = fs.readFileSync(manifest).toString().trim()
-	let lines = goMod.split(getLineSeparatorGolang());
+function performManifestVersionsCheck(rootElementName, goModGraphOutputRows, manifestContent, parser, requireQuery) {
 	let comparisonLines = goModGraphOutputRows.filter((line)=> line.startsWith(rootElementName)).map((line)=> getChildVertexFromEdge(line))
-	let manifestDeps = collectAllDepsFromManifest(lines,goMod)
+	let manifestDeps = collectAllDepsFromManifest(manifestContent, parser, requireQuery)
 	try {
 		comparisonLines.forEach((dependency) => {
 			let parts = dependency.split("@")
@@ -235,7 +196,7 @@ function performManifestVersionsCheck(rootElementName, goModGraphOutputRows, man
 				let currentVersion = components[1]
 				if (currentDepName === depName) {
 					if (currentVersion !== version) {
-						throw new Error(`versions mismatch for dependency name ${depName}, manifest version=${currentVersion}, installed Version=${version}, if you want to allow version mismatch for analysis between installed and requested packages, set environment variable/setting - MATCH_MANIFEST_VERSIONS=false`)
+						throw new Error(`version mismatch for dependency "${depName}", manifest version=${currentVersion}, installed version=${version}, if you want to allow version mismatch for analysis between installed and requested packages, set environment variable/setting MATCH_MANIFEST_VERSIONS=false`)
 					}
 				}
 			})
@@ -252,10 +213,10 @@ function performManifestVersionsCheck(rootElementName, goModGraphOutputRows, man
  * @param {string} manifest - path for go.mod
  * @param {{}} [opts={}] - optional various options to pass along the application
  * @param {boolean} includeTransitive - whether the sbom should contain transitive dependencies of the main module or not.
- * @returns {string} the SBOM json content
+ * @returns {Promise<string>} the SBOM json content
  * @private
  */
-function getSBOM(manifest, opts = {}, includeTransitive) {
+async function getSBOM(manifest, opts = {}, includeTransitive) {
 	// get custom goBin path
 	let goBin = getCustomPath('go', opts)
 	// verify goBin is accessible
@@ -280,14 +241,26 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 		throw new Error('failed to determine root module name', {cause: error})
 	}
 
-	let ignoredDeps = getIgnoredDeps(manifest);
+	let manifestContent = fs.readFileSync(manifest).toString()
+	let [parser, requireQuery] = await Promise.all([getParser(), getRequireQuery()]);
+	let ignoredDeps = getIgnoredDeps(manifestContent, parser, requireQuery);
 	let allIgnoredDeps = ignoredDeps.map((dep) => dep.toString())
 	let sbom = new Sbom();
 	let rows = goGraphOutput.split(getLineSeparatorGolang()).filter(line => !line.includes(' go@'));
-	let root = getParentVertexFromEdge(goModEditOutput['Module']['Path'])
+	let root = goModEditOutput['Module']['Path']
+
+	// Build set of direct dependency paths from go mod edit -json
+	let directDepPaths = new Set()
+	if (goModEditOutput['Require']) {
+		goModEditOutput['Require'].forEach(req => {
+			if (!req['Indirect']) {
+				directDepPaths.add(req['Path'])
+			}
+		})
+	}
 	let matchManifestVersions = getCustom("MATCH_MANIFEST_VERSIONS", "false", opts);
 	if(matchManifestVersions === "true") {
-		performManifestVersionsCheck(root, rows, manifest)
+		performManifestVersionsCheck(root, rows, manifestContent, parser, requireQuery)
 	}
 
 	const mainModule = toPurl(root, "@")
@@ -306,7 +279,11 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 				currentParent = getParentVertexFromEdge(row)
 				source = toPurl(currentParent, "@");
 			}
-			let target = toPurl(getChildVertexFromEdge(row), "@");
+			let child = getChildVertexFromEdge(row)
+			let target = toPurl(child, "@");
+			if (getParentVertexFromEdge(row) === root && !directDepPaths.has(getPackageName(child))) {
+				return;
+			}
 			sbom.addDependency(source, target)
 
 		})
@@ -316,13 +293,15 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	} else {
 		let directDependencies = rows.filter(row => row.startsWith(root));
 		directDependencies.forEach(pair => {
-			let dependency = getChildVertexFromEdge(pair)
-			let depPurl = toPurl(dependency, "@");
-			if(dependencyNotIgnored(ignoredDeps, depPurl)) {
-				sbom.addDependency(mainModule, depPurl)
+			let child = getChildVertexFromEdge(pair)
+			let target = toPurl(child, "@");
+			if(dependencyNotIgnored(ignoredDeps, target)) {
+				if (directDepPaths.has(getPackageName(child))) {
+					sbom.addDependency(mainModule, target)
+				}
 			}
 		})
-		enforceRemovingIgnoredDepsInCaseOfAutomaticVersionUpdate(ignoredDeps,sbom)
+		enforceRemovingIgnoredDepsInCaseOfAutomaticVersionUpdate(ignoredDeps, sbom)
 	}
 
 	return sbom.getAsJsonString(opts)
@@ -332,7 +311,7 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 /**
  * Utility function for creating Purl String
 
- * @param {string }dependency the name of the artifact, can include a namespace(group) or not - namespace/artifactName.
+ * @param {string} dependency the name of the artifact, can include a namespace(group) or not - namespace/artifactName.
  * @param {RegExp} delimiter delimiter between name of dependency and version
  * @private
  * @returns {PackageURL|null} PackageUrl Object ready to be used in SBOM
@@ -344,7 +323,7 @@ function toPurl(dependency, delimiter) {
 		let splitParts = dependency.split(delimiter);
 		pkg = new PackageURL(ecosystem, undefined, splitParts[0], splitParts[1], undefined, undefined)
 	} else {
-		let namespace = dependency.slice(0,lastSlashIndex)
+		let namespace = dependency.slice(0, lastSlashIndex)
 		let dependencyAndVersion = dependency.slice(lastSlashIndex+1)
 		let parts = dependencyAndVersion.split(delimiter);
 		if(parts.length === 2 ) {
@@ -356,14 +335,14 @@ function toPurl(dependency, delimiter) {
 	return pkg
 }
 
-/** This function gets rows from go mod graph , and go.mod graph, and selecting for all
+/** This function gets rows from go mod graph, and go.mod graph, and selecting for all
  * packages the has more than one minor the final versions as selected by golang MVS algorithm.
- * @param {[string]}rows all the rows from go modules dependency tree
+ * @param {string[]} rows all the rows from go modules dependency tree
  * @param {string} manifestPath the path of the go.mod file
  * @param {string} path to go binary
- * @return {[string]} rows that contains final versions.
+ * @return {string[]} rows that contains final versions.
  */
-function getFinalPackagesVersionsForModule(rows,manifestPath,goBin) {
+function getFinalPackagesVersionsForModule(rows, manifestPath, goBin) {
 	let manifestDir = path.dirname(manifestPath)
 	let options = {cwd: manifestDir}
 	// TODO: determine whether this is necessary
@@ -416,7 +395,7 @@ function getFinalPackagesVersionsForModule(rows,manifestPath,goBin) {
 /**
  *
  * @param {string} fullPackage - full package with its name and version
- * @return -{string} package name only
+ * @return {string} package name only
  * @private
  */
 function getPackageName(fullPackage) {
@@ -436,7 +415,7 @@ function isSpecialGoModule(moduleName) {
 /**
  *
  * @param {string} fullPackage - full package with its name and version
- * @return -{string} package version only
+ * @return {string|undefined} package version only
  * @private
  */
 function getVersionOfPackage(fullPackage) {

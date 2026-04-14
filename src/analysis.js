@@ -207,7 +207,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
-	const resp = await fetch(finalUrl, {
+	const fetchOptions = addProxyAgent({
 		method: 'POST',
 		headers: {
 			'Accept': html ? 'text/html' : 'application/json',
@@ -215,7 +215,9 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 			...getTokenHeaders(opts)
 		},
 		body: JSON.stringify(imageSboms),
-	})
+	}, opts)
+
+	const resp = await fetch(finalUrl, fetchOptions)
 
 	if (resp.status === 200) {
 		let result;

@@ -282,6 +282,21 @@ export default class CycloneDxSbom {
 		}
 	}
 
+	/**
+	 * Checks if any entry in the dependsOn list of sourceRef starts with the given purl prefix.
+	 * @param {PackageURL} sourceRef - The source component
+	 * @param {string} purlPrefix - The purl prefix to match (e.g. "pkg:npm/minimist@")
+	 * @return {boolean}
+	 */
+	checkDependsOnByPurlPrefix(sourceRef, purlPrefix) {
+		const sourcePurl = sourceRef.toString();
+		const depIndex = this.getDependencyIndex(sourcePurl);
+		if (depIndex < 0) {
+			return false;
+		}
+		return this.dependencies[depIndex].dependsOn.some(dep => dep.startsWith(purlPrefix));
+	}
+
 	/** Removes the root component from the sbom
 	 */
 	removeRootComponent() {

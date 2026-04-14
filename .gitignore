@@ -9,4 +9,4 @@ unit-tests-result.json
 build
 target
 .npmrc
-src/providers/tree-sitter-requirements.wasm
+src/providers/*.wasm

@@ -87,14 +87,14 @@ function addAllDependencies(source, dep, sbom) {
 	sbom.addDependency(source, targetPurl)
 	let directDeps = dep["dependencies"]
 	if (directDeps !== undefined && directDeps.length > 0) {
-		directDeps.forEach((dependency) => { addAllDependencies(toPurl(dep["name"],dep["version"]), dependency, sbom) })
+		directDeps.forEach((dependency) => { addAllDependencies(toPurl(dep["name"], dep["version"]), dependency, sbom) })
 	}
 }
 
 /**
  *
  * @param {string} manifest - path to requirements.txt
- * @return {PackageURL []}
+ * @return {Promise<PackageURL[]>}
  */
 async function getIgnoredDependencies(manifest) {
 	const [parser, ignoreQuery, pinnedVersionQuery] = await Promise.all([
@@ -123,7 +123,7 @@ async function getIgnoredDependencies(manifest) {
 async function handleIgnoredDependencies(manifest, sbom, opts = {}) {
 	let ignoredDeps = await getIgnoredDependencies(manifest)
 	let matchManifestVersions = getCustom("MATCH_MANIFEST_VERSIONS", "true", opts);
-	if(matchManifestVersions === "true") {
+	if (matchManifestVersions === "true") {
 		const ignoredDepsVersion = ignoredDeps.filter(dep => dep.version !== undefined);
 		sbom.filterIgnoredDepsIncludingVersion(ignoredDepsVersion.map(dep => dep.toString()))
 	} else {
@@ -150,7 +150,7 @@ function getPythonPipBinaries(binaries, opts) {
 			invokeCommand(python, ['--version'])
 			invokeCommand(pip, ['--version'])
 		} catch (error) {
-			throw new Error(`Failed checking for python/pip binaries from supplied environment variables`, {cause: error})
+			throw new Error(`Failed checking for python/pip binaries from supplied environment variables`, { cause: error })
 		}
 	}
 	binaries.pip = pip
@@ -240,6 +240,6 @@ async function getSbomForComponentAnalysis(manifest, opts = {}) {
  * @param version
  * @return {PackageURL}
  */
-function toPurl(name,version) {
+function toPurl(name, version) {
 	return new PackageURL('pypi', undefined, name, version, undefined, undefined);
 }

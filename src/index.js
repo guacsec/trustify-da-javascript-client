@@ -74,6 +74,8 @@ export {
  * TRUSTIFY_DA_CONTINUE_ON_ERROR?: string | undefined,
  * batchMetadata?: boolean | undefined,
  * TRUSTIFY_DA_BATCH_METADATA?: string | undefined,
+ * TRUSTIFY_DA_UV_PATH?: string | undefined,
+ * TRUSTIFY_DA_POETRY_PATH?: string | undefined,
  * [key: string]: string | number | boolean | string[] | undefined,
  * }} Options
  */

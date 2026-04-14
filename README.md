@@ -224,7 +224,8 @@ $ trustify-da-javascript-client license /path/to/package.json
 <li><a href="https://www.javascript.com/">JavaScript</a> - <a href="https://pnpm.io/">pnpm</a></li>
 <li><a href="https://www.javascript.com/">JavaScript</a> - <a href="https://classic.yarnpkg.com/">Yarn Classic</a> /  <a href="https://yarnpkg.com/">Yarn Berry</a></li>
 <li><a href="https://go.dev/">Golang</a> - <a href="https://go.dev/blog/using-go-modules/">Go Modules</a></li>
-<li><a href="https://www.python.org/">Python</a> - <a href="https://pypi.org/project/pip/">pip Installer</a></li>
+<li><a href="https://www.python.org/">Python</a> - <a href="https://pypi.org/project/pip/">pip Installer</a> (<code>requirements.txt</code>)</li>
+<li><a href="https://www.python.org/">Python</a> - <a href="https://python-poetry.org/">Poetry</a> / <a href="https://docs.astral.sh/uv/">uv</a> (<code>pyproject.toml</code>)</li>
 <li><a href="https://gradle.org/">Gradle (Groovy and Kotlin DSL)</a> - <a href="https://gradle.org/install/">Gradle Installation</a></li>
 <li><a href="https://www.rust-lang.org/">Rust</a> - <a href="https://doc.rust-lang.org/cargo/">Cargo</a></li>
 </ul>
@@ -287,8 +288,11 @@ Excluding a package from any analysis can be achieved by marking the package for
   ]
 }
 ```
+</li>
 
-<em>Golang</em> users can add in go.mod a comment with //exhortignore next to the package to be ignored, or to "piggyback" on existing comment ( e.g - //indirect) , for example:
+<li>
+<em>Golang</em> users can add in go.mod a comment with <code>// exhortignore</code> next to the package to be ignored, or to "piggyback" on existing comment ( e.g - <code>// indirect</code>), for example:
+
 ```go
 module github.com/trustify-da/SaaSi/deployer
 
@@ -297,7 +301,7 @@ go 1.19
 require (
         github.com/gin-gonic/gin v1.9.1
         github.com/google/uuid v1.1.2
-        github.com/jessevdk/go-flags v1.5.0 //exhortignore
+        github.com/jessevdk/go-flags v1.5.0 // exhortignore
         github.com/kr/pretty v0.3.1
         gopkg.in/yaml.v2 v2.4.0
         k8s.io/apimachinery v0.26.1
@@ -305,14 +309,20 @@ require (
 )
 
 require (
-        github.com/davecgh/go-spew v1.1.1 // indirect exhortignore
+        github.com/davecgh/go-spew v1.1.1 // indirect; exhortignore
         github.com/emicklei/go-restful/v3 v3.9.0 // indirect
-        github.com/go-logr/logr v1.2.3 // indirect //exhortignore
+        github.com/go-logr/logr v1.2.3 // indirect; exhortignore
 
 )
 ```
 
+<b>NOTE</b>: It is important to format <code>exhortignore</code> markers on indirect dependencies as shown above, otherwise the Go tooling (as well as this library) may incorrectly parse dependencies marked as indirect as being direct dependencies instead.
+</li>
+
+
+<li>
 <em>Python pip</em> users can add in requirements.txt a comment with #exhortignore(or # exhortignore) to the right of the same artifact to be ignored, for example:
+
 ```properties
 anyio==3.6.2
 asgiref==3.4.1
@@ -343,11 +353,14 @@ Werkzeug==2.0.3
 zipp==3.6.0
 
 ```
+</li>
 
+<li>
 <em>Gradle</em> users can add in build.gradle a comment with //exhortignore next to the package to be ignored:
+
 ```build.gradle
 plugins {
-id 'java'
+    id 'java'
 }
 
 group = 'groupName'
@@ -379,9 +392,31 @@ version = "1.10"
 log = "0.4" # trustify-da-ignore
 ```
 
-All of the 6 above examples are valid for marking a package to be ignored
-</li>
 
+<em>Python pyproject.toml</em> users can add a comment with <code>#exhortignore</code> (or <code># trustify-da-ignore</code>) next to the dependency in <code>pyproject.toml</code>.
+
+PEP 621 style (<code>[project]</code> dependencies):
+```toml
+[project]
+dependencies = [
+    "flask>=2.0.3",
+    "requests>=2.25.1",
+    "uvicorn>=0.17.0", #exhortignore
+    "click>=8.0.4", # trustify-da-ignore
+]
+```
+
+Poetry style (<code>[tool.poetry.dependencies]</code>):
+```toml
+[tool.poetry.dependencies]
+flask = "^2.0.3"
+requests = "^2.25.1"
+uvicorn = "^0.17.0" #exhortignore
+click = "^8.0.4" # trustify-da-ignore
+```
+
+All of the above examples are valid for marking a package to be ignored
+</li>
 </ul>
 
 <h3>Customization</h3>
@@ -410,6 +445,8 @@ let options = {
   'TRUSTIFY_DA_PIP3_PATH' : '/path/to/pip3',
   'TRUSTIFY_DA_PYTHON_PATH' : '/path/to/python',
   'TRUSTIFY_DA_PIP_PATH' : '/path/to/pip',
+  'TRUSTIFY_DA_UV_PATH' : '/path/to/uv',
+  'TRUSTIFY_DA_POETRY_PATH' : '/path/to/poetry',
   'TRUSTIFY_DA_GRADLE_PATH' : '/path/to/gradle',
   'TRUSTIFY_DA_CARGO_PATH' : '/path/to/cargo',
   // Workspace root for monorepos (Cargo, npm/pnpm/yarn); lock file expected here
@@ -556,6 +593,16 @@ following keys for setting custom paths for the said executables.
 <td>TRUSTIFY_DA_CARGO_PATH</td>
 </tr>
 <tr>
+<td><a href="https://docs.astral.sh/uv/">uv</a></td>
+<td><em>uv</em></td>
+<td>TRUSTIFY_DA_UV_PATH</td>
+</tr>
+<tr>
+<td><a href="https://python-poetry.org/">Poetry</a></td>
+<td><em>poetry</em></td>
+<td>TRUSTIFY_DA_POETRY_PATH</td>
+</tr>
+<tr>
 <td>Workspace root (monorepos)</td>
 <td>—</td>
 <td>workspaceDir / TRUSTIFY_DA_WORKSPACE_DIR</td>
@@ -607,6 +654,24 @@ TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED=false
 ```
 
 #### Python Support
+
+The client supports two Python manifest formats:
+
+- **`requirements.txt`** — uses pip/pip3 to resolve dependencies
+- **`pyproject.toml`** — uses [uv](https://docs.astral.sh/uv/) or [Poetry](https://python-poetry.org/) to resolve dependencies
+
+##### pyproject.toml
+
+For `pyproject.toml` projects, the client detects which tool manages the project by checking for lock files:
+- If `poetry.lock` is present and `[tool.poetry]` is defined, **Poetry** is used (`poetry show --tree` and `poetry show --all`)
+- If `uv.lock` is present, **uv** is used (`uv export --format requirements.txt --frozen --no-hashes`)
+- If neither lock file is found, an error is thrown
+
+Both PEP 621 (`[project]` dependencies) and Poetry-style (`[tool.poetry.dependencies]`) are supported.
+
+Custom executable paths can be set via `TRUSTIFY_DA_UV_PATH` and `TRUSTIFY_DA_POETRY_PATH`.
+
+##### requirements.txt
 
 By default, For python support, the api assumes that the package is installed using the pip/pip3 binary on the system PATH, or using the customized
 Binaries passed to environment variables. In any case, If the package is not installed , then an error will be thrown.

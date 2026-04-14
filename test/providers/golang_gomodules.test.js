@@ -27,12 +27,12 @@ suite('testing the golang-go-modules data provider', () => {
 		"go_mod_empty"
 	].forEach(testCase => {
 		let scenario = testCase.replace('go_mod_', '').replaceAll('_', ' ')
-		test(`verify go.mod sbom provided for stack analysis with scenario ${scenario}`, () => {
+		test(`verify go.mod sbom provided for stack analysis with scenario ${scenario}`, async () => {
 			// load the expected graph for the scenario
 			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/expected_sbom_stack_analysis.json`).toString()
 			expectedSbom = JSON.stringify(JSON.parse(expectedSbom),null, 4)
 			// invoke sut stack analysis for scenario manifest
-			let providedDataForStack = golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`)
+			let providedDataForStack = await golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`)
 			// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
 
 			// providedDataForStack.content = providedDataForStack.content.replaceAll("\"timestamp\":\"[a-zA-Z0-9\\-\\:]+\"","")
@@ -43,12 +43,12 @@ suite('testing the golang-go-modules data provider', () => {
 		// these test cases takes ~2500-2700 ms each pr >10000 in CI (for the first test-case)
 		}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000)
 
-		test(`verify go.mod sbom provided for component analysis with scenario ${scenario}`, () => {
+		test(`verify go.mod sbom provided for component analysis with scenario ${scenario}`, async () => {
 			// load the expected list for the scenario
 			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/expected_sbom_component_analysis.json`).toString().trimEnd()
 			expectedSbom = JSON.stringify(JSON.parse(expectedSbom),null, 4)
 			// invoke sut stack analysis for scenario manifest
-			let providedDataForComponent = golangGoModules.provideComponent(`test/providers/tst_manifests/golang/${testCase}/go.mod`)
+			let providedDataForComponent = await golangGoModules.provideComponent(`test/providers/tst_manifests/golang/${testCase}/go.mod`)
 			// verify returned data matches expectation
 			expect(providedDataForComponent.ecosystem).equal('golang')
 			expect(providedDataForComponent.contentType).equal('application/vnd.cyclonedx+json')
@@ -63,12 +63,12 @@ suite('testing the golang-go-modules data provider', () => {
 
 	].forEach(testCase => {
 		let scenario = testCase.replace('go_mod_', '').replaceAll('_', ' ')
-		test(`verify go.mod sbom provided for stack analysis with scenario ${scenario}`, () => {
+		test(`verify go.mod sbom provided for stack analysis with scenario ${scenario}`, async () => {
 			// load the expected graph for the scenario
 			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/expected_sbom_stack_analysis.json`,).toString()
 			// expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
 			// invoke sut stack analysis for scenario manifest
-			let providedDataForStack = golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`,{"TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED" : "true"})
+			let providedDataForStack = await golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`,{"TRUSTIFY_DA_GO_MVS_LOGIC_ENABLED" : "true"})
 			// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
 
 			// providedDataForStack.content = providedDataForStack.content.replaceAll("\"timestamp\":\"[a-zA-Z0-9\\-\\:]+\"","")

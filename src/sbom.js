@@ -86,6 +86,16 @@ export default class Sbom {
 		return this.sbomModel.checkIfPackageInsideDependsOnList(component, name)
 	}
 
+	/**
+	 * Checks if any entry in the dependsOn list of sourceRef starts with the given purl prefix.
+	 * @param {PackageURL} sourceRef - The source component to check
+	 * @param {string} purlPrefix - The purl prefix to match (e.g. "pkg:npm/minimist@")
+	 * @return {boolean}
+	 */
+	checkDependsOnByPurlPrefix(sourceRef, purlPrefix) {
+		return this.sbomModel.checkDependsOnByPurlPrefix(sourceRef, purlPrefix)
+	}
+
 	/** Removes the root component from the sbom
 	 */
 	removeRootComponent() {

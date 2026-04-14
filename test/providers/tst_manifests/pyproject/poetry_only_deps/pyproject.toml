@@ -1,0 +1,10 @@
+[tool.poetry]
+name = "poetry-only-project"
+version = "1.0.0"
+description = "A project using only poetry dependencies"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+Flask = "^2.0.3"
+requests = {version = "^2.25.1", extras = ["socks"]}
+click = "^8.0.4"

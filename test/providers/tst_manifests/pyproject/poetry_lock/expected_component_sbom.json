@@ -1,0 +1,48 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.4",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-10-01T00:00:00.000Z",
+		"component": {
+			"name": "test-project",
+			"version": "1.0.0",
+			"purl": "pkg:pypi/test-project@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:pypi/test-project@1.0.0"
+		}
+	},
+	"components": [
+		{
+			"name": "flask",
+			"version": "3.1.3",
+			"purl": "pkg:pypi/flask@3.1.3",
+			"type": "library",
+			"bom-ref": "pkg:pypi/flask@3.1.3"
+		},
+		{
+			"name": "requests",
+			"version": "2.33.0",
+			"purl": "pkg:pypi/requests@2.33.0",
+			"type": "library",
+			"bom-ref": "pkg:pypi/requests@2.33.0"
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:pypi/test-project@1.0.0",
+			"dependsOn": [
+				"pkg:pypi/flask@3.1.3",
+				"pkg:pypi/requests@2.33.0"
+			]
+		},
+		{
+			"ref": "pkg:pypi/flask@3.1.3",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/requests@2.33.0",
+			"dependsOn": []
+		}
+	]
+}

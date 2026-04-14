@@ -1,18 +1,18 @@
 {
-	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
-	"version": 1,
-	"metadata": {
-		"timestamp": "2023-08-07T00:00:00.000Z",
-		"component": {
-			"group": "github.com/devfile-samples",
-			"name": "devfile-sample-go-basic",
-			"version": "v0.0.0",
-			"purl": "pkg:golang/github.com/devfile-samples/devfile-sample-go-basic@v0.0.0",
-			"type": "application",
-			"bom-ref": "pkg:golang/github.com/devfile-samples/devfile-sample-go-basic@v0.0.0"
-		}
-	},
-	"components": [],
-	"dependencies": []
+    "bomFormat": "CycloneDX",
+    "specVersion": "1.4",
+    "version": 1,
+    "metadata": {
+        "timestamp": "2023-08-07T00:00:00.000Z",
+        "component": {
+            "group": "github.com/devfile-samples",
+            "name": "devfile-sample-go-basic",
+            "version": "v0.0.0",
+            "purl": "pkg:golang/github.com/devfile-samples/devfile-sample-go-basic@v0.0.0",
+            "type": "application",
+            "bom-ref": "pkg:golang/github.com/devfile-samples/devfile-sample-go-basic@v0.0.0"
+        }
+    },
+    "components": [],
+    "dependencies": []
 }

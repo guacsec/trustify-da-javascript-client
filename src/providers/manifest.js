@@ -12,6 +12,8 @@ export default class Manifest {
 		this.manifestPath = manifestPath;
 		const content = this.loadManifest();
 		this.dependencies = this.loadDependencies(content);
+		this.peerDependencies = content.peerDependencies || {};
+		this.optionalDependencies = content.optionalDependencies || {};
 		this.name = content.name;
 		this.version = content.version || DEFAULT_VERSION;
 		this.ignored = this.loadIgnored(content);
@@ -30,11 +32,27 @@ export default class Manifest {
 
 	loadDependencies(content) {
 		let deps = [];
-		if(!content.dependencies) {
-			return deps;
+		const depSources = [
+			content.dependencies,
+			content.peerDependencies,
+			content.optionalDependencies,
+		];
+		for (const source of depSources) {
+			if (source) {
+				for (let dep in source) {
+					if (!deps.includes(dep)) {
+						deps.push(dep);
+					}
+				}
+			}
 		}
-		for(let dep in content.dependencies) {
-			deps.push(dep);
+		// bundledDependencies is an array of package names (subset of dependencies)
+		if (Array.isArray(content.bundledDependencies)) {
+			for (const dep of content.bundledDependencies) {
+				if (!deps.includes(dep)) {
+					deps.push(dep);
+				}
+			}
 		}
 		return deps;
 	}

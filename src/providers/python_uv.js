@@ -1,0 +1,135 @@
+import { environmentVariableIsPopulated, getCustomPath, invokeCommand } from '../tools.js'
+
+import Base_pyproject from './base_pyproject.js'
+import { getParser, getPinnedVersionQuery } from './requirements_parser.js'
+
+export default class Python_uv extends Base_pyproject {
+
+	/** @returns {string} */
+	_lockFileName() {
+		return 'uv.lock'
+	}
+
+	/** @returns {string} */
+	_cmdName() {
+		return 'uv'
+	}
+
+	/**
+	 * @param {string} manifestDir
+	 * @param {object} parsed - parsed pyproject.toml
+	 * @param {Object} opts
+	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
+	 */
+	async _getDependencyData(manifestDir, parsed, opts) {
+		let projectName = this._getProjectName(parsed)
+		let uvOutput = this._getUvExportOutput(manifestDir, opts)
+		return this._parseUvExport(uvOutput, projectName)
+	}
+
+	/**
+	 * Get the uv export output, either from env var or by running the command.
+	 * @param {string} manifestDir
+	 * @param {Object} opts
+	 * @returns {string}
+	 */
+	_getUvExportOutput(manifestDir, opts) {
+		if (environmentVariableIsPopulated('TRUSTIFY_DA_UV_EXPORT')) {
+			return Buffer.from(process.env['TRUSTIFY_DA_UV_EXPORT'], 'base64').toString('ascii')
+		}
+		let uvBin = getCustomPath('uv', opts)
+		return invokeCommand(uvBin, ['export', '--format', 'requirements.txt', '--frozen', '--no-hashes'], { cwd: manifestDir }).toString()
+	}
+
+	/**
+	 * Parse uv export output into a dependency graph using tree-sitter-requirements
+	 * for package/version extraction and string parsing for "# via" comments.
+	 *
+	 * @param {string} output
+	 * @param {string} projectName - canonical project name to identify direct deps
+	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
+	 */
+	async _parseUvExport(output, projectName) {
+		let [parser, pinnedVersionQuery] = await Promise.all([
+			getParser(), getPinnedVersionQuery()
+		])
+		let tree = parser.parse(output)
+		let root = tree.rootNode
+		let canonProjectName = this._canonicalize(projectName)
+
+		let packages = new Map() // canonical name -> {name, version, parents: Set}
+		let currentPkg = null
+		let collectingVia = false
+
+		for (let child of root.children) {
+			if (child.type === 'requirement') {
+				let nameNode = child.children.find(c => c.type === 'package')
+				if (!nameNode) { continue }
+
+				let name = nameNode.text
+				let version = null
+				let versionMatches = pinnedVersionQuery.matches(child)
+				if (versionMatches.length > 0) {
+					version = versionMatches[0].captures.find(c => c.name === 'version').node.text
+				}
+
+				if (!version) {
+					throw new Error(`uv export: package '${name}' has no pinned version`)
+				}
+
+				let key = this._canonicalize(name)
+				currentPkg = { name, version, parents: new Set() }
+				packages.set(key, currentPkg)
+				collectingVia = false
+				continue
+			}
+
+			if (child.type === 'comment' && currentPkg) {
+				let text = child.text.trim()
+
+				let viaSingle = text.match(/^# via ([A-Za-z0-9][A-Za-z0-9._-]*)$/)
+				if (viaSingle) {
+					currentPkg.parents.add(this._canonicalize(viaSingle[1]))
+					collectingVia = false
+					continue
+				}
+
+				if (text === '# via') {
+					collectingVia = true
+					continue
+				}
+
+				if (collectingVia) {
+					let parentMatch = text.match(/^#\s+([A-Za-z0-9][A-Za-z0-9._-]*)$/)
+					if (parentMatch) {
+						currentPkg.parents.add(this._canonicalize(parentMatch[1]))
+						continue
+					}
+					collectingVia = false
+				}
+			}
+		}
+
+		// Build forward dependency map and extract direct deps in one pass
+		let graph = new Map()
+		let directDeps = []
+
+		for (let [key, pkg] of packages) {
+			graph.set(key, { name: pkg.name, version: pkg.version, children: [] })
+		}
+		for (let [childKey, pkg] of packages) {
+			for (let parentKey of pkg.parents) {
+				if (parentKey === canonProjectName) {
+					directDeps.push(childKey)
+					continue
+				}
+				let parentEntry = graph.get(parentKey)
+				if (parentEntry) {
+					parentEntry.children.push(childKey)
+				}
+			}
+		}
+
+		return { directDeps, graph }
+	}
+}
