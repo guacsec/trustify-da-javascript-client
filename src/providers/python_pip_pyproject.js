@@ -71,7 +71,7 @@ export default class Python_pip_pyproject extends Base_pyproject {
 		}
 
 		let graph = new Map()
-		let nonRootPackages = packages.filter(p => p.download_info?.dir_info === undefined)
+		let nonRootPackages = packages.filter(p => p !== rootEntry)
 
 		for (let pkg of nonRootPackages) {
 			let name = pkg.metadata.name
