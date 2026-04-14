@@ -121,11 +121,13 @@ export default class Python_pip_pyproject extends Base_pyproject {
 	/**
 	 * Resolve dependencies using pip install --dry-run --report.
 	 * @param {string} manifestDir
+	 * @param {string} _workspaceDir - unused (pip resolves from manifest directory)
 	 * @param {object} parsed - parsed pyproject.toml
 	 * @param {{}} [opts={}]
 	 * @returns {Promise<{directDeps: string[], graph: Map}>}
 	 */
-	async _getDependencyData(manifestDir, parsed, opts) {
+	// eslint-disable-next-line no-unused-vars
+	async _getDependencyData(manifestDir, _workspaceDir, parsed, opts) {
 		let reportOutput = this._getPipReportOutput(manifestDir, opts)
 		return this._parsePipReport(reportOutput)
 	}
