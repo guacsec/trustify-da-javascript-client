@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { environmentVariableIsPopulated, getCustomPath, invokeCommand } from '../tools.js'
 
 import Base_pyproject from './base_pyproject.js'
@@ -46,9 +49,12 @@ export default class Python_pip_pyproject extends Base_pyproject {
 		} catch {
 			pipBin = getCustomPath('pip', opts)
 		}
-		return invokeCommand(pipBin, [
+		let eggInfoDirs = this._findEggInfoDirs(manifestDir)
+		let result = invokeCommand(pipBin, [
 			'install', '--dry-run', '--ignore-installed', '--quiet', '--report', '-', '.'
 		], { cwd: manifestDir }).toString()
+		this._cleanupEggInfo(manifestDir, eggInfoDirs)
+		return result
 	}
 
 	/**
@@ -130,5 +136,21 @@ export default class Python_pip_pyproject extends Base_pyproject {
 	async _getDependencyData(manifestDir, _workspaceDir, parsed, opts) {
 		let reportOutput = this._getPipReportOutput(manifestDir, opts)
 		return this._parsePipReport(reportOutput)
+	}
+
+	_findEggInfoDirs(dir) {
+		try {
+			return fs.readdirSync(dir).filter(f => f.endsWith('.egg-info'))
+		} catch {
+			return []
+		}
+	}
+
+	_cleanupEggInfo(dir, existing) {
+		for (let entry of this._findEggInfoDirs(dir)) {
+			if (!existing.includes(entry)) {
+				fs.rmSync(path.join(dir, entry), { recursive: true, force: true })
+			}
+		}
 	}
 }
