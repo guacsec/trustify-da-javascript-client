@@ -10,7 +10,7 @@ import Python_uv from '../../src/providers/python_uv.js'
 
 let clock
 
-const TIMEOUT = process.env.GITHUB_ACTIONS ? 30000 : 10000
+const TIMEOUT = process.env.GITHUB_ACTIONS ? 30000 : 15000
 
 const uvProvider = new Python_uv()
 const poetryProvider = new Python_poetry()
@@ -180,21 +180,6 @@ suite('testing the python-pyproject data provider', () => {
 	suite('pip projects (via pip --dry-run --report)', () => {
 		const pipFixtureDir = `${MANIFESTS}/pip_pep621`
 		const pipIgnoreDir = `${MANIFESTS}/pip_pep621_ignore`
-		let savedEnv
-
-		setup(() => {
-			savedEnv = process.env.TRUSTIFY_DA_PIP_REPORT
-			let report = fs.readFileSync(path.join(pipFixtureDir, 'pip_report.json'), 'utf-8')
-			process.env.TRUSTIFY_DA_PIP_REPORT = Buffer.from(report).toString('base64')
-		})
-
-		teardown(() => {
-			if (savedEnv === undefined) {
-				delete process.env.TRUSTIFY_DA_PIP_REPORT
-			} else {
-				process.env.TRUSTIFY_DA_PIP_REPORT = savedEnv
-			}
-		})
 
 		/** Verifies stack and component SBOM output matches expected pip fixtures. */
 		SBOM_CASES.forEach(({type, method, fixture}) => {

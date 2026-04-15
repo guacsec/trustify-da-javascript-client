@@ -15,17 +15,17 @@
 	"components": [
 		{
 			"name": "requests",
-			"version": "2.33.1",
-			"purl": "pkg:pypi/requests@2.33.1",
+			"version": "2.32.3",
+			"purl": "pkg:pypi/requests@2.32.3",
 			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.33.1"
+			"bom-ref": "pkg:pypi/requests@2.32.3"
 		},
 		{
 			"name": "certifi",
-			"version": "2026.2.2",
-			"purl": "pkg:pypi/certifi@2026.2.2",
+			"version": "2026.2.25",
+			"purl": "pkg:pypi/certifi@2026.2.25",
 			"type": "library",
-			"bom-ref": "pkg:pypi/certifi@2026.2.2"
+			"bom-ref": "pkg:pypi/certifi@2026.2.25"
 		},
 		{
 			"name": "charset-normalizer",
@@ -53,20 +53,20 @@
 		{
 			"ref": "pkg:pypi/test-project@1.0.0",
 			"dependsOn": [
-				"pkg:pypi/requests@2.33.1"
+				"pkg:pypi/requests@2.32.3"
 			]
 		},
 		{
-			"ref": "pkg:pypi/requests@2.33.1",
+			"ref": "pkg:pypi/requests@2.32.3",
 			"dependsOn": [
-				"pkg:pypi/certifi@2026.2.2",
+				"pkg:pypi/certifi@2026.2.25",
 				"pkg:pypi/charset-normalizer@3.4.7",
 				"pkg:pypi/idna@3.11",
 				"pkg:pypi/urllib3@2.6.3"
 			]
 		},
 		{
-			"ref": "pkg:pypi/certifi@2026.2.2",
+			"ref": "pkg:pypi/certifi@2026.2.25",
 			"dependsOn": []
 		},
 		{

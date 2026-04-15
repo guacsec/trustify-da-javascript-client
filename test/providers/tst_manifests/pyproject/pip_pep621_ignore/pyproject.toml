@@ -3,5 +3,5 @@ name = "test-project"
 version = "1.0.0"
 requires-python = ">=3.12"
 dependencies = [
-    "requests>=2.32", #exhortignore
+    "requests==2.32.3", #exhortignore
 ]

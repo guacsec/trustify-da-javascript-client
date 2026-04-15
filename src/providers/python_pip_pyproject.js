@@ -47,7 +47,7 @@ export default class Python_pip_pyproject extends Base_pyproject {
 			pipBin = getCustomPath('pip', opts)
 		}
 		return invokeCommand(pipBin, [
-			'install', '--dry-run', '--ignore-installed', '--report', '-', '.'
+			'install', '--dry-run', '--ignore-installed', '--quiet', '--report', '-', '.'
 		], { cwd: manifestDir }).toString()
 	}
 

@@ -3,5 +3,5 @@ name = "test-project"
 version = "1.0.0"
 requires-python = ">=3.12"
 dependencies = [
-    "requests[socks]>=2.32",
+    "requests[socks]==2.32.3",
 ]
