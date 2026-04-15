@@ -1,7 +1,7 @@
 [project]
 name = "test-project"
 version = "1.0.0"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 dependencies = [
     "requests==2.32.3", #exhortignore
 ]
