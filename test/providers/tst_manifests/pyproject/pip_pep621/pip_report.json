@@ -8,7 +8,7 @@
 			"metadata": {
 				"name": "test-project",
 				"version": "1.0.0",
-				"requires_dist": ["requests>=2.32"]
+				"requires_dist": ["requests[socks]>=2.32"]
 			}
 		},
 		{
@@ -56,6 +56,14 @@
 			"metadata": {
 				"name": "certifi",
 				"version": "2026.2.2"
+			}
+		},
+		{
+			"download_info": {"url": "https://pypi.org/PySocks-1.7.1.whl", "archive_info": {}},
+			"requested": false,
+			"metadata": {
+				"name": "PySocks",
+				"version": "1.7.1"
 			}
 		}
 	]
