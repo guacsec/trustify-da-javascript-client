@@ -219,21 +219,19 @@ suite('testing the python-pyproject data provider', () => {
 			expect(names).to.not.include('pysocks')
 		}).timeout(TIMEOUT)
 
-		/** Verifies exhortignore marker in PEP 621 dependencies excludes the dep. */
-		test('exhortignore marker excludes dep from component analysis', async () => {
-			let result = await pipProvider.provideComponent(path.join(pipIgnoreDir, 'pyproject.toml'))
-			let sbom = JSON.parse(result.content)
-			let names = sbom.components.map(c => c.name)
-			expect(names).to.not.include('requests')
-		}).timeout(TIMEOUT)
-
-		/** Verifies exhortignore excludes dep and its exclusive transitive deps from stack analysis. */
-		test('exhortignore marker excludes dep from stack analysis', async () => {
-			let result = await pipProvider.provideStack(path.join(pipIgnoreDir, 'pyproject.toml'))
-			let sbom = JSON.parse(result.content)
-			let names = sbom.components.map(c => c.name)
-			expect(names).to.not.include('requests')
-		}).timeout(TIMEOUT)
+		/** Verifies exhortignore marker produces expected SBOM for stack and component analysis. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`verify exhortignore produces expected sbom for ${type} analysis with pip`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(pipIgnoreDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await pipProvider[method](path.join(pipIgnoreDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
 
 		/** Verifies name canonicalization (charset_normalizer -> charset-normalizer). */
 		test('name canonicalization: charset_normalizer resolved as charset-normalizer', async () => {

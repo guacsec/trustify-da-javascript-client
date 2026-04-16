@@ -82,6 +82,7 @@ test/
 - **Test patterns**: `expect(res).to.deep.equal(...)`, `expect(() => ...).to.throw('message')`
 - **Higher-order setup**: Functions like `interceptAndRun()` for test setup/teardown
 - **Prefer real tool invocations over env var overrides**: Tests should call the actual ecosystem tools (pip, uv, poetry, mvn, npm, etc.) rather than injecting pre-recorded output via `TRUSTIFY_DA_*` environment variables. The CI environment has these tools available. Env var overrides (`TRUSTIFY_DA_PIP_REPORT`, `TRUSTIFY_DA_UV_EXPORT`, etc.) exist for users who lack the tool locally, but tests should exercise the real tool path to catch integration issues.
+- **Golden SBOM files for every test fixture**: Every provider test fixture directory must include `expected_stack_sbom.json` and `expected_component_sbom.json` golden files. Tests must use the `SBOM_CASES` pattern to do a full `deep.equal` comparison of the provider output against these golden files. Manual partial assertions (e.g. checking a single component name) are not a substitute — they may be added as supplementary tests but never as the only verification for a fixture.
 
 ## Commit Messages
 
