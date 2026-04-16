@@ -210,15 +210,6 @@ suite('testing the python-pyproject data provider', () => {
 			expect(transNames).to.include('urllib3')
 		}).timeout(TIMEOUT)
 
-		/** Verifies extras-only dependencies (e.g. PySocks for socks extra) are excluded. */
-		test('extras-only dependencies are filtered from the dependency tree', async () => {
-			let result = await pipProvider.provideStack(path.join(pipFixtureDir, 'pyproject.toml'))
-			let sbom = JSON.parse(result.content)
-			let names = sbom.components.map(c => c.name)
-			expect(names).to.not.include('PySocks')
-			expect(names).to.not.include('pysocks')
-		}).timeout(TIMEOUT)
-
 		/** Verifies exhortignore marker produces expected SBOM for stack and component analysis. */
 		SBOM_CASES.forEach(({type, method, fixture}) => {
 			test(`verify exhortignore produces expected sbom for ${type} analysis with pip`, async () => {

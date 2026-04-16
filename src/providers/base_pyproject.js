@@ -250,64 +250,27 @@ export default class Base_pyproject {
 	}
 
 	/**
-	 * Build dependency tree from graph, starting from direct deps.
-	 * @param {Map<string, GraphEntry>} graph
-	 * @param {string[]} directDeps - canonical names of direct deps
+	 * Compute the set of graph nodes reachable from direct deps, excluding ignored.
+	 * @param {Map<string, {name: string, version: string, children: string[]}>} graph
+	 * @param {string[]} directDeps
 	 * @param {Set<string>} ignoredDeps
-	 * @param {boolean} includeTransitive
-	 * @returns {DepTreeEntry[]}
+	 * @returns {Set<string>}
 	 * @protected
 	 */
-	_buildDependencyTree(graph, directDeps, ignoredDeps, includeTransitive) {
-		let result = []
-
-		for (let key of directDeps) {
-			if (ignoredDeps.has(key)) { continue }
-
-			let entry = graph.get(key)
-			if (!entry) { continue }
-
-			let depTree = []
-			if (includeTransitive) {
-				let visited = new Set()
-				visited.add(key)
-				this._collectTransitive(graph, entry.children, depTree, ignoredDeps, visited)
+	_reachableNodes(graph, directDeps, ignoredDeps) {
+		let reachable = new Set()
+		let queue = directDeps.filter(k => !ignoredDeps.has(k) && graph.has(k))
+		while (queue.length > 0) {
+			let key = queue.shift()
+			if (reachable.has(key)) { continue }
+			reachable.add(key)
+			for (let child of graph.get(key).children) {
+				if (!ignoredDeps.has(child) && graph.has(child) && !reachable.has(child)) {
+					queue.push(child)
+				}
 			}
-
-			result.push({ name: entry.name, version: entry.version, dependencies: depTree })
 		}
-
-		result.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-		return result
-	}
-
-	/**
-	 * Recursively collect transitive dependencies.
-	 * @param {Map<string, GraphEntry>} graph
-	 * @param {string[]} childKeys
-	 * @param {DepTreeEntry[]} result - mutated in place
-	 * @param {Set<string>} ignoredDeps
-	 * @param {Set<string>} visited
-	 * @returns {void}
-	 * @protected
-	 */
-	_collectTransitive(graph, childKeys, result, ignoredDeps, visited) {
-		for (let childKey of childKeys) {
-			let canonKey = this._canonicalize(childKey)
-			if (ignoredDeps.has(canonKey)) { continue }
-			if (visited.has(canonKey)) { continue }
-			visited.add(canonKey)
-
-			let entry = graph.get(canonKey)
-			if (!entry) { continue }
-
-			let childDeps = []
-			this._collectTransitive(graph, entry.children, childDeps, ignoredDeps, visited)
-
-			result.push({ name: entry.name, version: entry.version, dependencies: childDeps })
-		}
-
-		result.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+		return reachable
 	}
 
 	/**
@@ -318,22 +281,6 @@ export default class Base_pyproject {
 	 */
 	_toPurl(name, version) {
 		return new PackageURL('pypi', undefined, name, version, undefined, undefined)
-	}
-
-	/**
-	 * Recursively add a dependency and its transitive deps to the SBOM.
-	 * @param {PackageURL} source
-	 * @param {DepTreeEntry} dep
-	 * @param {Sbom} sbom
-	 * @returns {void}
-	 * @private
-	 */
-	_addAllDependencies(source, dep, sbom) {
-		let targetPurl = this._toPurl(dep.name, dep.version)
-		sbom.addDependency(source, targetPurl)
-		if (dep.dependencies && dep.dependencies.length > 0) {
-			dep.dependencies.forEach(child => this._addAllDependencies(this._toPurl(dep.name, dep.version), child, sbom))
-		}
 	}
 
 	/**
@@ -353,7 +300,6 @@ export default class Base_pyproject {
 		let { directDeps, graph } = await this._getDependencyData(manifestDir, workspaceDir, parsed, opts)
 
 		let ignoredDeps = this._getIgnoredDeps(manifest)
-		let dependencies = this._buildDependencyTree(graph, directDeps, ignoredDeps, includeTransitive)
 
 		let sbom = new Sbom()
 		let rootName = this._getProjectName(parsed) || DEFAULT_ROOT_NAME
@@ -362,13 +308,30 @@ export default class Base_pyproject {
 		let license = this.readLicenseFromManifest(manifest)
 		sbom.addRoot(rootPurl, license)
 
-		dependencies.forEach(dep => {
-			if (includeTransitive) {
-				this._addAllDependencies(rootPurl, dep, sbom)
-			} else {
-				sbom.addDependency(rootPurl, this._toPurl(dep.name, dep.version))
+		if (includeTransitive) {
+			let reachable = this._reachableNodes(graph, directDeps, ignoredDeps)
+			for (let key of directDeps) {
+				if (!reachable.has(key)) { continue }
+				let entry = graph.get(key)
+				sbom.addDependency(rootPurl, this._toPurl(entry.name, entry.version))
 			}
-		})
+			for (let [key, entry] of graph) {
+				if (!reachable.has(key)) { continue }
+				let parentPurl = this._toPurl(entry.name, entry.version)
+				for (let child of entry.children) {
+					if (!reachable.has(child)) { continue }
+					let childEntry = graph.get(child)
+					sbom.addDependency(parentPurl, this._toPurl(childEntry.name, childEntry.version))
+				}
+			}
+		} else {
+			for (let key of directDeps) {
+				if (ignoredDeps.has(key)) { continue }
+				let entry = graph.get(key)
+				if (!entry) { continue }
+				sbom.addDependency(rootPurl, this._toPurl(entry.name, entry.version))
+			}
+		}
 
 		return sbom.getAsJsonString(opts)
 	}

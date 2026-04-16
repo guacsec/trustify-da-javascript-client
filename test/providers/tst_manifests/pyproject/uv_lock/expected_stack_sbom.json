@@ -21,6 +21,13 @@
 			"bom-ref": "pkg:pypi/flask@2.0.3"
 		},
 		{
+			"name": "requests",
+			"version": "2.25.1",
+			"purl": "pkg:pypi/requests@2.25.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/requests@2.25.1"
+		},
+		{
 			"name": "click",
 			"version": "8.3.1",
 			"purl": "pkg:pypi/click@8.3.1",
@@ -49,13 +56,6 @@
 			"bom-ref": "pkg:pypi/jinja2@3.0.3"
 		},
 		{
-			"name": "markupsafe",
-			"version": "2.0.1",
-			"purl": "pkg:pypi/markupsafe@2.0.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/markupsafe@2.0.1"
-		},
-		{
 			"name": "werkzeug",
 			"version": "2.0.3",
 			"purl": "pkg:pypi/werkzeug@2.0.3",
@@ -63,11 +63,11 @@
 			"bom-ref": "pkg:pypi/werkzeug@2.0.3"
 		},
 		{
-			"name": "requests",
-			"version": "2.25.1",
-			"purl": "pkg:pypi/requests@2.25.1",
+			"name": "markupsafe",
+			"version": "2.0.1",
+			"purl": "pkg:pypi/markupsafe@2.0.1",
 			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.25.1"
+			"bom-ref": "pkg:pypi/markupsafe@2.0.1"
 		},
 		{
 			"name": "certifi",
@@ -116,6 +116,15 @@
 			]
 		},
 		{
+			"ref": "pkg:pypi/requests@2.25.1",
+			"dependsOn": [
+				"pkg:pypi/certifi@2023.7.22",
+				"pkg:pypi/chardet@4.0.0",
+				"pkg:pypi/idna@2.10",
+				"pkg:pypi/urllib3@1.26.16"
+			]
+		},
+		{
 			"ref": "pkg:pypi/click@8.3.1",
 			"dependsOn": [
 				"pkg:pypi/colorama@0.4.6"
@@ -136,21 +145,12 @@
 			]
 		},
 		{
-			"ref": "pkg:pypi/markupsafe@2.0.1",
-			"dependsOn": []
-		},
-		{
 			"ref": "pkg:pypi/werkzeug@2.0.3",
 			"dependsOn": []
 		},
 		{
-			"ref": "pkg:pypi/requests@2.25.1",
-			"dependsOn": [
-				"pkg:pypi/certifi@2023.7.22",
-				"pkg:pypi/chardet@4.0.0",
-				"pkg:pypi/idna@2.10",
-				"pkg:pypi/urllib3@1.26.16"
-			]
+			"ref": "pkg:pypi/markupsafe@2.0.1",
+			"dependsOn": []
 		},
 		{
 			"ref": "pkg:pypi/certifi@2023.7.22",

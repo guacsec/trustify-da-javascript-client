@@ -91,7 +91,6 @@ export default class Python_pip_pyproject extends Base_pyproject {
 			let entry = graph.get(key)
 			let requires = pkg.metadata.requires_dist || []
 			for (let req of requires) {
-				if (this._hasExtraMarker(req)) { continue }
 				let depName = this._extractDepName(req)
 				if (!depName) { continue }
 				let depKey = this._canonicalize(depName)

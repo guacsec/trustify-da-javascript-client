@@ -1,36 +1,36 @@
 {
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
-  "version": 1,
-  "metadata": {
-    "timestamp": "2023-10-01T00:00:00.000Z",
-    "component": {
-      "name": "mid-pkg",
-      "version": "0.1.0",
-      "purl": "pkg:pypi/mid-pkg@0.1.0",
-      "type": "application",
-      "bom-ref": "pkg:pypi/mid-pkg@0.1.0"
-    }
-  },
-  "components": [
-    {
-      "name": "sub-pkg",
-      "version": "0.1.0",
-      "purl": "pkg:pypi/sub-pkg@0.1.0",
-      "type": "library",
-      "bom-ref": "pkg:pypi/sub-pkg@0.1.0"
-    }
-  ],
-  "dependencies": [
-    {
-      "ref": "pkg:pypi/mid-pkg@0.1.0",
-      "dependsOn": [
-        "pkg:pypi/sub-pkg@0.1.0"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/sub-pkg@0.1.0",
-      "dependsOn": []
-    }
-  ]
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.4",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-10-01T00:00:00.000Z",
+		"component": {
+			"name": "mid-pkg",
+			"version": "0.1.0",
+			"purl": "pkg:pypi/mid-pkg@0.1.0",
+			"type": "application",
+			"bom-ref": "pkg:pypi/mid-pkg@0.1.0"
+		}
+	},
+	"components": [
+		{
+			"name": "sub-pkg",
+			"version": "0.1.0",
+			"purl": "pkg:pypi/sub-pkg@0.1.0",
+			"type": "library",
+			"bom-ref": "pkg:pypi/sub-pkg@0.1.0"
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:pypi/mid-pkg@0.1.0",
+			"dependsOn": [
+				"pkg:pypi/sub-pkg@0.1.0"
+			]
+		},
+		{
+			"ref": "pkg:pypi/sub-pkg@0.1.0",
+			"dependsOn": []
+		}
+	]
 }

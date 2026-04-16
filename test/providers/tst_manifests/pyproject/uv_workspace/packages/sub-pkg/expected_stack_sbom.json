@@ -1,85 +1,85 @@
 {
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
-  "version": 1,
-  "metadata": {
-    "timestamp": "2023-10-01T00:00:00.000Z",
-    "component": {
-      "name": "sub-pkg",
-      "version": "0.1.0",
-      "purl": "pkg:pypi/sub-pkg@0.1.0",
-      "type": "application",
-      "bom-ref": "pkg:pypi/sub-pkg@0.1.0"
-    }
-  },
-  "components": [
-    {
-      "name": "requests",
-      "version": "2.33.1",
-      "purl": "pkg:pypi/requests@2.33.1",
-      "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.33.1"
-    },
-    {
-      "name": "certifi",
-      "version": "2026.2.25",
-      "purl": "pkg:pypi/certifi@2026.2.25",
-      "type": "library",
-      "bom-ref": "pkg:pypi/certifi@2026.2.25"
-    },
-    {
-      "name": "charset-normalizer",
-      "version": "3.4.7",
-      "purl": "pkg:pypi/charset-normalizer@3.4.7",
-      "type": "library",
-      "bom-ref": "pkg:pypi/charset-normalizer@3.4.7"
-    },
-    {
-      "name": "idna",
-      "version": "3.11",
-      "purl": "pkg:pypi/idna@3.11",
-      "type": "library",
-      "bom-ref": "pkg:pypi/idna@3.11"
-    },
-    {
-      "name": "urllib3",
-      "version": "2.6.3",
-      "purl": "pkg:pypi/urllib3@2.6.3",
-      "type": "library",
-      "bom-ref": "pkg:pypi/urllib3@2.6.3"
-    }
-  ],
-  "dependencies": [
-    {
-      "ref": "pkg:pypi/sub-pkg@0.1.0",
-      "dependsOn": [
-        "pkg:pypi/requests@2.33.1"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/requests@2.33.1",
-      "dependsOn": [
-        "pkg:pypi/certifi@2026.2.25",
-        "pkg:pypi/charset-normalizer@3.4.7",
-        "pkg:pypi/idna@3.11",
-        "pkg:pypi/urllib3@2.6.3"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/certifi@2026.2.25",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/charset-normalizer@3.4.7",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/idna@3.11",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/urllib3@2.6.3",
-      "dependsOn": []
-    }
-  ]
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.4",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-10-01T00:00:00.000Z",
+		"component": {
+			"name": "sub-pkg",
+			"version": "0.1.0",
+			"purl": "pkg:pypi/sub-pkg@0.1.0",
+			"type": "application",
+			"bom-ref": "pkg:pypi/sub-pkg@0.1.0"
+		}
+	},
+	"components": [
+		{
+			"name": "requests",
+			"version": "2.33.1",
+			"purl": "pkg:pypi/requests@2.33.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/requests@2.33.1"
+		},
+		{
+			"name": "certifi",
+			"version": "2026.2.25",
+			"purl": "pkg:pypi/certifi@2026.2.25",
+			"type": "library",
+			"bom-ref": "pkg:pypi/certifi@2026.2.25"
+		},
+		{
+			"name": "charset-normalizer",
+			"version": "3.4.7",
+			"purl": "pkg:pypi/charset-normalizer@3.4.7",
+			"type": "library",
+			"bom-ref": "pkg:pypi/charset-normalizer@3.4.7"
+		},
+		{
+			"name": "idna",
+			"version": "3.11",
+			"purl": "pkg:pypi/idna@3.11",
+			"type": "library",
+			"bom-ref": "pkg:pypi/idna@3.11"
+		},
+		{
+			"name": "urllib3",
+			"version": "2.6.3",
+			"purl": "pkg:pypi/urllib3@2.6.3",
+			"type": "library",
+			"bom-ref": "pkg:pypi/urllib3@2.6.3"
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:pypi/sub-pkg@0.1.0",
+			"dependsOn": [
+				"pkg:pypi/requests@2.33.1"
+			]
+		},
+		{
+			"ref": "pkg:pypi/requests@2.33.1",
+			"dependsOn": [
+				"pkg:pypi/certifi@2026.2.25",
+				"pkg:pypi/charset-normalizer@3.4.7",
+				"pkg:pypi/idna@3.11",
+				"pkg:pypi/urllib3@2.6.3"
+			]
+		},
+		{
+			"ref": "pkg:pypi/certifi@2026.2.25",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/charset-normalizer@3.4.7",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/idna@3.11",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/urllib3@2.6.3",
+			"dependsOn": []
+		}
+	]
 }

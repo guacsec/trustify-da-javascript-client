@@ -21,6 +21,27 @@
 			"bom-ref": "pkg:pypi/flask@2.0.3"
 		},
 		{
+			"name": "pywin32",
+			"version": "311",
+			"purl": "pkg:pypi/pywin32@311",
+			"type": "library",
+			"bom-ref": "pkg:pypi/pywin32@311"
+		},
+		{
+			"name": "requests",
+			"version": "2.25.1",
+			"purl": "pkg:pypi/requests@2.25.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/requests@2.25.1"
+		},
+		{
+			"name": "typing-extensions",
+			"version": "4.1.1",
+			"purl": "pkg:pypi/typing-extensions@4.1.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/typing-extensions@4.1.1"
+		},
+		{
 			"name": "click",
 			"version": "8.3.1",
 			"purl": "pkg:pypi/click@8.3.1",
@@ -56,20 +77,6 @@
 			"bom-ref": "pkg:pypi/werkzeug@2.0.3"
 		},
 		{
-			"name": "pywin32",
-			"version": "311",
-			"purl": "pkg:pypi/pywin32@311",
-			"type": "library",
-			"bom-ref": "pkg:pypi/pywin32@311"
-		},
-		{
-			"name": "requests",
-			"version": "2.25.1",
-			"purl": "pkg:pypi/requests@2.25.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.25.1"
-		},
-		{
 			"name": "certifi",
 			"version": "2023.7.22",
 			"purl": "pkg:pypi/certifi@2023.7.22",
@@ -96,13 +103,6 @@
 			"purl": "pkg:pypi/urllib3@1.26.16",
 			"type": "library",
 			"bom-ref": "pkg:pypi/urllib3@1.26.16"
-		},
-		{
-			"name": "typing-extensions",
-			"version": "4.1.1",
-			"purl": "pkg:pypi/typing-extensions@4.1.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/typing-extensions@4.1.1"
 		}
 	],
 	"dependencies": [
@@ -123,6 +123,23 @@
 				"pkg:pypi/jinja2@3.0.3",
 				"pkg:pypi/werkzeug@2.0.3"
 			]
+		},
+		{
+			"ref": "pkg:pypi/pywin32@311",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/requests@2.25.1",
+			"dependsOn": [
+				"pkg:pypi/certifi@2023.7.22",
+				"pkg:pypi/chardet@4.0.0",
+				"pkg:pypi/idna@2.10",
+				"pkg:pypi/urllib3@1.26.16"
+			]
+		},
+		{
+			"ref": "pkg:pypi/typing-extensions@4.1.1",
+			"dependsOn": []
 		},
 		{
 			"ref": "pkg:pypi/click@8.3.1",
@@ -147,19 +164,6 @@
 			"dependsOn": []
 		},
 		{
-			"ref": "pkg:pypi/pywin32@311",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/requests@2.25.1",
-			"dependsOn": [
-				"pkg:pypi/certifi@2023.7.22",
-				"pkg:pypi/chardet@4.0.0",
-				"pkg:pypi/idna@2.10",
-				"pkg:pypi/urllib3@1.26.16"
-			]
-		},
-		{
 			"ref": "pkg:pypi/certifi@2023.7.22",
 			"dependsOn": []
 		},
@@ -173,10 +177,6 @@
 		},
 		{
 			"ref": "pkg:pypi/urllib3@1.26.16",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/typing-extensions@4.1.1",
 			"dependsOn": []
 		}
 	]
