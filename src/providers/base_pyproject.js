@@ -251,7 +251,7 @@ export default class Base_pyproject {
 
 	/**
 	 * Compute the set of graph nodes reachable from direct deps, excluding ignored.
-	 * @param {Map<string, {name: string, version: string, children: string[]}>} graph
+	 * @param {Map<string, GraphEntry>} graph
 	 * @param {string[]} directDeps
 	 * @param {Set<string>} ignoredDeps
 	 * @returns {Set<string>}
