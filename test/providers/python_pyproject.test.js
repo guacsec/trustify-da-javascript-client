@@ -121,6 +121,24 @@ suite('testing the python-pyproject data provider', () => {
 		}).timeout(TIMEOUT)
 	})
 
+	suite('uv projects - self-reference excluded (TC-4097)', () => {
+		const fixtureDir = `${MANIFESTS}/uv_self_ref`
+
+		/** Verifies stack and component SBOM output excludes the project itself. */
+		SBOM_CASES.forEach(({type, method, fixture}) => {
+			test(`project self-reference excluded from ${type} analysis`, async () => {
+				let expectedSbom = fs.readFileSync(path.join(fixtureDir, fixture)).toString().trim()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom))
+				let result = await uvProvider[method](path.join(fixtureDir, 'pyproject.toml'))
+				expect(result).to.deep.equal({
+					ecosystem: 'pip',
+					contentType: 'application/vnd.cyclonedx+json',
+					content: expectedSbom
+				})
+			}).timeout(TIMEOUT)
+		})
+	})
+
 	suite('uv projects - uv_lock manifest', () => {
 		const fixtureDir = `${MANIFESTS}/uv_lock`
 

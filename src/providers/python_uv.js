@@ -44,7 +44,7 @@ export default class Python_uv extends Base_pyproject {
 			return Buffer.from(process.env['TRUSTIFY_DA_UV_EXPORT'], 'base64').toString('ascii')
 		}
 		let uvBin = getCustomPath('uv', opts)
-		return invokeCommand(uvBin, ['export', '--format', 'requirements.txt', '--frozen', '--no-hashes', '--no-dev'], { cwd: manifestDir }).toString()
+		return invokeCommand(uvBin, ['export', '--format', 'requirements.txt', '--frozen', '--no-hashes', '--no-dev', '--no-emit-project'], { cwd: manifestDir }).toString()
 	}
 
 	/**
@@ -81,6 +81,7 @@ export default class Python_uv extends Base_pyproject {
 						let version = memberParsed.project?.version || memberParsed.tool?.poetry?.version
 						if (name && version) {
 							let key = this._canonicalize(name)
+							if (key === canonProjectName) { continue }
 							currentPkg = { name, version, parents: new Set() }
 							packages.set(key, currentPkg)
 							collectingVia = false
