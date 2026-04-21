@@ -9,4 +9,4 @@ python = "^3.11"
 requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "22.10.0"
+black = "26.3.1"
