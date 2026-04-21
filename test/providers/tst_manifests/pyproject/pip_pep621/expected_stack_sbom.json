@@ -29,10 +29,10 @@
 		},
 		{
 			"name": "idna",
-			"version": "3.11",
-			"purl": "pkg:pypi/idna@3.11",
+			"version": "3.12",
+			"purl": "pkg:pypi/idna@3.12",
 			"type": "library",
-			"bom-ref": "pkg:pypi/idna@3.11"
+			"bom-ref": "pkg:pypi/idna@3.12"
 		},
 		{
 			"name": "urllib3",
@@ -60,14 +60,19 @@
 		{
 			"ref": "pkg:pypi/test-project@1.0.0",
 			"dependsOn": [
-				"pkg:pypi/requests@2.32.3"
+				"pkg:pypi/requests@2.32.3",
+				"pkg:pypi/charset-normalizer@3.4.7",
+				"pkg:pypi/idna@3.12",
+				"pkg:pypi/urllib3@2.6.3",
+				"pkg:pypi/certifi@2026.2.25",
+				"pkg:pypi/pysocks@1.7.1"
 			]
 		},
 		{
 			"ref": "pkg:pypi/requests@2.32.3",
 			"dependsOn": [
 				"pkg:pypi/charset-normalizer@3.4.7",
-				"pkg:pypi/idna@3.11",
+				"pkg:pypi/idna@3.12",
 				"pkg:pypi/urllib3@2.6.3",
 				"pkg:pypi/certifi@2026.2.25",
 				"pkg:pypi/pysocks@1.7.1"
@@ -78,7 +83,7 @@
 			"dependsOn": []
 		},
 		{
-			"ref": "pkg:pypi/idna@3.11",
+			"ref": "pkg:pypi/idna@3.12",
 			"dependsOn": []
 		},
 		{

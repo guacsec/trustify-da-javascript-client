@@ -19,17 +19,77 @@
 			"purl": "pkg:pypi/requests@2.32.3",
 			"type": "library",
 			"bom-ref": "pkg:pypi/requests@2.32.3"
+		},
+		{
+			"name": "charset-normalizer",
+			"version": "3.4.7",
+			"purl": "pkg:pypi/charset-normalizer@3.4.7",
+			"type": "library",
+			"bom-ref": "pkg:pypi/charset-normalizer@3.4.7"
+		},
+		{
+			"name": "idna",
+			"version": "3.12",
+			"purl": "pkg:pypi/idna@3.12",
+			"type": "library",
+			"bom-ref": "pkg:pypi/idna@3.12"
+		},
+		{
+			"name": "urllib3",
+			"version": "2.6.3",
+			"purl": "pkg:pypi/urllib3@2.6.3",
+			"type": "library",
+			"bom-ref": "pkg:pypi/urllib3@2.6.3"
+		},
+		{
+			"name": "certifi",
+			"version": "2026.2.25",
+			"purl": "pkg:pypi/certifi@2026.2.25",
+			"type": "library",
+			"bom-ref": "pkg:pypi/certifi@2026.2.25"
+		},
+		{
+			"name": "pysocks",
+			"version": "1.7.1",
+			"purl": "pkg:pypi/pysocks@1.7.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/pysocks@1.7.1"
 		}
 	],
 	"dependencies": [
 		{
 			"ref": "pkg:pypi/test-project@1.0.0",
 			"dependsOn": [
-				"pkg:pypi/requests@2.32.3"
+				"pkg:pypi/requests@2.32.3",
+				"pkg:pypi/charset-normalizer@3.4.7",
+				"pkg:pypi/idna@3.12",
+				"pkg:pypi/urllib3@2.6.3",
+				"pkg:pypi/certifi@2026.2.25",
+				"pkg:pypi/pysocks@1.7.1"
 			]
 		},
 		{
 			"ref": "pkg:pypi/requests@2.32.3",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/charset-normalizer@3.4.7",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/idna@3.12",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/urllib3@2.6.3",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/certifi@2026.2.25",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/pysocks@1.7.1",
 			"dependsOn": []
 		}
 	]
