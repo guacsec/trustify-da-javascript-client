@@ -52,6 +52,7 @@ updates:
   - package-ecosystem: "pip"
     directories:
       - "/test/providers/tst_manifests/pip/**"
+      - "/test/providers/tst_manifests/pyproject/**"
     schedule:
       interval: "monthly"
     labels: []
