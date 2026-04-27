@@ -1,96 +1,96 @@
 {
-	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
-	"version": 1,
-	"metadata": {
-		"timestamp": "2023-10-01T00:00:00.000Z",
-		"component": {
-			"name": "test-project",
-			"version": "0.1.0",
-			"purl": "pkg:pypi/test-project@0.1.0",
-			"type": "application",
-			"bom-ref": "pkg:pypi/test-project@0.1.0"
-		}
-	},
-	"components": [
-		{
-			"name": "beautifulsoup4",
-			"version": "4.12.2",
-			"purl": "pkg:pypi/beautifulsoup4@4.12.2",
-			"type": "library",
-			"bom-ref": "pkg:pypi/beautifulsoup4@4.12.2"
-		},
-		{
-			"name": "certifi",
-			"version": "2023.7.22",
-			"purl": "pkg:pypi/certifi@2023.7.22",
-			"type": "library",
-			"bom-ref": "pkg:pypi/certifi@2023.7.22"
-		},
-		{
-			"name": "click",
-			"version": "8.0.4",
-			"purl": "pkg:pypi/click@8.0.4",
-			"type": "library",
-			"bom-ref": "pkg:pypi/click@8.0.4"
-		},
-		{
-			"name": "flask",
-			"version": "2.0.3",
-			"purl": "pkg:pypi/flask@2.0.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/flask@2.0.3"
-		},
-		{
-			"name": "requests",
-			"version": "2.25.1",
-			"purl": "pkg:pypi/requests@2.25.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.25.1"
-		},
-		{
-			"name": "uvicorn",
-			"version": "0.17.0",
-			"purl": "pkg:pypi/uvicorn@0.17.0",
-			"type": "library",
-			"bom-ref": "pkg:pypi/uvicorn@0.17.0"
-		}
-	],
-	"dependencies": [
-		{
-			"ref": "pkg:pypi/test-project@0.1.0",
-			"dependsOn": [
-				"pkg:pypi/beautifulsoup4@4.12.2",
-				"pkg:pypi/certifi@2023.7.22",
-				"pkg:pypi/click@8.0.4",
-				"pkg:pypi/flask@2.0.3",
-				"pkg:pypi/requests@2.25.1",
-				"pkg:pypi/uvicorn@0.17.0"
-			]
-		},
-		{
-			"ref": "pkg:pypi/beautifulsoup4@4.12.2",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/certifi@2023.7.22",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/click@8.0.4",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/flask@2.0.3",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/requests@2.25.1",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/uvicorn@0.17.0",
-			"dependsOn": []
-		}
-	]
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-10-01T00:00:00.000Z",
+    "component": {
+      "name": "test-project",
+      "version": "0.1.0",
+      "purl": "pkg:pypi/test-project@0.1.0",
+      "type": "application",
+      "bom-ref": "pkg:pypi/test-project@0.1.0"
+    }
+  },
+  "components": [
+    {
+      "name": "beautifulsoup4",
+      "version": "4.12.2",
+      "purl": "pkg:pypi/beautifulsoup4@4.12.2",
+      "type": "library",
+      "bom-ref": "pkg:pypi/beautifulsoup4@4.12.2"
+    },
+    {
+      "name": "certifi",
+      "version": "2023.7.22",
+      "purl": "pkg:pypi/certifi@2023.7.22",
+      "type": "library",
+      "bom-ref": "pkg:pypi/certifi@2023.7.22"
+    },
+    {
+      "name": "click",
+      "version": "8.0.4",
+      "purl": "pkg:pypi/click@8.0.4",
+      "type": "library",
+      "bom-ref": "pkg:pypi/click@8.0.4"
+    },
+    {
+      "name": "flask",
+      "version": "2.0.3",
+      "purl": "pkg:pypi/flask@2.0.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/flask@2.0.3"
+    },
+    {
+      "name": "requests",
+      "version": "2.25.1",
+      "purl": "pkg:pypi/requests@2.25.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/requests@2.25.1"
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.17.0",
+      "purl": "pkg:pypi/uvicorn@0.17.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/uvicorn@0.17.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/test-project@0.1.0",
+      "dependsOn": [
+        "pkg:pypi/beautifulsoup4@4.12.2",
+        "pkg:pypi/certifi@2023.7.22",
+        "pkg:pypi/click@8.0.4",
+        "pkg:pypi/flask@2.0.3",
+        "pkg:pypi/requests@2.25.1",
+        "pkg:pypi/uvicorn@0.17.0"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/beautifulsoup4@4.12.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/certifi@2023.7.22",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/click@8.0.4",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/flask@2.0.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/requests@2.25.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/uvicorn@0.17.0",
+      "dependsOn": []
+    }
+  ]
 }

@@ -1,172 +1,159 @@
 {
-	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
-	"version": 1,
-	"metadata": {
-		"timestamp": "2023-10-01T00:00:00.000Z",
-		"component": {
-			"name": "test-project",
-			"version": "1.0.0",
-			"purl": "pkg:pypi/test-project@1.0.0",
-			"type": "application",
-			"bom-ref": "pkg:pypi/test-project@1.0.0"
-		}
-	},
-	"components": [
-		{
-			"name": "flask",
-			"version": "2.0.3",
-			"purl": "pkg:pypi/flask@2.0.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/flask@2.0.3"
-		},
-		{
-			"name": "requests",
-			"version": "2.25.1",
-			"purl": "pkg:pypi/requests@2.25.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.25.1"
-		},
-		{
-			"name": "click",
-			"version": "8.3.1",
-			"purl": "pkg:pypi/click@8.3.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/click@8.3.1"
-		},
-		{
-			"name": "colorama",
-			"version": "0.4.6",
-			"purl": "pkg:pypi/colorama@0.4.6",
-			"type": "library",
-			"bom-ref": "pkg:pypi/colorama@0.4.6"
-		},
-		{
-			"name": "itsdangerous",
-			"version": "2.0.1",
-			"purl": "pkg:pypi/itsdangerous@2.0.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/itsdangerous@2.0.1"
-		},
-		{
-			"name": "jinja2",
-			"version": "3.0.3",
-			"purl": "pkg:pypi/jinja2@3.0.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/jinja2@3.0.3"
-		},
-		{
-			"name": "werkzeug",
-			"version": "2.0.3",
-			"purl": "pkg:pypi/werkzeug@2.0.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/werkzeug@2.0.3"
-		},
-		{
-			"name": "markupsafe",
-			"version": "2.0.1",
-			"purl": "pkg:pypi/markupsafe@2.0.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/markupsafe@2.0.1"
-		},
-		{
-			"name": "certifi",
-			"version": "2023.7.22",
-			"purl": "pkg:pypi/certifi@2023.7.22",
-			"type": "library",
-			"bom-ref": "pkg:pypi/certifi@2023.7.22"
-		},
-		{
-			"name": "chardet",
-			"version": "4.0.0",
-			"purl": "pkg:pypi/chardet@4.0.0",
-			"type": "library",
-			"bom-ref": "pkg:pypi/chardet@4.0.0"
-		},
-		{
-			"name": "idna",
-			"version": "2.10",
-			"purl": "pkg:pypi/idna@2.10",
-			"type": "library",
-			"bom-ref": "pkg:pypi/idna@2.10"
-		},
-		{
-			"name": "urllib3",
-			"version": "1.26.16",
-			"purl": "pkg:pypi/urllib3@1.26.16",
-			"type": "library",
-			"bom-ref": "pkg:pypi/urllib3@1.26.16"
-		}
-	],
-	"dependencies": [
-		{
-			"ref": "pkg:pypi/test-project@1.0.0",
-			"dependsOn": [
-				"pkg:pypi/flask@2.0.3",
-				"pkg:pypi/requests@2.25.1"
-			]
-		},
-		{
-			"ref": "pkg:pypi/flask@2.0.3",
-			"dependsOn": [
-				"pkg:pypi/click@8.3.1",
-				"pkg:pypi/itsdangerous@2.0.1",
-				"pkg:pypi/jinja2@3.0.3",
-				"pkg:pypi/werkzeug@2.0.3"
-			]
-		},
-		{
-			"ref": "pkg:pypi/requests@2.25.1",
-			"dependsOn": [
-				"pkg:pypi/certifi@2023.7.22",
-				"pkg:pypi/chardet@4.0.0",
-				"pkg:pypi/idna@2.10",
-				"pkg:pypi/urllib3@1.26.16"
-			]
-		},
-		{
-			"ref": "pkg:pypi/click@8.3.1",
-			"dependsOn": [
-				"pkg:pypi/colorama@0.4.6"
-			]
-		},
-		{
-			"ref": "pkg:pypi/colorama@0.4.6",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/itsdangerous@2.0.1",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/jinja2@3.0.3",
-			"dependsOn": [
-				"pkg:pypi/markupsafe@2.0.1"
-			]
-		},
-		{
-			"ref": "pkg:pypi/werkzeug@2.0.3",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/markupsafe@2.0.1",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/certifi@2023.7.22",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/chardet@4.0.0",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/idna@2.10",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/urllib3@1.26.16",
-			"dependsOn": []
-		}
-	]
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-10-01T00:00:00.000Z",
+    "component": {
+      "name": "test-project",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/test-project@1.0.0",
+      "type": "application",
+      "bom-ref": "pkg:pypi/test-project@1.0.0"
+    }
+  },
+  "components": [
+    {
+      "name": "flask",
+      "version": "2.0.3",
+      "purl": "pkg:pypi/flask@2.0.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/flask@2.0.3"
+    },
+    {
+      "name": "requests",
+      "version": "2.25.1",
+      "purl": "pkg:pypi/requests@2.25.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/requests@2.25.1"
+    },
+    {
+      "name": "click",
+      "version": "8.3.1",
+      "purl": "pkg:pypi/click@8.3.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/click@8.3.1"
+    },
+    {
+      "name": "itsdangerous",
+      "version": "2.0.1",
+      "purl": "pkg:pypi/itsdangerous@2.0.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/itsdangerous@2.0.1"
+    },
+    {
+      "name": "jinja2",
+      "version": "3.0.3",
+      "purl": "pkg:pypi/jinja2@3.0.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/jinja2@3.0.3"
+    },
+    {
+      "name": "werkzeug",
+      "version": "2.0.3",
+      "purl": "pkg:pypi/werkzeug@2.0.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/werkzeug@2.0.3"
+    },
+    {
+      "name": "markupsafe",
+      "version": "2.0.1",
+      "purl": "pkg:pypi/markupsafe@2.0.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/markupsafe@2.0.1"
+    },
+    {
+      "name": "certifi",
+      "version": "2023.7.22",
+      "purl": "pkg:pypi/certifi@2023.7.22",
+      "type": "library",
+      "bom-ref": "pkg:pypi/certifi@2023.7.22"
+    },
+    {
+      "name": "chardet",
+      "version": "4.0.0",
+      "purl": "pkg:pypi/chardet@4.0.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/chardet@4.0.0"
+    },
+    {
+      "name": "idna",
+      "version": "2.10",
+      "purl": "pkg:pypi/idna@2.10",
+      "type": "library",
+      "bom-ref": "pkg:pypi/idna@2.10"
+    },
+    {
+      "name": "urllib3",
+      "version": "1.26.16",
+      "purl": "pkg:pypi/urllib3@1.26.16",
+      "type": "library",
+      "bom-ref": "pkg:pypi/urllib3@1.26.16"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/test-project@1.0.0",
+      "dependsOn": [
+        "pkg:pypi/flask@2.0.3",
+        "pkg:pypi/requests@2.25.1"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/flask@2.0.3",
+      "dependsOn": [
+        "pkg:pypi/click@8.3.1",
+        "pkg:pypi/itsdangerous@2.0.1",
+        "pkg:pypi/jinja2@3.0.3",
+        "pkg:pypi/werkzeug@2.0.3"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/requests@2.25.1",
+      "dependsOn": [
+        "pkg:pypi/certifi@2023.7.22",
+        "pkg:pypi/chardet@4.0.0",
+        "pkg:pypi/idna@2.10",
+        "pkg:pypi/urllib3@1.26.16"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/click@8.3.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/itsdangerous@2.0.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/jinja2@3.0.3",
+      "dependsOn": [
+        "pkg:pypi/markupsafe@2.0.1"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/werkzeug@2.0.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/markupsafe@2.0.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/certifi@2023.7.22",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/chardet@4.0.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/idna@2.10",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/urllib3@1.26.16",
+      "dependsOn": []
+    }
+  ]
 }

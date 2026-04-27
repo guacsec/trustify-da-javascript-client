@@ -9,6 +9,7 @@ import Python_poetry from '../../src/providers/python_poetry.js'
 import Python_uv from '../../src/providers/python_uv.js'
 
 let clock
+let originalPlatform
 
 const TIMEOUT = process.env.GITHUB_ACTIONS ? 30000 : 15000
 
@@ -343,6 +344,171 @@ suite('testing the python-pyproject data provider', () => {
 		}
 	})
 
+	suite('uv projects - PEP 508 marker filtering (TC-4042 reproducer)', () => {
+		const fixtureDir = `${MANIFESTS}/uv_marker_filtering`
+
+		function makeUvExport(markerLines) {
+			let lines = [
+				'click==8.3.1',
+				'    # via marker-test',
+				'six==1.16.0',
+				'    # via marker-test',
+			]
+			for (let ml of markerLines) {
+				lines.push(ml.line)
+				lines.push(`    # via ${ml.via || 'click'}`)
+			}
+			return lines.join('\n')
+		}
+
+		function injectAndRun(uvExportContent, fn) {
+			return async () => {
+				process.env['TRUSTIFY_DA_UV_EXPORT'] = Buffer.from(uvExportContent).toString('base64')
+				try { await fn() } finally { delete process.env['TRUSTIFY_DA_UV_EXPORT'] }
+			}
+		}
+
+		const EXCLUDED_MARKERS = [
+			{desc: 'sys_platform == win32', line: "colorama==0.4.6 ; sys_platform == 'win32'"},
+			{desc: 'platform_system == Windows', line: "colorama==0.4.6 ; platform_system == 'Windows'"},
+			{desc: 'os_name == nt', line: "colorama==0.4.6 ; os_name == 'nt'"},
+			{desc: 'compound marker (win32 and python)', line: "colorama==0.4.6 ; sys_platform == 'win32' and python_version >= '3.8'"},
+		]
+
+		EXCLUDED_MARKERS.forEach(({desc, line}) => {
+			test(`packages with non-matching marker excluded from stack: ${desc}`, injectAndRun(
+				makeUvExport([{line}]),
+				async () => {
+					let result = await uvProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+					let sbom = JSON.parse(result.content)
+					let names = sbom.components.map(c => c.name)
+					expect(names).to.include('click')
+					expect(names).to.not.include('colorama',
+						`colorama with marker "${desc}" should be excluded on this platform`)
+				}
+			)).timeout(TIMEOUT)
+		})
+
+		const INCLUDED_MARKERS = [
+			{desc: 'python_version >= 3.8 (matches most systems)', line: "six==1.16.0 ; python_version >= '3.8'", pkg: 'six', via: 'marker-test'},
+			{desc: 'os_name == posix (matches linux/macOS)', line: "six==1.16.0 ; os_name == 'posix'", pkg: 'six', via: 'marker-test'},
+		]
+
+		INCLUDED_MARKERS.forEach(({desc, line, pkg, via}) => {
+			test(`packages with matching marker included in stack: ${desc}`, injectAndRun(
+				makeUvExport([{line, via}]),
+				async () => {
+					let result = await uvProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+					let sbom = JSON.parse(result.content)
+					let names = sbom.components.map(c => c.name)
+					expect(names).to.include(pkg,
+						`${pkg} with marker "${desc}" should be included on this platform`)
+				}
+			)).timeout(TIMEOUT)
+		})
+
+		test('click dependency tree should not reference colorama when marker does not match', injectAndRun(
+			makeUvExport([{line: "colorama==0.4.6 ; sys_platform == 'win32'"}]),
+			async () => {
+				let result = await uvProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+				let sbom = JSON.parse(result.content)
+				let clickDep = sbom.dependencies.find(d => d.ref.includes('/click@'))
+				expect(clickDep).to.exist
+				expect(clickDep.dependsOn).to.deep.equal([],
+					'click should have no children since colorama is marker-filtered')
+			}
+		)).timeout(TIMEOUT)
+	})
+
+	suite('poetry projects - PEP 508 marker filtering (TC-4042 reproducer)', () => {
+		const fixtureDir = `${MANIFESTS}/poetry_marker_filtering`
+
+		function injectPoetryAndRun(treeLines, allLines, fn) {
+			return async () => {
+				process.env['TRUSTIFY_DA_POETRY_SHOW_TREE'] = Buffer.from(treeLines.join('\n')).toString('base64')
+				process.env['TRUSTIFY_DA_POETRY_SHOW_ALL'] = Buffer.from(allLines.join('\n')).toString('base64')
+				try { await fn() } finally {
+					delete process.env['TRUSTIFY_DA_POETRY_SHOW_TREE']
+					delete process.env['TRUSTIFY_DA_POETRY_SHOW_ALL']
+				}
+			}
+		}
+
+		const showAll = [
+			'click            8.3.1  Composable command line interface toolkit',
+			'colorama         0.4.6  Cross-platform colored terminal text.',
+			'six              1.16.0 Python 2 and 3 compatibility utilities',
+			'win32-setctime   1.1.0  A small Python utility to set file creation time on Windows',
+			'pyreadline3      3.4.1  A Python implementation of GNU readline.',
+		]
+
+		const EXCLUDED_CASES = [
+			{
+				desc: 'platform_system == Windows (colorama via click)',
+				tree: [
+					'click 8.3.1 Composable command line interface toolkit',
+					'└── colorama *',
+					'six 1.16.0 Python 2 and 3 compatibility utilities',
+				],
+				excluded: 'colorama',
+				included: ['click', 'six'],
+			},
+			{
+				desc: 'os_name == nt (win32-setctime as direct dep)',
+				tree: [
+					'click 8.3.1 Composable command line interface toolkit',
+					'six 1.16.0 Python 2 and 3 compatibility utilities',
+					'win32-setctime 1.1.0 A small Python utility to set file creation time on Windows',
+				],
+				excluded: 'win32-setctime',
+				included: ['click', 'six'],
+			},
+			{
+				desc: 'sys_platform == win32 (pyreadline3 as direct dep)',
+				tree: [
+					'click 8.3.1 Composable command line interface toolkit',
+					'six 1.16.0 Python 2 and 3 compatibility utilities',
+					'pyreadline3 3.4.1 A Python implementation of GNU readline.',
+				],
+				excluded: 'pyreadline3',
+				included: ['click', 'six'],
+			},
+		]
+
+		EXCLUDED_CASES.forEach(({desc, tree, excluded, included}) => {
+			test(`packages with non-matching marker excluded from stack: ${desc}`, injectPoetryAndRun(
+				tree, showAll,
+				async () => {
+					let result = await poetryProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+					let sbom = JSON.parse(result.content)
+					let names = sbom.components.map(c => c.name)
+					for (let inc of included) {
+						expect(names).to.include(inc)
+					}
+					expect(names).to.not.include(excluded,
+						`${excluded} with marker "${desc}" should be excluded on this platform`)
+				}
+			)).timeout(TIMEOUT)
+		})
+
+		test('click dependency tree should not reference colorama when marker does not match', injectPoetryAndRun(
+			[
+				'click 8.3.1 Composable command line interface toolkit',
+				'└── colorama *',
+				'six 1.16.0 Python 2 and 3 compatibility utilities',
+			],
+			showAll,
+			async () => {
+				let result = await poetryProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+				let sbom = JSON.parse(result.content)
+				let clickDep = sbom.dependencies.find(d => d.ref.includes('/click@'))
+				expect(clickDep).to.exist
+				expect(clickDep.dependsOn).to.deep.equal([],
+					'click should have no children since colorama is marker-filtered')
+			}
+		)).timeout(TIMEOUT)
+	})
+
 	suite('workspace/monorepo support', () => {
 		const uvWorkspace = `${MANIFESTS}/uv_workspace`
 
@@ -425,4 +591,11 @@ suite('testing the python-pyproject data provider', () => {
 		})
 	})
 
-}).beforeAll(() => clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z'))).afterAll(() => clock.restore())
+}).beforeAll(() => {
+	originalPlatform = process.platform
+	Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+	clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z'))
+}).afterAll(() => {
+	Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true })
+	clock.restore()
+})

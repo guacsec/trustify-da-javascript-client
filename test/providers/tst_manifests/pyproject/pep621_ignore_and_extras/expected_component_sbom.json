@@ -1,72 +1,60 @@
 {
-	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
-	"version": 1,
-	"metadata": {
-		"timestamp": "2023-10-01T00:00:00.000Z",
-		"component": {
-			"name": "test-project",
-			"version": "1.0.0",
-			"purl": "pkg:pypi/test-project@1.0.0",
-			"type": "application",
-			"bom-ref": "pkg:pypi/test-project@1.0.0"
-		}
-	},
-	"components": [
-		{
-			"name": "flask",
-			"version": "2.0.3",
-			"purl": "pkg:pypi/flask@2.0.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/flask@2.0.3"
-		},
-		{
-			"name": "pywin32",
-			"version": "311",
-			"purl": "pkg:pypi/pywin32@311",
-			"type": "library",
-			"bom-ref": "pkg:pypi/pywin32@311"
-		},
-		{
-			"name": "requests",
-			"version": "2.25.1",
-			"purl": "pkg:pypi/requests@2.25.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.25.1"
-		},
-		{
-			"name": "typing-extensions",
-			"version": "4.1.1",
-			"purl": "pkg:pypi/typing-extensions@4.1.1",
-			"type": "library",
-			"bom-ref": "pkg:pypi/typing-extensions@4.1.1"
-		}
-	],
-	"dependencies": [
-		{
-			"ref": "pkg:pypi/test-project@1.0.0",
-			"dependsOn": [
-				"pkg:pypi/flask@2.0.3",
-				"pkg:pypi/pywin32@311",
-				"pkg:pypi/requests@2.25.1",
-				"pkg:pypi/typing-extensions@4.1.1"
-			]
-		},
-		{
-			"ref": "pkg:pypi/flask@2.0.3",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/pywin32@311",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/requests@2.25.1",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/typing-extensions@4.1.1",
-			"dependsOn": []
-		}
-	]
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-10-01T00:00:00.000Z",
+    "component": {
+      "name": "test-project",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/test-project@1.0.0",
+      "type": "application",
+      "bom-ref": "pkg:pypi/test-project@1.0.0"
+    }
+  },
+  "components": [
+    {
+      "name": "flask",
+      "version": "2.0.3",
+      "purl": "pkg:pypi/flask@2.0.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/flask@2.0.3"
+    },
+    {
+      "name": "requests",
+      "version": "2.25.1",
+      "purl": "pkg:pypi/requests@2.25.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/requests@2.25.1"
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.1.1",
+      "purl": "pkg:pypi/typing-extensions@4.1.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/typing-extensions@4.1.1"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/test-project@1.0.0",
+      "dependsOn": [
+        "pkg:pypi/flask@2.0.3",
+        "pkg:pypi/requests@2.25.1",
+        "pkg:pypi/typing-extensions@4.1.1"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/flask@2.0.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/requests@2.25.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/typing-extensions@4.1.1",
+      "dependsOn": []
+    }
+  ]
 }

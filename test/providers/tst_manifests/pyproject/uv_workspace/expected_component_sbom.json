@@ -1,48 +1,48 @@
 {
-	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
-	"version": 1,
-	"metadata": {
-		"timestamp": "2023-10-01T00:00:00.000Z",
-		"component": {
-			"name": "uv-mono",
-			"version": "0.1.0",
-			"purl": "pkg:pypi/uv-mono@0.1.0",
-			"type": "application",
-			"bom-ref": "pkg:pypi/uv-mono@0.1.0"
-		}
-	},
-	"components": [
-		{
-			"name": "mid-pkg",
-			"version": "0.1.0",
-			"purl": "pkg:pypi/mid-pkg@0.1.0",
-			"type": "library",
-			"bom-ref": "pkg:pypi/mid-pkg@0.1.0"
-		},
-		{
-			"name": "flask",
-			"version": "2.0.3",
-			"purl": "pkg:pypi/flask@2.0.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/flask@2.0.3"
-		}
-	],
-	"dependencies": [
-		{
-			"ref": "pkg:pypi/uv-mono@0.1.0",
-			"dependsOn": [
-				"pkg:pypi/mid-pkg@0.1.0",
-				"pkg:pypi/flask@2.0.3"
-			]
-		},
-		{
-			"ref": "pkg:pypi/mid-pkg@0.1.0",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/flask@2.0.3",
-			"dependsOn": []
-		}
-	]
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-10-01T00:00:00.000Z",
+    "component": {
+      "name": "uv-mono",
+      "version": "0.1.0",
+      "purl": "pkg:pypi/uv-mono@0.1.0",
+      "type": "application",
+      "bom-ref": "pkg:pypi/uv-mono@0.1.0"
+    }
+  },
+  "components": [
+    {
+      "name": "mid-pkg",
+      "version": "0.1.0",
+      "purl": "pkg:pypi/mid-pkg@0.1.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/mid-pkg@0.1.0"
+    },
+    {
+      "name": "flask",
+      "version": "2.0.3",
+      "purl": "pkg:pypi/flask@2.0.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/flask@2.0.3"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/uv-mono@0.1.0",
+      "dependsOn": [
+        "pkg:pypi/mid-pkg@0.1.0",
+        "pkg:pypi/flask@2.0.3"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/mid-pkg@0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/flask@2.0.3",
+      "dependsOn": []
+    }
+  ]
 }

@@ -1,60 +1,60 @@
 {
-	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
-	"version": 1,
-	"metadata": {
-		"timestamp": "2023-10-01T00:00:00.000Z",
-		"component": {
-			"name": "poetry-only-project",
-			"version": "1.0.0",
-			"purl": "pkg:pypi/poetry-only-project@1.0.0",
-			"type": "application",
-			"bom-ref": "pkg:pypi/poetry-only-project@1.0.0"
-		}
-	},
-	"components": [
-		{
-			"name": "click",
-			"version": "8.1.8",
-			"purl": "pkg:pypi/click@8.1.8",
-			"type": "library",
-			"bom-ref": "pkg:pypi/click@8.1.8"
-		},
-		{
-			"name": "flask",
-			"version": "2.3.3",
-			"purl": "pkg:pypi/flask@2.3.3",
-			"type": "library",
-			"bom-ref": "pkg:pypi/flask@2.3.3"
-		},
-		{
-			"name": "requests",
-			"version": "2.32.4",
-			"purl": "pkg:pypi/requests@2.32.4",
-			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.32.4"
-		}
-	],
-	"dependencies": [
-		{
-			"ref": "pkg:pypi/poetry-only-project@1.0.0",
-			"dependsOn": [
-				"pkg:pypi/click@8.1.8",
-				"pkg:pypi/flask@2.3.3",
-				"pkg:pypi/requests@2.32.4"
-			]
-		},
-		{
-			"ref": "pkg:pypi/click@8.1.8",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/flask@2.3.3",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/requests@2.32.4",
-			"dependsOn": []
-		}
-	]
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-10-01T00:00:00.000Z",
+    "component": {
+      "name": "poetry-only-project",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/poetry-only-project@1.0.0",
+      "type": "application",
+      "bom-ref": "pkg:pypi/poetry-only-project@1.0.0"
+    }
+  },
+  "components": [
+    {
+      "name": "click",
+      "version": "8.1.8",
+      "purl": "pkg:pypi/click@8.1.8",
+      "type": "library",
+      "bom-ref": "pkg:pypi/click@8.1.8"
+    },
+    {
+      "name": "flask",
+      "version": "2.3.3",
+      "purl": "pkg:pypi/flask@2.3.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/flask@2.3.3"
+    },
+    {
+      "name": "requests",
+      "version": "2.32.4",
+      "purl": "pkg:pypi/requests@2.32.4",
+      "type": "library",
+      "bom-ref": "pkg:pypi/requests@2.32.4"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/poetry-only-project@1.0.0",
+      "dependsOn": [
+        "pkg:pypi/click@8.1.8",
+        "pkg:pypi/flask@2.3.3",
+        "pkg:pypi/requests@2.32.4"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/click@8.1.8",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/flask@2.3.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/requests@2.32.4",
+      "dependsOn": []
+    }
+  ]
 }

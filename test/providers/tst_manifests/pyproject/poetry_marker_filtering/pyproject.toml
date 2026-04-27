@@ -1,0 +1,15 @@
+[project]
+name = "marker-test"
+version = "1.0.0"
+dependencies = [
+    "click==8.3.1",
+    "six==1.16.0",
+    "win32-setctime==1.1.0; os_name == 'nt'",
+    "pyreadline3==3.4.1; sys_platform == 'win32'",
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry]
+name = "marker-test"
