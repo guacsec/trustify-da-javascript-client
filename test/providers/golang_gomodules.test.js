@@ -58,6 +58,15 @@ suite('testing the golang-go-modules data provider', () => {
 
 	});
 
+	test('verify go_mod_no_ignore component analysis includes all root-level deps from go mod graph', async () => {
+		let providedData = await golangGoModules.provideComponent('test/providers/tst_manifests/golang/go_mod_no_ignore/go.mod')
+		let sbom = JSON.parse(providedData.content)
+		let rootDeps = sbom.dependencies.find(d => d.dependsOn && d.dependsOn.length > 0)
+		expect(rootDeps.dependsOn).to.have.lengthOf(45,
+			'Component analysis should include all root-level edges from go mod graph as direct deps. ' +
+			'A lower count indicates the directDepPaths filtering is incorrectly excluding indirect require entries.')
+	}).timeout(process.env.GITHUB_ACTIONS ? 15000 : 10000);
+
 	[
 		"go_mod_mvs_versions"
 

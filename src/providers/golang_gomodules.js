@@ -249,15 +249,6 @@ async function getSBOM(manifest, opts = {}, includeTransitive) {
 	let rows = goGraphOutput.split(getLineSeparatorGolang()).filter(line => !line.includes(' go@'));
 	let root = goModEditOutput['Module']['Path']
 
-	// Build set of direct dependency paths from go mod edit -json
-	let directDepPaths = new Set()
-	if (goModEditOutput['Require']) {
-		goModEditOutput['Require'].forEach(req => {
-			if (!req['Indirect']) {
-				directDepPaths.add(req['Path'])
-			}
-		})
-	}
 	let matchManifestVersions = getCustom("MATCH_MANIFEST_VERSIONS", "false", opts);
 	if(matchManifestVersions === "true") {
 		performManifestVersionsCheck(root, rows, manifestContent, parser, requireQuery)
@@ -281,9 +272,6 @@ async function getSBOM(manifest, opts = {}, includeTransitive) {
 			}
 			let child = getChildVertexFromEdge(row)
 			let target = toPurl(child, "@");
-			if (getParentVertexFromEdge(row) === root && !directDepPaths.has(getPackageName(child))) {
-				return;
-			}
 			sbom.addDependency(source, target)
 
 		})
@@ -296,9 +284,7 @@ async function getSBOM(manifest, opts = {}, includeTransitive) {
 			let child = getChildVertexFromEdge(pair)
 			let target = toPurl(child, "@");
 			if(dependencyNotIgnored(ignoredDeps, target)) {
-				if (directDepPaths.has(getPackageName(child))) {
-					sbom.addDependency(mainModule, target)
-				}
+				sbom.addDependency(mainModule, target)
 			}
 		})
 		enforceRemovingIgnoredDepsInCaseOfAutomaticVersionUpdate(ignoredDeps, sbom)
