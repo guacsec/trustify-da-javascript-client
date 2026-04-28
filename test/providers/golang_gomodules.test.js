@@ -27,41 +27,26 @@ suite('testing the golang-go-modules data provider', () => {
 		"go_mod_empty"
 	].forEach(testCase => {
 		let scenario = testCase.replace('go_mod_', '').replaceAll('_', ' ')
-		test(`verify go.mod sbom provided for stack analysis with scenario ${scenario}`, async () => {
-			// load the expected graph for the scenario
-			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/expected_sbom_stack_analysis.json`).toString()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom),null, 4)
-			// invoke sut stack analysis for scenario manifest
-			let providedDataForStack = await golangGoModules.provideStack(`test/providers/tst_manifests/golang/${testCase}/go.mod`)
-			// new(year: number, month: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number): Date
-
-			// providedDataForStack.content = providedDataForStack.content.replaceAll("\"timestamp\":\"[a-zA-Z0-9\\-\\:]+\"","")
-			// verify returned data matches expectation
-			expect(providedDataForStack.ecosystem).equal('golang')
-			expect(providedDataForStack.contentType).equal('application/vnd.cyclonedx+json')
-			expect(JSON.stringify(JSON.parse(providedDataForStack.content),null, 4).trim()).to.deep.equal(expectedSbom.trim())
-		// these test cases takes ~2500-2700 ms each pr >10000 in CI (for the first test-case)
-		}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000)
-
-		test(`verify go.mod sbom provided for component analysis with scenario ${scenario}`, async () => {
-			// load the expected list for the scenario
-			let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/expected_sbom_component_analysis.json`).toString().trimEnd()
-			expectedSbom = JSON.stringify(JSON.parse(expectedSbom),null, 4)
-			// invoke sut stack analysis for scenario manifest
-			let providedDataForComponent = await golangGoModules.provideComponent(`test/providers/tst_manifests/golang/${testCase}/go.mod`)
-			// verify returned data matches expectation
-			expect(providedDataForComponent.ecosystem).equal('golang')
-			expect(providedDataForComponent.contentType).equal('application/vnd.cyclonedx+json')
-			expect(JSON.stringify(JSON.parse(providedDataForComponent.content),null,4).trimEnd()).to.deep.equal(expectedSbom)
-			// these test cases takes ~1400-2000 ms each pr >10000 in CI (for the first test-case)
-		}).timeout(process.env.GITHUB_ACTIONS ? 15000 : 10000)
-
+		;[
+			{type: 'stack', method: 'provideStack', fixture: 'expected_sbom_stack_analysis.json', ciTimeout: 30000},
+			{type: 'component', method: 'provideComponent', fixture: 'expected_sbom_component_analysis.json', ciTimeout: 15000}
+		].forEach(({type, method, fixture, ciTimeout}) => {
+			test(`verify go.mod sbom provided for ${type} analysis with scenario ${scenario}`, async () => {
+				let expectedSbom = fs.readFileSync(`test/providers/tst_manifests/golang/${testCase}/${fixture}`).toString()
+				expectedSbom = JSON.stringify(JSON.parse(expectedSbom), null, 4)
+				let providedData = await golangGoModules[method](`test/providers/tst_manifests/golang/${testCase}/go.mod`)
+				expect(providedData.ecosystem).equal('golang')
+				expect(providedData.contentType).equal('application/vnd.cyclonedx+json')
+				expect(JSON.stringify(JSON.parse(providedData.content), null, 4).trimEnd()).to.deep.equal(expectedSbom.trimEnd())
+			}).timeout(process.env.GITHUB_ACTIONS ? ciTimeout : 10000)
+		})
 	});
 
 	test('verify go_mod_no_ignore component analysis includes all root-level deps from go mod graph', async () => {
 		let providedData = await golangGoModules.provideComponent('test/providers/tst_manifests/golang/go_mod_no_ignore/go.mod')
 		let sbom = JSON.parse(providedData.content)
-		let rootDeps = sbom.dependencies.find(d => d.dependsOn && d.dependsOn.length > 0)
+		let rootRef = sbom.metadata.component.purl
+		let rootDeps = sbom.dependencies.find(d => d.ref === rootRef)
 		expect(rootDeps.dependsOn).to.have.lengthOf(45,
 			'Component analysis should include all root-level edges from go mod graph as direct deps. ' +
 			'A lower count indicates the directDepPaths filtering is incorrectly excluding indirect require entries.')
