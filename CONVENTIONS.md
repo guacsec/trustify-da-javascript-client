@@ -1,6 +1,6 @@
 # Coding Conventions
 
-<!-- This file documents project-specific coding standards for exhort-javascript-api. -->
+<!-- This file documents project-specific coding standards for trustify-da-javascript-client. -->
 
 ## Language and Framework
 
