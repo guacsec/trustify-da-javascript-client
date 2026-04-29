@@ -30,70 +30,100 @@ updates:
         patterns:
           - "*"
 
-  # ── Test fixture manifests (suppress all updates including security) ─
-  # These directories contain intentionally pinned dependencies used as
-  # test fixtures. They must NOT be updated by dependabot.
-  - package-ecosystem: "npm"
-    directories:
-      - "/test/providers/tst_manifests/npm/**"
-      - "/test/providers/tst_manifests/pnpm/**"
-      - "/test/providers/tst_manifests/yarn-berry/**"
-      - "/test/providers/tst_manifests/yarn-classic/**"
-      - "/test/providers/tst_manifests/js-common/**"
-      - "/test/providers/provider_manifests/npm/**"
-      - "/test/providers/provider_manifests/pnpm/**"
-      - "/test/providers/provider_manifests/yarn-berry/**"
-      - "/test/providers/provider_manifests/yarn-classic/**"
+  # ── Non-production ecosystems (no real deps, suppress everything) ────
+  # The repo has no production maven/pip/go/gradle/cargo dependencies.
+  # A root-level ignore-all entry ensures security updates are also
+  # suppressed, since per-directory entries with globs don't reliably
+  # block them.
+  - package-ecosystem: "maven"
+    directory: "/"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 0
     labels: []
     ignore:
       - dependency-name: "*"
   - package-ecosystem: "pip"
-    directories:
-      - "/test/providers/tst_manifests/pip/**"
-      - "/test/providers/tst_manifests/pyproject/**"
+    directory: "/"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 0
     labels: []
     ignore:
       - dependency-name: "*"
   - package-ecosystem: "uv"
-    directories:
-      - "/test/providers/tst_manifests/pyproject/**"
+    directory: "/"
     schedule:
       interval: "monthly"
-    labels: []
-    ignore:
-      - dependency-name: "*"
-  - package-ecosystem: "maven"
-    directories:
-      - "/test/providers/tst_manifests/maven/**"
-    schedule:
-      interval: "monthly"
-    labels: []
-    ignore:
-      - dependency-name: "*"
-  - package-ecosystem: "gradle"
-    directories:
-      - "/test/providers/tst_manifests/gradle/**"
-    schedule:
-      interval: "monthly"
-    labels: []
-    ignore:
-      - dependency-name: "*"
-  - package-ecosystem: "cargo"
-    directories:
-      - "/test/providers/tst_manifests/cargo/**"
-      - "/test/providers/provider_manifests/cargo/**"
-    schedule:
-      interval: "monthly"
+    open-pull-requests-limit: 0
     labels: []
     ignore:
       - dependency-name: "*"
   - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+    labels: []
+    ignore:
+      - dependency-name: "*"
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+    labels: []
+    ignore:
+      - dependency-name: "*"
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+    labels: []
+    ignore:
+      - dependency-name: "*"
+
+  # ── Test fixture manifests (npm only) ───────────────────────────────
+  # npm is the production ecosystem so it cannot use a root-level
+  # ignore-all. Glob patterns (/**) don't reliably match nested
+  # subdirectories for security updates, so every directory containing
+  # a package.json is listed explicitly. Update this list when adding
+  # new test fixtures.
+  - package-ecosystem: "npm"
     directories:
-      - "/test/providers/tst_manifests/golang/**"
+      - "/test/providers/provider_manifests/npm/with_lock_file"
+      - "/test/providers/provider_manifests/npm/without_lock_file"
+      - "/test/providers/provider_manifests/npm/workspace_member_with_lock"
+      - "/test/providers/provider_manifests/npm/workspace_member_with_lock/packages/module-a"
+      - "/test/providers/provider_manifests/npm/workspace_member_without_lock"
+      - "/test/providers/provider_manifests/npm/workspace_member_without_lock/packages/module-a"
+      - "/test/providers/provider_manifests/pnpm/with_lock_file"
+      - "/test/providers/provider_manifests/pnpm/without_lock_file"
+      - "/test/providers/provider_manifests/pnpm/workspace_member_without_lock"
+      - "/test/providers/provider_manifests/pnpm/workspace_member_without_lock/packages/module-a"
+      - "/test/providers/provider_manifests/yarn-berry/with_lock_file"
+      - "/test/providers/provider_manifests/yarn-berry/without_lock_file"
+      - "/test/providers/provider_manifests/yarn-classic/with_lock_file"
+      - "/test/providers/provider_manifests/yarn-classic/without_lock_file"
+      - "/test/providers/tst_manifests/npm/package_json_deps_with_exhortignore_object"
+      - "/test/providers/tst_manifests/npm/package_json_deps_with_mixed_dep_types"
+      - "/test/providers/tst_manifests/npm/package_json_deps_without_exhortignore_object"
+      - "/test/providers/tst_manifests/npm/workspace_member"
+      - "/test/providers/tst_manifests/npm/workspace_member/packages/member-a"
+      - "/test/providers/tst_manifests/pnpm/package_json_deps_with_exhortignore_object"
+      - "/test/providers/tst_manifests/pnpm/package_json_deps_with_mixed_dep_types"
+      - "/test/providers/tst_manifests/pnpm/package_json_deps_without_exhortignore_object"
+      - "/test/providers/tst_manifests/pnpm/workspace_member"
+      - "/test/providers/tst_manifests/pnpm/workspace_member/packages/member-a"
+      - "/test/providers/tst_manifests/yarn-berry/package_json_deps_with_exhortignore_object"
+      - "/test/providers/tst_manifests/yarn-berry/package_json_deps_with_mixed_dep_types"
+      - "/test/providers/tst_manifests/yarn-berry/package_json_deps_without_exhortignore_object"
+      - "/test/providers/tst_manifests/yarn-berry/workspace_member"
+      - "/test/providers/tst_manifests/yarn-berry/workspace_member/packages/member-a"
+      - "/test/providers/tst_manifests/yarn-classic/package_json_deps_with_exhortignore_object"
+      - "/test/providers/tst_manifests/yarn-classic/package_json_deps_with_mixed_dep_types"
+      - "/test/providers/tst_manifests/yarn-classic/package_json_deps_without_exhortignore_object"
     schedule:
       interval: "monthly"
     labels: []
