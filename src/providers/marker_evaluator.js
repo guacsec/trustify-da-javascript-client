@@ -6,18 +6,19 @@
 import { execSync } from 'node:child_process'
 import os from 'node:os'
 
-let cachedPythonVersion = undefined
+let cachedPythonVersions = undefined
 
-function getPythonVersion() {
-	if (cachedPythonVersion !== undefined) { return cachedPythonVersion }
+function getPythonVersions() {
+	if (cachedPythonVersions !== undefined) { return cachedPythonVersions }
 	try {
-		let out = execSync('python3 -c "import sys; print(f\'{sys.version_info.major}.{sys.version_info.minor}\')"',
+		let out = execSync('python3 -c "import sys; v=sys.version_info; print(f\'{v.major}.{v.minor} {v.major}.{v.minor}.{v.micro}\')"',
 			{ timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim()
-		cachedPythonVersion = out
+		let [short, full] = out.split(' ')
+		cachedPythonVersions = { short, full }
 	} catch {
-		cachedPythonVersion = null
+		cachedPythonVersions = null
 	}
-	return cachedPythonVersion
+	return cachedPythonVersions
 }
 
 /**
@@ -29,7 +30,7 @@ export function getEnvironmentMarkers() {
 	let platform = process.platform
 	let systemMap = { win32: 'Windows', linux: 'Linux', darwin: 'Darwin' }
 	let machine = typeof os.machine === 'function' ? os.machine() : process.arch
-	let pyVer = getPythonVersion()
+	let pyVer = getPythonVersions()
 	return {
 		sys_platform: platform,
 		platform_system: systemMap[platform] || platform,
@@ -37,8 +38,8 @@ export function getEnvironmentMarkers() {
 		platform_machine: machine,
 		platform_release: os.release(),
 		platform_version: os.version?.() || '',
-		python_version: pyVer || '',
-		python_full_version: pyVer || '',
+		python_version: pyVer?.short || '',
+		python_full_version: pyVer?.full || '',
 		implementation_name: 'cpython',
 	}
 }

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { evaluateMarker } from '../../src/providers/marker_evaluator.js'
+import { evaluateMarker, getEnvironmentMarkers } from '../../src/providers/marker_evaluator.js'
 
 let originalPlatform
 
@@ -80,6 +80,39 @@ suite('PEP 508 marker evaluator', () => {
 			expect(evaluateMarker("'win32' != sys_platform")).to.equal(
 				evaluateMarker("sys_platform != 'win32'")
 			)
+		})
+	})
+
+	suite('python_version vs python_full_version', () => {
+		test('python_version matches X.Y format', () => {
+			let env = getEnvironmentMarkers()
+			if (env.python_version) {
+				expect(env.python_version).to.match(/^\d+\.\d+$/)
+			}
+		})
+
+		test('python_full_version matches X.Y.Z format', () => {
+			let env = getEnvironmentMarkers()
+			if (env.python_full_version) {
+				expect(env.python_full_version).to.match(/^\d+\.\d+\.\d+$/)
+			}
+		})
+
+		test('python_full_version starts with python_version', () => {
+			let env = getEnvironmentMarkers()
+			if (env.python_version && env.python_full_version) {
+				expect(env.python_full_version).to.satisfy(
+					v => v.startsWith(env.python_version + '.')
+				)
+			}
+		})
+
+		test('python_full_version marker evaluates with micro version', () => {
+			let env = getEnvironmentMarkers()
+			if (env.python_full_version) {
+				expect(evaluateMarker(`python_full_version >= '${env.python_full_version}'`)).to.be.true
+				expect(evaluateMarker(`python_full_version == '${env.python_full_version}'`)).to.be.true
+			}
 		})
 	})
 })
