@@ -88,8 +88,8 @@ function evaluateComparison(variable, op, value, env) {
 	switch (op) {
 	case '==': return envVal === value
 	case '!=': return envVal !== value
-	case 'in': return value.split(',').map(s => s.trim()).includes(envVal)
-	case 'not in': return !value.split(',').map(s => s.trim()).includes(envVal)
+	case 'in': return value.includes(envVal)
+	case 'not in': return !value.includes(envVal)
 	default: return envVal === value
 	}
 }
