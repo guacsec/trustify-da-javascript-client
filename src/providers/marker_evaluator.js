@@ -103,9 +103,13 @@ function parseAtom(expr) {
 	let m = expr.match(/^\s*([\w.]+)\s*(~=|!=|==|>=|<=|>|<|not\s+in|in)\s*["']([^"']*)["']\s*$/)
 	if (m) { return { variable: m[1], op: m[2].replace(/\s+/g, ' '), value: m[3] } }
 
-	// Reversed form: 'value' op variable
+	// Reversed form: 'value' op variable — reverse directional operators
 	let mReverse = expr.match(/^\s*["']([^"']*)['"]\s*(~=|!=|==|>=|<=|>|<|not\s+in|in)\s*([\w.]+)\s*$/)
-	if (mReverse) { return { variable: mReverse[3], op: mReverse[2].replace(/\s+/g, ' '), value: mReverse[1] } }
+	if (mReverse) {
+		let reverseOp = { '<': '>', '>': '<', '<=': '>=', '>=': '<=' }
+		let op = mReverse[2].replace(/\s+/g, ' ')
+		return { variable: mReverse[3], op: reverseOp[op] || op, value: mReverse[1] }
+	}
 
 	return null
 }

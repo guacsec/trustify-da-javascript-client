@@ -44,4 +44,42 @@ suite('PEP 508 marker evaluator', () => {
 			expect(evaluateMarker("sys_platform not in 'lin'")).to.be.true
 		})
 	})
+
+	suite('reversed form — directional operator reversal', () => {
+		test('>= is reversed to <= when operands are swapped', () => {
+			expect(evaluateMarker("'3.8' >= python_version")).to.equal(
+				evaluateMarker("python_version <= '3.8'")
+			)
+		})
+
+		test('< is reversed to > when operands are swapped', () => {
+			expect(evaluateMarker("'3.8' < python_version")).to.equal(
+				evaluateMarker("python_version > '3.8'")
+			)
+		})
+
+		test('> is reversed to < when operands are swapped', () => {
+			expect(evaluateMarker("'3.8' > python_version")).to.equal(
+				evaluateMarker("python_version < '3.8'")
+			)
+		})
+
+		test('<= is reversed to >= when operands are swapped', () => {
+			expect(evaluateMarker("'3.8' <= python_version")).to.equal(
+				evaluateMarker("python_version >= '3.8'")
+			)
+		})
+
+		test('== is unchanged when operands are swapped', () => {
+			expect(evaluateMarker("'linux' == sys_platform")).to.equal(
+				evaluateMarker("sys_platform == 'linux'")
+			)
+		})
+
+		test('!= is unchanged when operands are swapped', () => {
+			expect(evaluateMarker("'win32' != sys_platform")).to.equal(
+				evaluateMarker("sys_platform != 'win32'")
+			)
+		})
+	})
 })
