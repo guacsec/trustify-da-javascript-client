@@ -11,6 +11,7 @@ import { discoverMavenModules } from './providers/java_maven.js'
 import { discoverGradleSubprojects } from './providers/java_gradle.js'
 import { discoverGoWorkspaceModules } from './providers/golang_gomodules.js'
 import {
+	discoverUvWorkspaceMembers,
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
 	filterManifestPathsByDiscoveryIgnore,
@@ -29,6 +30,7 @@ export {
 	discoverMavenModules,
 	discoverGradleSubprojects,
 	discoverGoWorkspaceModules,
+	discoverUvWorkspaceMembers,
 	discoverWorkspacePackages,
 	discoverWorkspaceCrates,
 	validatePackageJson,
@@ -89,7 +91,7 @@ export {
 /**
  * @typedef {{
  *   workspaceRoot: string,
- *   ecosystem: 'javascript' | 'cargo' | 'unknown',
+ *   ecosystem: 'javascript' | 'cargo' | 'pyproject' | 'unknown',
  *   total: number,
  *   successful: number,
  *   failed: number,
@@ -325,7 +327,7 @@ async function generateOneSbom(manifestPath, workspaceOpts) {
  *
  * @param {string} root - Resolved workspace root
  * @param {Options} opts
- * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'maven' | 'gradle' | 'gomodules' | 'unknown', manifestPaths: string[] }>}
+ * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'maven' | 'gradle' | 'gomodules' | 'pyproject' | 'unknown', manifestPaths: string[] }>}
  * @private
  */
 async function detectWorkspaceManifests(root, opts) {
@@ -358,6 +360,13 @@ async function detectWorkspaceManifests(root, opts) {
 		const manifestPaths = await discoverGoWorkspaceModules(root, opts)
 		if (manifestPaths.length > 0) {
 			return { ecosystem: 'gomodules', manifestPaths }
+		}
+	}
+
+	if (fs.existsSync(path.join(root, 'pyproject.toml')) && fs.existsSync(path.join(root, 'uv.lock'))) {
+		const manifestPaths = await discoverUvWorkspaceMembers(root, opts)
+		if (manifestPaths.length > 0) {
+			return { ecosystem: 'pyproject', manifestPaths }
 		}
 	}
 
@@ -556,7 +565,7 @@ async function stackAnalysisBatch(workspaceRoot, html = false, opts = {}) {
 	}
 
 	if (manifestPaths.length === 0) {
-		throw new Error(`No workspace manifests found at ${root}. Ensure a supported workspace root exists (Cargo.toml+Cargo.lock, go.work, or package.json+lock file).`)
+		throw new Error(`No workspace manifests found at ${root}. Ensure a supported workspace root exists (Cargo.toml+Cargo.lock, pom.xml, build.gradle, go.work, pyproject.toml+uv.lock, or package.json+lock file).`)
 	}
 
 	const workspaceOpts = { ...opts, TRUSTIFY_DA_WORKSPACE_DIR: root }

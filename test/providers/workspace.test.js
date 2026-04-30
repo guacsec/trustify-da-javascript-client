@@ -8,6 +8,7 @@ import { discoverGoWorkspaceModules } from '../../src/providers/golang_gomodules
 import { discoverGradleSubprojects } from '../../src/providers/java_gradle.js'
 import { discoverMavenModules } from '../../src/providers/java_maven.js'
 import {
+	discoverUvWorkspaceMembers,
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
 	filterManifestPathsByDiscoveryIgnore,
@@ -191,6 +192,73 @@ suite('discoverWorkspaceCrates', () => {
 	})
 })
 
+suite('discoverUvWorkspaceMembers', () => {
+	test('returns empty when no pyproject.toml at root', async () => {
+		const result = await discoverUvWorkspaceMembers('test/providers/tst_manifests/npm')
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(0)
+	})
+
+	test('returns empty when pyproject.toml exists but no uv.lock', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace_no_lock')
+		const result = await discoverUvWorkspaceMembers(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(0)
+	})
+
+	test('returns empty when pyproject.toml has no [tool.uv.workspace]', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace_no_config')
+		const result = await discoverUvWorkspaceMembers(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(0)
+	})
+
+	test('discovers members from root-package workspace (includes root)', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace')
+		const result = await discoverUvWorkspaceMembers(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(3)
+		expect(result.every(p => p.endsWith('pyproject.toml'))).to.be.true
+		expect(result[0]).to.equal(path.join(root, 'pyproject.toml'))
+		expect(result.some(p => p.includes(path.join('packages', 'mid-pkg')))).to.be.true
+		expect(result.some(p => p.includes(path.join('packages', 'sub-pkg')))).to.be.true
+	})
+
+	test('discovers members from virtual workspace (excludes root)', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace_virtual')
+		const result = await discoverUvWorkspaceMembers(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(2)
+		expect(result.every(p => p.endsWith('pyproject.toml'))).to.be.true
+		expect(result.some(p => p.includes(path.join('packages', 'pkg-a')))).to.be.true
+		expect(result.some(p => p.includes(path.join('packages', 'pkg-b')))).to.be.true
+		expect(result.every(p => p !== path.join(root, 'pyproject.toml'))).to.be.true
+	})
+
+	test('respects exclude patterns', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace_exclude')
+		const result = await discoverUvWorkspaceMembers(root)
+		expect(result.some(p => p.includes(path.join('packages', 'core')))).to.be.true
+		expect(result.some(p => p.includes(path.join('packages', 'internal')))).to.be.false
+	})
+
+	test('discovers members from multiple glob patterns', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace_nested')
+		const result = await discoverUvWorkspaceMembers(root)
+		expect(result).to.be.an('array')
+		expect(result.some(p => p.includes(path.join('apps', 'backend')))).to.be.true
+		expect(result.some(p => p.includes(path.join('libs', 'core')))).to.be.true
+	})
+
+	test('applies workspaceDiscoveryIgnore patterns', async () => {
+		const root = path.resolve('test/providers/tst_manifests/pyproject/uv_workspace_nested')
+		const result = await discoverUvWorkspaceMembers(root, {
+			workspaceDiscoveryIgnore: ['**/libs/**'],
+		})
+		expect(result.some(p => p.includes(path.join('apps', 'backend')))).to.be.true
+		expect(result.some(p => p.includes(path.join('libs', 'core')))).to.be.false
+	})
+})
 
 suite('discoverGradleSubprojects', () => {
 	test('returns empty when no settings.gradle at root', async () => {
@@ -198,7 +266,6 @@ suite('discoverGradleSubprojects', () => {
 		expect(result).to.be.an('array')
 		expect(result).to.have.lengthOf(0)
 	})
-
 	test('discovers multi-project build', async () => {
 		const root = path.resolve('test/providers/tst_manifests/gradle/gradle_multi_project')
 		const result = await discoverGradleSubprojects(root)
