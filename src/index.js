@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import { getCustom } from "./tools.js";
 import { resolveBatchMetadata, resolveContinueOnError } from './batch_opts.js'
 import {
+	discoverUvWorkspaceMembers,
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
 	filterManifestPathsByDiscoveryIgnore,
@@ -23,6 +24,7 @@ export { getProjectLicense, findLicenseFilePath, identifyLicense, getLicenseDeta
 
 export default { componentAnalysis, stackAnalysis, stackAnalysisBatch, imageAnalysis, validateToken, generateSbom }
 export {
+	discoverUvWorkspaceMembers,
 	discoverWorkspacePackages,
 	discoverWorkspaceCrates,
 	validatePackageJson,
@@ -83,7 +85,7 @@ export {
 /**
  * @typedef {{
  *   workspaceRoot: string,
- *   ecosystem: 'javascript' | 'cargo' | 'unknown',
+ *   ecosystem: 'javascript' | 'cargo' | 'pyproject' | 'unknown',
  *   total: number,
  *   successful: number,
  *   failed: number,
@@ -319,7 +321,7 @@ async function generateOneSbom(manifestPath, workspaceOpts) {
  *
  * @param {string} root - Resolved workspace root
  * @param {Options} opts
- * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'unknown', manifestPaths: string[] }>}
+ * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'pyproject' | 'unknown', manifestPaths: string[] }>}
  * @private
  */
 async function detectWorkspaceManifests(root, opts) {
@@ -329,6 +331,13 @@ async function detectWorkspaceManifests(root, opts) {
 
 	if (fs.existsSync(cargoToml) && fs.existsSync(cargoLock)) {
 		return { ecosystem: 'cargo', manifestPaths: await discoverWorkspaceCrates(root, opts) }
+	}
+
+	if (fs.existsSync(path.join(root, 'pyproject.toml')) && fs.existsSync(path.join(root, 'uv.lock'))) {
+		const manifestPaths = await discoverUvWorkspaceMembers(root, opts)
+		if (manifestPaths.length > 0) {
+			return { ecosystem: 'pyproject', manifestPaths }
+		}
 	}
 
 	const hasJsLock = fs.existsSync(path.join(root, 'pnpm-lock.yaml'))
@@ -489,7 +498,7 @@ async function stackAnalysisBatch(workspaceRoot, html = false, opts = {}) {
 	}
 
 	if (manifestPaths.length === 0) {
-		throw new Error(`No workspace manifests found at ${root}. Ensure Cargo.toml+Cargo.lock or package.json+lock file exist.`)
+		throw new Error(`No workspace manifests found at ${root}. Ensure a supported workspace root exists (Cargo.toml+Cargo.lock, pyproject.toml+uv.lock, or package.json+lock file).`)
 	}
 
 	const workspaceOpts = { ...opts, TRUSTIFY_DA_WORKSPACE_DIR: root }
