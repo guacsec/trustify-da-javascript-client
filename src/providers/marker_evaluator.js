@@ -3,16 +3,18 @@
 // "pywin32 ; sys_platform == 'win32'" is excluded on Linux/macOS.
 // See https://peps.python.org/pep-0508/#environment-markers
 
-import { execSync } from 'node:child_process'
 import os from 'node:os'
+
+import { getCustomPath, invokeCommand } from '../tools.js'
 
 let cachedPythonVersions = undefined
 
 function getPythonVersions() {
 	if (cachedPythonVersions !== undefined) { return cachedPythonVersions }
 	try {
-		let out = execSync('python3 -c "import sys; v=sys.version_info; print(f\'{v.major}.{v.minor} {v.major}.{v.minor}.{v.micro}\')"',
-			{ timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim()
+		let python = getCustomPath('python3')
+		let out = invokeCommand(python, ['-c', "import sys; v=sys.version_info; print(f'{v.major}.{v.minor} {v.major}.{v.minor}.{v.micro}')"],
+			{ timeout: 5000 }).toString().trim()
 		let [short, full] = out.split(' ')
 		cachedPythonVersions = { short, full }
 	} catch {
