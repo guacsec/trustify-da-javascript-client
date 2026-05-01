@@ -7,8 +7,8 @@ import esmock from 'esmock'
 import { discoverGoWorkspaceModules } from '../../src/providers/golang_gomodules.js'
 import { discoverGradleSubprojects } from '../../src/providers/java_gradle.js'
 import { discoverMavenModules } from '../../src/providers/java_maven.js'
+import { discoverUvWorkspaceMembers } from '../../src/providers/python_uv.js'
 import {
-	discoverUvWorkspaceMembers,
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
 	filterManifestPathsByDiscoveryIgnore,

@@ -10,8 +10,8 @@ import { resolveBatchMetadata, resolveContinueOnError } from './batch_opts.js'
 import { discoverMavenModules } from './providers/java_maven.js'
 import { discoverGradleSubprojects } from './providers/java_gradle.js'
 import { discoverGoWorkspaceModules } from './providers/golang_gomodules.js'
+import { discoverUvWorkspaceMembers } from './providers/python_uv.js'
 import {
-	discoverUvWorkspaceMembers,
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
 	filterManifestPathsByDiscoveryIgnore,

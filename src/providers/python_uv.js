@@ -1,9 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import fg from 'fast-glob'
 import { parse as parseToml } from 'smol-toml'
 
 import { environmentVariableIsPopulated, getCustomPath, invokeCommand } from '../tools.js'
+import { filterManifestPathsByDiscoveryIgnore, resolveWorkspaceDiscoveryIgnore } from '../workspace.js'
 
 import Base_pyproject from './base_pyproject.js'
 import { getParser, getPinnedVersionQuery } from './requirements_parser.js'
@@ -163,5 +165,100 @@ export default class Python_uv extends Base_pyproject {
 		}
 
 		return { directDeps, graph }
+	}
+}
+
+const DEFAULT_UV_DISCOVERY_IGNORE = [
+	'**/__pycache__/**',
+	'**/.venv/**',
+]
+
+/**
+ * Convert workspace glob patterns to manifest-file glob patterns,
+ * correctly handling negation prefixes.
+ *
+ * @param {string[]} patterns - Workspace glob patterns (may include negations)
+ * @param {string} manifestFileName - e.g. 'pyproject.toml'
+ * @returns {string[]}
+ */
+function toManifestGlobPatterns(patterns, manifestFileName) {
+	return patterns.map(p => {
+		if (p.startsWith('!')) {
+			return `!${p.slice(1)}/${manifestFileName}`
+		}
+		return `${p}/${manifestFileName}`
+	})
+}
+
+/**
+ * Discover all pyproject.toml manifest paths in a uv workspace.
+ * Parses `[tool.uv.workspace]` from root pyproject.toml and glob-expands member patterns.
+ *
+ * @param {string} workspaceRoot - Absolute or relative path to workspace root (must contain pyproject.toml and uv.lock)
+ * @param {{ workspaceDiscoveryIgnore?: string[], TRUSTIFY_DA_WORKSPACE_DISCOVERY_IGNORE?: string, [key: string]: unknown }} [opts={}]
+ * @returns {Promise<string[]>} Paths to pyproject.toml files (absolute)
+ */
+export async function discoverUvWorkspaceMembers(workspaceRoot, opts = {}) {
+	const root = path.resolve(workspaceRoot)
+	const rootPyproject = path.join(root, 'pyproject.toml')
+	const uvLock = path.join(root, 'uv.lock')
+
+	if (!fs.existsSync(rootPyproject) || !fs.existsSync(uvLock)) {
+		return []
+	}
+
+	let parsed
+	try {
+		parsed = parseToml(fs.readFileSync(rootPyproject, 'utf-8'))
+	} catch {
+		return []
+	}
+
+	const workspaceConfig = parsed?.tool?.uv?.workspace
+	if (!workspaceConfig) {
+		return []
+	}
+
+	const memberPatterns = workspaceConfig.members
+	if (!Array.isArray(memberPatterns) || memberPatterns.length === 0) {
+		return []
+	}
+
+	const excludePatterns = Array.isArray(workspaceConfig.exclude) ? workspaceConfig.exclude : []
+	const excludeGlobs = excludePatterns
+		.filter(p => typeof p === 'string' && p.trim())
+		.map(p => `${p.trim()}/pyproject.toml`)
+
+	const ignorePatterns = [...resolveWorkspaceDiscoveryIgnore(opts), ...DEFAULT_UV_DISCOVERY_IGNORE]
+	const globOpts = {
+		cwd: root,
+		absolute: true,
+		onlyFiles: true,
+		ignore: [...ignorePatterns, ...excludeGlobs],
+		followSymbolicLinks: false,
+	}
+
+	const patterns = toManifestGlobPatterns(
+		memberPatterns.filter(p => typeof p === 'string'),
+		'pyproject.toml',
+	)
+	const manifestPaths = await fg(patterns, globOpts)
+
+	if (!manifestPaths.includes(rootPyproject) && hasProjectMetadata(parsed)) {
+		manifestPaths.unshift(rootPyproject)
+	}
+
+	return filterManifestPathsByDiscoveryIgnore(manifestPaths, root, ignorePatterns)
+}
+
+/**
+ * @param {import('smol-toml').TomlTable} parsedPyProject
+ * @returns {boolean}
+ */
+function hasProjectMetadata(parsedPyProject) {
+	try {
+		return typeof parsedPyProject?.project?.name === 'string' && parsedPyProject.project.name.trim() !== ''
+	} catch {
+		return false
 	}
 }
