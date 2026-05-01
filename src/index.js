@@ -7,8 +7,8 @@ import analysis from './analysis.js'
 import fs from 'node:fs'
 import { getCustom } from "./tools.js";
 import { resolveBatchMetadata, resolveContinueOnError } from './batch_opts.js'
+import { discoverUvWorkspaceMembers } from './providers/python_uv.js'
 import {
-	discoverUvWorkspaceMembers,
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
 	filterManifestPathsByDiscoveryIgnore,
@@ -100,7 +100,7 @@ export {
  * @param {any} valueToBePrinted - The value to log.
  * @private
  */
-function logOptionsAndEnvironmentsVariables(alongsideText,valueToBePrinted) {
+function logOptionsAndEnvironmentsVariables(alongsideText, valueToBePrinted) {
 	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log(`${alongsideText}: ${valueToBePrinted} ${EOL}`)
 	}
@@ -112,9 +112,9 @@ function logOptionsAndEnvironmentsVariables(alongsideText,valueToBePrinted) {
  */
 function readAndPrintVersionFromPackageJson() {
 	let dirName
-// new ESM way in nodeJS ( since node version 22 ) to bring module directory.
+	// new ESM way in nodeJS ( since node version 22 ) to bring module directory.
 	dirName = import.meta.dirname
-// old ESM way in nodeJS ( before node versions 22.00 to bring module directory)
+	// old ESM way in nodeJS ( before node versions 22.00 to bring module directory)
 	if (!dirName) {
 		dirName = url.fileURLToPath(new URL('.', import.meta.url));
 	}
