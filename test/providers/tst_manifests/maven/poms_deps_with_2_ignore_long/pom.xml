@@ -52,7 +52,7 @@
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-vertx-http</artifactId> <!-- exhortignore-->
-			<version>2.13.5.Final</version>
+			<version>3.20.6.1</version>
 		</dependency>
 		<dependency>
 			<groupId>io.quarkus</groupId>
