@@ -448,11 +448,48 @@ function batchError(message, wantMetadata, metadata) {
 }
 
 /**
+ * @overload
+ * @param {string} workspaceRoot
+ * @param {true} html
+ * @param {Options & { batchMetadata: true }} opts
+ * @returns {Promise<{ analysis: string, metadata: BatchAnalysisMetadata }>}
+ * @throws {Error}
+ */
+
+/**
+ * @overload
+ * @param {string} workspaceRoot
+ * @param {true} html
+ * @param {Options & { batchMetadata?: false }} [opts={}]
+ * @returns {Promise<string>}
+ * @throws {Error}
+ */
+
+/**
+ * @overload
+ * @param {string} workspaceRoot
+ * @param {false} html
+ * @param {Options & { batchMetadata: true }} opts
+ * @returns {Promise<{ analysis: Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>, metadata: BatchAnalysisMetadata }>}
+ * @throws {Error}
+ */
+
+/**
+ * @overload
+ * @param {string} workspaceRoot
+ * @param {false} html
+ * @param {Options & { batchMetadata?: false }} [opts={}]
+ * @returns {Promise<Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport').AnalysisReport>>}
+ * @throws {Error}
+ */
+
+/**
  * Get stack analysis for all workspace packages/crates (batch).
  * Detects ecosystem from workspace root: Cargo (Cargo.toml + Cargo.lock) or JS/TS (package.json + lock file).
  * SBOMs are generated in parallel (see `batchConcurrency`) unless `continueOnError: false` (fail-fast sequential).
  * With `opts.batchMetadata` / `TRUSTIFY_DA_BATCH_METADATA`, returns `{ analysis, metadata }` including validation and SBOM errors.
  *
+ * @overload
  * @param {string} workspaceRoot - Path to workspace root (containing lock file and workspace config)
  * @param {boolean} [html=false] - true returns HTML, false returns JSON report
  * @param {Options} [opts={}] - `batchConcurrency`, discovery ignores, `continueOnError` (default true), `batchMetadata` (default false)
