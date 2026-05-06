@@ -1,9 +1,8 @@
-import fs from 'node:fs'
 import path from 'node:path'
 
 import { PackageURL } from 'packageurl-js'
 
-import { getCustomPath, getGitRootDir, getWrapperPreference, invokeCommand } from "../tools.js"
+import { getCustomPath, getWrapperPreference, invokeCommand, traverseForWrapper } from "../tools.js"
 
 /** @typedef {import('../provider').Provider} */
 
@@ -145,7 +144,7 @@ export default class Base_Java {
 
 		const useWrapper = getWrapperPreference(this.globalBinary, opts)
 		if (useWrapper) {
-			const wrapper = this.traverseForWrapper(manifestPath)
+			const wrapper = traverseForWrapper(manifestDir, this.localWrapper)
 			if (wrapper !== undefined) {
 				try {
 					this._invokeCommand(wrapper, ['--version'], {cwd: manifestDir})
@@ -168,41 +167,4 @@ export default class Base_Java {
 		return toolPath
 	}
 
-	/**
-	 *
-	 * @param {string} startingManifest - the path of the manifest from which to start searching for the wrapper
-	 * @param {string} repoRoot - the root of the repository at which point to stop searching for mvnw, derived via git if unset and then fallsback
-	 * to the root of the drive the manifest is on (assumes absolute path is given)
-	 * @returns {string|undefined}
-	 */
-	traverseForWrapper(startingManifest, repoRoot = undefined) {
-		const normalizedManifest = this.normalizePath(startingManifest);
-		const currentDir = this.normalizePath(path.dirname(normalizedManifest));
-		repoRoot = repoRoot || getGitRootDir(currentDir) || path.parse(normalizedManifest).root;
-		const wrapperPath = path.join(currentDir, this.localWrapper);
-
-		try {
-			fs.accessSync(wrapperPath, fs.constants.X_OK);
-			return wrapperPath;
-		}
-		catch (error) {
-			if (error.code === 'ENOENT') {
-				const rootDir = path.parse(currentDir).root;
-				if (currentDir === repoRoot || currentDir === rootDir) {
-					return undefined;
-				}
-				const parentDir = path.dirname(currentDir);
-				if (parentDir === currentDir || parentDir === rootDir) {
-					return undefined;
-				}
-				return this.traverseForWrapper(path.join(parentDir, path.basename(normalizedManifest)), repoRoot);
-			}
-			throw new Error(`failure searching for ${this.localWrapper}`, { cause: error });
-		}
-	}
-
-	normalizePath(thePath) {
-		const normalized = path.resolve(thePath).normalize();
-		return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
-	}
 }

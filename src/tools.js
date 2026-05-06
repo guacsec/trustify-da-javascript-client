@@ -1,4 +1,6 @@
 import { execFileSync } from "child_process";
+import fs from 'node:fs'
+import path from 'node:path'
 import { EOL } from "os";
 
 import { HttpsProxyAgent } from "https-proxy-agent";
@@ -134,6 +136,45 @@ export function getGitRootDir(cwd) {
 		return root.toString().trim()
 	} catch (error) {
 		return undefined
+	}
+}
+
+/**
+ * Normalize a filesystem path, lowercasing on Windows for case-insensitive comparison.
+ *
+ * @param {string} thePath
+ * @returns {string}
+ */
+export function normalizePath(thePath) {
+	const normalized = path.resolve(thePath).normalize()
+	return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+/**
+ * Walk up from `startDir` to `repoRoot` looking for an executable wrapper script.
+ *
+ * @param {string} startDir - Absolute directory to start from
+ * @param {string} wrapperName - Wrapper filename (e.g. `mvnw`, `gradlew`)
+ * @param {string} [repoRoot] - Stop boundary (defaults to git root or filesystem root)
+ * @returns {string | undefined}
+ */
+export function traverseForWrapper(startDir, wrapperName, repoRoot = undefined) {
+	const currentDir = normalizePath(startDir)
+	repoRoot = repoRoot || getGitRootDir(currentDir) || path.parse(currentDir).root
+	const wrapperPath = path.join(currentDir, wrapperName)
+	try {
+		fs.accessSync(wrapperPath, fs.constants.X_OK)
+		return wrapperPath
+	} catch {
+		const rootDir = path.parse(currentDir).root
+		if (currentDir === repoRoot || currentDir === rootDir) {
+			return undefined
+		}
+		const parentDir = path.dirname(currentDir)
+		if (parentDir === currentDir || parentDir === rootDir) {
+			return undefined
+		}
+		return traverseForWrapper(parentDir, wrapperName, repoRoot)
 	}
 }
 

@@ -7,6 +7,7 @@ import analysis from './analysis.js'
 import fs from 'node:fs'
 import { getCustom } from "./tools.js";
 import { resolveBatchMetadata, resolveContinueOnError } from './batch_opts.js'
+import { discoverMavenModules } from './providers/java_maven.js'
 import {
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
@@ -23,6 +24,7 @@ export { getProjectLicense, findLicenseFilePath, identifyLicense, getLicenseDeta
 
 export default { componentAnalysis, stackAnalysis, stackAnalysisBatch, imageAnalysis, validateToken, generateSbom }
 export {
+	discoverMavenModules,
 	discoverWorkspacePackages,
 	discoverWorkspaceCrates,
 	validatePackageJson,
@@ -98,7 +100,7 @@ export {
  * @param {any} valueToBePrinted - The value to log.
  * @private
  */
-function logOptionsAndEnvironmentsVariables(alongsideText,valueToBePrinted) {
+function logOptionsAndEnvironmentsVariables(alongsideText, valueToBePrinted) {
 	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 		console.log(`${alongsideText}: ${valueToBePrinted} ${EOL}`)
 	}
@@ -110,9 +112,9 @@ function logOptionsAndEnvironmentsVariables(alongsideText,valueToBePrinted) {
  */
 function readAndPrintVersionFromPackageJson() {
 	let dirName
-// new ESM way in nodeJS ( since node version 22 ) to bring module directory.
+	// new ESM way in nodeJS ( since node version 22 ) to bring module directory.
 	dirName = import.meta.dirname
-// old ESM way in nodeJS ( before node versions 22.00 to bring module directory)
+	// old ESM way in nodeJS ( before node versions 22.00 to bring module directory)
 	if (!dirName) {
 		dirName = url.fileURLToPath(new URL('.', import.meta.url));
 	}
@@ -319,16 +321,24 @@ async function generateOneSbom(manifestPath, workspaceOpts) {
  *
  * @param {string} root - Resolved workspace root
  * @param {Options} opts
- * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'unknown', manifestPaths: string[] }>}
+ * @returns {Promise<{ ecosystem: 'javascript' | 'cargo' | 'maven' | 'unknown', manifestPaths: string[] }>}
  * @private
  */
 async function detectWorkspaceManifests(root, opts) {
 	const cargoToml = path.join(root, 'Cargo.toml')
 	const cargoLock = path.join(root, 'Cargo.lock')
 	const packageJson = path.join(root, 'package.json')
+	const pomXml = path.join(root, 'pom.xml')
 
 	if (fs.existsSync(cargoToml) && fs.existsSync(cargoLock)) {
 		return { ecosystem: 'cargo', manifestPaths: await discoverWorkspaceCrates(root, opts) }
+	}
+
+	if (fs.existsSync(pomXml)) {
+		const manifestPaths = await discoverMavenModules(root, opts)
+		if (manifestPaths.length > 0) {
+			return { ecosystem: 'maven', manifestPaths }
+		}
 	}
 
 	const hasJsLock = fs.existsSync(path.join(root, 'pnpm-lock.yaml'))

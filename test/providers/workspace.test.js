@@ -4,6 +4,7 @@ import path from 'node:path'
 import { expect } from 'chai'
 import esmock from 'esmock'
 
+import { discoverMavenModules } from '../../src/providers/java_maven.js'
 import {
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
@@ -186,4 +187,65 @@ suite('discoverWorkspaceCrates', () => {
 		expect(result.some(p => p.includes('crate-a'))).to.be.true
 		expect(result.some(p => p.includes('crate-b'))).to.be.true
 	})
+})
+
+suite('discoverMavenModules', () => {
+	test('returns empty when no pom.xml at root', async () => {
+		const result = await discoverMavenModules('test/providers/tst_manifests/npm')
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(0)
+	})
+
+	test('returns root pom only when mvn reports no modules', async () => {
+		const root = path.resolve('test/providers/tst_manifests/maven/maven_no_modules')
+		const result = await discoverMavenModules(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(1)
+		expect(result[0]).to.equal(path.join(root, 'pom.xml'))
+	}).timeout(40000)
+
+	test('discovers multi-module project', async () => {
+		const root = path.resolve('test/providers/tst_manifests/maven/maven_multi_module')
+		const result = await discoverMavenModules(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(3)
+		expect(result.every(p => p.endsWith('pom.xml'))).to.be.true
+		expect(result[0]).to.equal(path.join(root, 'pom.xml'))
+		expect(result.some(p => p.includes('module-a'))).to.be.true
+		expect(result.some(p => p.includes('module-b'))).to.be.true
+	}).timeout(40000)
+
+	test('discovers nested aggregator modules recursively', async () => {
+		const root = path.resolve('test/providers/tst_manifests/maven/maven_nested_aggregator')
+		const result = await discoverMavenModules(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(3)
+		expect(result[0]).to.equal(path.join(root, 'pom.xml'))
+		expect(result.some(p => p.includes(path.join('parent', 'pom.xml')))).to.be.true
+		expect(result.some(p => p.includes(path.join('parent', 'child', 'pom.xml')))).to.be.true
+	}).timeout(40000)
+
+	test('returns root pom when mvn is not available', async () => {
+		const root = path.resolve('test/providers/tst_manifests/maven/maven_multi_module')
+		const { discoverMavenModules: discoverMocked } = await esmock('../../src/providers/java_maven.js', {
+			'../../src/tools.js': {
+				getCustomPath: () => '/nonexistent/mvn',
+				getWrapperPreference: () => false,
+				invokeCommand: () => { throw Object.assign(new Error('mvn not found'), { code: 'ENOENT' }) },
+			},
+		})
+		const result = await discoverMocked(root)
+		expect(result).to.be.an('array')
+		expect(result).to.have.lengthOf(1)
+		expect(result[0]).to.equal(path.join(root, 'pom.xml'))
+	})
+
+	test('excludes paths matching workspaceDiscoveryIgnore', async () => {
+		const root = path.resolve('test/providers/tst_manifests/maven/maven_multi_module')
+		const result = await discoverMavenModules(root, {
+			workspaceDiscoveryIgnore: ['**/module-b/**'],
+		})
+		expect(result.some(p => p.includes('module-a'))).to.be.true
+		expect(result.some(p => p.includes('module-b'))).to.be.false
+	}).timeout(40000)
 })
