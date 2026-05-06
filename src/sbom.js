@@ -48,10 +48,12 @@ export default class Sbom {
 	/**
 	 * @param {component} sourceRef current source Component ( Starting from root component by clients)
 	 * @param {PackageURL} targetRef current dependency to add to Dependencies list of component sourceRef
+	 * @param {string} [scope] - Scope of the dependency
+	 * @param {Array<{alg: string, content: string}>} [targetHashes] - Optional hashes for the target component
 	 * @return Sbom
 	 */
-	addDependency(sourceRef, targetRef, scope){
-		return this.sbomModel.addDependency(sourceRef, targetRef, scope)
+	addDependency(sourceRef, targetRef, scope, targetHashes){
+		return this.sbomModel.addDependency(sourceRef, targetRef, scope, targetHashes)
 	}
 
 	/**

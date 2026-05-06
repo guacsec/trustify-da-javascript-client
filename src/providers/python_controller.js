@@ -22,7 +22,7 @@ function getPipShowOutput(depNames) {
 	}
 }
 
-/** @typedef {{name: string, version: string, dependencies: DependencyEntry[]}} DependencyEntry */
+/** @typedef {{name: string, version: string, dependencies: DependencyEntry[], hashes?: Array<{alg: string, content: string}>}} DependencyEntry */
 
 export default class Python_controller {
 	pythonEnvDir

@@ -15,7 +15,7 @@ const IGNORE_MARKERS = ['exhortignore', 'trustify-da-ignore']
 const DEFAULT_ROOT_NAME = 'default-pip-root'
 const DEFAULT_ROOT_VERSION = '0.0.0'
 
-/** @typedef {{name: string, version: string, children: string[]}} GraphEntry */
+/** @typedef {{name: string, version: string, children: string[], hashes?: Array<{alg: string, content: string}>}} GraphEntry */
 /** @typedef {{name: string, version: string, dependencies: DepTreeEntry[]}} DepTreeEntry */
 /** @typedef {{directDeps: string[], graph: Map<string, GraphEntry>}} DependencyData */
 /** @typedef {{ecosystem: string, content: string, contentType: string}} Provided */
@@ -313,7 +313,7 @@ export default class Base_pyproject {
 			for (let key of directDeps) {
 				if (!reachable.has(key)) { continue }
 				let entry = graph.get(key)
-				sbom.addDependency(rootPurl, this._toPurl(entry.name, entry.version))
+				sbom.addDependency(rootPurl, this._toPurl(entry.name, entry.version), undefined, entry.hashes)
 			}
 			for (let [key, entry] of graph) {
 				if (!reachable.has(key)) { continue }
@@ -321,7 +321,7 @@ export default class Base_pyproject {
 				for (let child of entry.children) {
 					if (!reachable.has(child)) { continue }
 					let childEntry = graph.get(child)
-					sbom.addDependency(parentPurl, this._toPurl(childEntry.name, childEntry.version))
+					sbom.addDependency(parentPurl, this._toPurl(childEntry.name, childEntry.version), undefined, childEntry.hashes)
 				}
 			}
 		} else {
@@ -329,7 +329,7 @@ export default class Base_pyproject {
 				if (ignoredDeps.has(key)) { continue }
 				let entry = graph.get(key)
 				if (!entry) { continue }
-				sbom.addDependency(rootPurl, this._toPurl(entry.name, entry.version))
+				sbom.addDependency(rootPurl, this._toPurl(entry.name, entry.version), undefined, entry.hashes)
 			}
 		}
 

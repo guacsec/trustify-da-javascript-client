@@ -8,10 +8,11 @@ import {PackageURL} from "packageurl-js";
  * @param type type of package - application or library
  * @param scope scope of the component - runtime or compile
  * @param licenses optional license string or array of licenses for the component
- * @return {{"bom-ref": string, name, purl: string, type, version, scope, licenses?}}
+ * @param hashes optional array of hash objects for the component, e.g. [{alg: "SHA-256", content: "..."}]
+ * @return {{"bom-ref": string, name, purl: string, type, version, scope, licenses?, hashes?}}
  * @private
  */
-function getComponent(component, type, scope, licenses) {
+function getComponent(component, type, scope, licenses, hashes) {
 	let componentObject;
 	if(component instanceof PackageURL)
 	{
@@ -52,6 +53,11 @@ function getComponent(component, type, scope, licenses) {
 			}
 			return lic;
 		});
+	}
+
+	// Add hashes if provided (CycloneDX 1.4 format).
+	if (hashes && hashes.length > 0) {
+		componentObject.hashes = hashes;
 	}
 
 	return componentObject
@@ -109,9 +115,11 @@ export default class CycloneDxSbom {
 	 * Adds a dependency relationship between two components in the SBOM
 	 * @param {PackageURL} sourceRef - The source component (parent)
 	 * @param {PackageURL} targetRef - The target component (dependency)
+	 * @param {string} [scope] - Scope of the dependency
+	 * @param {Array<{alg: string, content: string}>} [targetHashes] - Optional hashes for the target component
 	 * @return {CycloneDxSbom} The updated SBOM
 	 */
-	addDependency(sourceRef, targetRef, scope) {
+	addDependency(sourceRef, targetRef, scope, targetHashes) {
 		const sourcePurl = sourceRef.toString();
 		const targetPurl = targetRef.toString();
 
@@ -119,7 +127,8 @@ export default class CycloneDxSbom {
 		[sourceRef, targetRef].forEach((ref, index) => {
 			const purl = index === 0 ? sourcePurl : targetPurl;
 			if (this.getComponentIndex(purl) < 0) {
-				this.components.push(getComponent(ref, "library", scope));
+				const hashes = index === 1 ? targetHashes : undefined;
+				this.components.push(getComponent(ref, "library", scope, undefined, hashes));
 			}
 		});
 
