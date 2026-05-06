@@ -126,9 +126,13 @@ export default class CycloneDxSbom {
 		// Ensure both components exist in the components list
 		[sourceRef, targetRef].forEach((ref, index) => {
 			const purl = index === 0 ? sourcePurl : targetPurl;
-			if (this.getComponentIndex(purl) < 0) {
+			const existingIndex = this.getComponentIndex(purl);
+			if (existingIndex < 0) {
 				const hashes = index === 1 ? targetHashes : undefined;
 				this.components.push(getComponent(ref, "library", scope, undefined, hashes));
+			} else if (index === 1 && targetHashes && targetHashes.length > 0 && !this.components[existingIndex].hashes) {
+				// Update hashes if the component was first seen without them (e.g. as a source)
+				this.components[existingIndex].hashes = targetHashes;
 			}
 		});
 

@@ -73,8 +73,6 @@ async function provideComponent(manifest, opts = {}) {
 	}
 }
 
-/** @typedef {{name: string, version: string, dependencies: DependencyEntry[], hashes?: Array<{alg: string, content: string}>}} DependencyEntry */
-
 /**
  *
  * @param {PackageURL}source

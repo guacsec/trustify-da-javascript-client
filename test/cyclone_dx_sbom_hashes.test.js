@@ -96,6 +96,45 @@ suite('CycloneDX SBOM hash support', () => {
 		expect(comp).to.not.have.property('hashes')
 	})
 
+	/** Verifies that hashes are applied to an existing component that was first created without them as a source. */
+	test('hashes are updated on component first seen as source without hashes', () => {
+		// Given a component first created as a source (without hashes)
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('pypi', undefined, 'my-app', '1.0.0', undefined, undefined)
+		const mid = new PackageURL('pypi', undefined, 'requests', '2.33.1', undefined, undefined)
+		const leaf = new PackageURL('pypi', undefined, 'urllib3', '2.0.0', undefined, undefined)
+		const midHashes = [{ alg: 'SHA-256', content: 'abc123' }]
+		sbom.addRoot(root)
+
+		// When mid is first seen as a source (no hashes), then as a target with hashes
+		sbom.addDependency(mid, leaf)
+		sbom.addDependency(root, mid, undefined, midHashes)
+
+		// Then mid should have hashes despite being created first without them
+		const midComponent = sbom.components.find(c => c.name === 'requests')
+		expect(midComponent.hashes).to.deep.equal(midHashes)
+	})
+
+	/** Verifies that hashes are applied when a component already exists as a target without hashes. */
+	test('hashes are updated on component first seen as target without hashes', () => {
+		// Given a component first added as a target without hashes
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('pypi', undefined, 'my-app', '1.0.0', undefined, undefined)
+		const dep = new PackageURL('pypi', undefined, 'requests', '2.33.1', undefined, undefined)
+		const depHashes = [{ alg: 'SHA-256', content: 'abc123' }]
+		sbom.addRoot(root)
+		sbom.addDependency(root, dep)
+
+		// When the same component is added again as a target with hashes
+		const other = new PackageURL('pypi', undefined, 'other', '1.0.0', undefined, undefined)
+		sbom.addDependency(other, dep, undefined, depHashes)
+
+		// Then the component should have hashes and not be duplicated
+		const depComponents = sbom.components.filter(c => c.name === 'requests')
+		expect(depComponents).to.have.lengthOf(1)
+		expect(depComponents[0].hashes).to.deep.equal(depHashes)
+	})
+
 	/** Verifies that passing an empty hashes array is treated the same as no hashes. */
 	test('empty hashes array does not add hashes field', () => {
 		// Given an SBOM with a dependency with an empty hashes array
