@@ -353,13 +353,7 @@ function getFinalPackagesVersionsForModule(rows, manifestPath, goBin) {
 		throw new Error('failed to list all modules', {cause: error})
 	}
 
-	let finalVersionModules = new Map()
-	finalVersionsForAllModules.split(getLineSeparatorGolang()).filter(string => string.trim()!== "")
-		.filter(string => string.trim().split(" ").length === 2)
-		.forEach((dependency) => {
-			let dep = dependency.split(" ")
-			finalVersionModules[dep[0]] = dep[1]
-		})
+	let finalVersionModules = parseModuleVersions(finalVersionsForAllModules)
 	let finalVersionModulesArray = new Array()
 	rows.filter(string => string.trim()!== "").forEach( module => {
 		let child = getChildVertexFromEdge(module)
@@ -421,6 +415,20 @@ function isSpecialGoModule(moduleName) {
 function getVersionOfPackage(fullPackage) {
 	let parts = fullPackage.split("@")
 	return parts.length > 1 ? parts[1] : undefined
+}
+
+function parseModuleVersions(goListOutput) {
+	let modules = new Map()
+	goListOutput.split(getLineSeparatorGolang()).filter(string => string.trim() !== "")
+		.forEach((line) => {
+			let parts = line.trim().split(" ")
+			if (parts.length === 2) {
+				modules[parts[0]] = parts[1]
+			} else if (parts.length >= 4 && parts[2] === "=>") {
+				modules[parts[0]] = parts[parts.length - 1]
+			}
+		})
+	return modules
 }
 
 function getLineSeparatorGolang() {
