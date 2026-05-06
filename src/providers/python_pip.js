@@ -24,6 +24,8 @@ export default { isSupported, validateLockFile, provideComponent, provideStack, 
  */
 const ecosystem = 'pip'
 
+const NO_SCOPE = undefined
+
 /**
  * @param {string} manifestName - the subject manifest name-type
  * @returns {boolean} - return true if `requirements.txt` is the manifest name-type
@@ -82,7 +84,7 @@ async function provideComponent(manifest, opts = {}) {
  */
 function addAllDependencies(source, dep, sbom) {
 	let targetPurl = toPurl(dep["name"], dep["version"])
-	sbom.addDependency(source, targetPurl, undefined, dep["hashes"])
+	sbom.addDependency(source, targetPurl, NO_SCOPE, dep["hashes"])
 	let directDeps = dep["dependencies"]
 	if (directDeps !== undefined && directDeps.length > 0) {
 		directDeps.forEach((dependency) => { addAllDependencies(toPurl(dep["name"], dep["version"]), dependency, sbom) })
@@ -224,7 +226,7 @@ async function getSbomForComponentAnalysis(manifest, opts = {}) {
 	const license = readLicenseFromManifest(manifest);
 	sbom.addRoot(rootPurl, license);
 	dependencies.forEach(dep => {
-		sbom.addDependency(rootPurl, toPurl(dep.name, dep.version), undefined, dep.hashes)
+		sbom.addDependency(rootPurl, toPurl(dep.name, dep.version), NO_SCOPE, dep.hashes)
 	})
 	await handleIgnoredDependencies(manifest, sbom, opts)
 	// In python there is no root component, then we must remove the dummy root we added, so the sbom json will be accepted by the DA backend
