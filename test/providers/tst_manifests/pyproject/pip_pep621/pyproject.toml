@@ -5,7 +5,7 @@ requires-python = ">=3.9"
 dependencies = [
     "requests[socks]==2.32.3",
     "charset-normalizer==3.4.7",
-    "idna==3.12",
+    "idna==3.15",
     "urllib3[socks]==2.6.3",
     "certifi==2026.2.25",
     "pysocks==1.7.1",
