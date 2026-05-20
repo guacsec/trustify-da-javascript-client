@@ -151,3 +151,35 @@ suite('CycloneDX SBOM hash support', () => {
 		expect(targetComponent).to.not.have.property('hashes')
 	})
 })
+
+suite('CycloneDX SBOM license validation', () => {
+
+	/** Verifies that non-CycloneDX license objects (e.g., { workspace: true }) are filtered out. */
+	test('addRoot filters out non-CycloneDX license objects', () => {
+		// Given a license value that is an unresolved workspace inheritance marker
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('cargo', undefined, 'my-crate', '1.0.0', undefined, undefined)
+
+		// When adding a root with a non-CycloneDX license object
+		sbom.addRoot(root, { workspace: true })
+
+		// Then the root component should have no licenses field
+		expect(sbom.rootComponent).to.not.have.property('licenses')
+	})
+
+	/** Verifies that valid CycloneDX license objects are preserved. */
+	test('addRoot preserves valid CycloneDX license objects', () => {
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('cargo', undefined, 'my-crate', '1.0.0', undefined, undefined)
+		sbom.addRoot(root, { license: { id: 'MIT' } })
+		expect(sbom.rootComponent.licenses).to.deep.equal([{ license: { id: 'MIT' } }])
+	})
+
+	/** Verifies that string licenses are wrapped in CycloneDX format. */
+	test('addRoot wraps string license in CycloneDX format', () => {
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('cargo', undefined, 'my-crate', '1.0.0', undefined, undefined)
+		sbom.addRoot(root, 'Apache-2.0')
+		expect(sbom.rootComponent.licenses).to.deep.equal([{ license: { id: 'Apache-2.0' } }])
+	})
+})

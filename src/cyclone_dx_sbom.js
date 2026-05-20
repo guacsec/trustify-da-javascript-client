@@ -47,12 +47,20 @@ function getComponent(component, type, scope, licenses, hashes) {
 	// Add licenses if provided (CycloneDX format). Callers must provide valid SPDX identifiers.
 	if (licenses) {
 		const licenseArray = Array.isArray(licenses) ? licenses : [licenses];
-		componentObject.licenses = licenseArray.map(lic => {
-			if (typeof lic === 'string') {
-				return { license: { id: lic } };
-			}
-			return lic;
-		});
+		const validLicenses = licenseArray
+			.map(lic => {
+				if (typeof lic === 'string') {
+					return { license: { id: lic } };
+				}
+				if (typeof lic === 'object' && lic !== null && ('license' in lic || 'expression' in lic)) {
+					return lic;
+				}
+				return null;
+			})
+			.filter(Boolean);
+		if (validLicenses.length > 0) {
+			componentObject.licenses = validLicenses;
+		}
 	}
 
 	// Add hashes if provided (CycloneDX 1.4 format).

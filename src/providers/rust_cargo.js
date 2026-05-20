@@ -77,22 +77,50 @@ function isSupported(manifestName) {
  * Read project license from Cargo.toml, with fallback to LICENSE file.
  * Supports the `license` field under `[package]` (single crate / workspace
  * with root) and under `[workspace.package]` (virtual workspaces).
+ * When a member crate uses `license = { workspace = true }`, the actual
+ * license is resolved from the workspace root Cargo.toml.
  * @param {string} manifestPath - path to Cargo.toml
+ * @param {object} [metadata] - cargo metadata output (needed for workspace license resolution)
  * @returns {string|null} SPDX identifier or null
  */
-function readLicenseFromManifest(manifestPath) {
+function readLicenseFromManifest(manifestPath, metadata) {
 	let fromManifest = null
 	try {
 		let content = fs.readFileSync(manifestPath, 'utf-8')
 		let parsed = parseToml(content)
 
-		fromManifest = parsed.package?.license
+		let packageLicense = parsed.package?.license
+		if (typeof packageLicense === 'object' && packageLicense?.workspace === true) {
+			packageLicense = resolveWorkspaceLicense(parsed, metadata)
+		}
+
+		fromManifest = packageLicense
 			|| parsed.workspace?.package?.license
 			|| null
 	} catch (_) {
 		// leave fromManifest as null
 	}
 	return getLicense(fromManifest, manifestPath)
+}
+
+/**
+ * Resolve a workspace-inherited license from the workspace root Cargo.toml.
+ * @param {object} parsed - the parsed member crate Cargo.toml
+ * @param {object} [metadata] - cargo metadata output with workspace_root
+ * @returns {string|null} resolved license string or null
+ */
+function resolveWorkspaceLicense(parsed, metadata) {
+	if (metadata?.workspace_root) {
+		let cargoTomlPath = path.join(metadata.workspace_root, 'Cargo.toml')
+		try {
+			let content = fs.readFileSync(cargoTomlPath, 'utf-8')
+			let workspaceParsed = parseToml(content)
+			return workspaceParsed.workspace?.package?.license || null
+		} catch (_) {
+			// fall through
+		}
+	}
+	return parsed.workspace?.package?.license || null
 }
 
 /**
@@ -189,7 +217,7 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	let metadata = executeCargoMetadata(cargoBin, manifestDir)
 	let ignoredDeps = getIgnoredDeps(manifest, metadata)
 	let crateType = detectCrateType(metadata)
-	let license = readLicenseFromManifest(manifest)
+	let license = readLicenseFromManifest(manifest, metadata)
 
 	let sbom
 	if (crateType === CrateType.WORKSPACE_VIRTUAL) {
