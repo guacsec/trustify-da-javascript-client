@@ -121,11 +121,12 @@ export default class Python_poetry extends Base_pyproject {
 	 *   → transitiveMarkers['click']['colorama'] = "sys_platform == 'win32'"
 	 * @param {string|null} lockDir
 	 * @param {object} parsed - parsed pyproject.toml
-	 * @returns {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>}}
+	 * @returns {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>, hashMap: Map<string, Array<{alg: string, content: string}>>}}
 	 */
 	_extractMarkerData(lockDir, parsed) {
 		let directMarkers = new Map()
 		let transitiveMarkers = new Map()
+		let hashMap = new Map()
 
 		// Extract markers from PEP 621 dependency strings: "name[extras]>=ver ; marker"
 		let deps = parsed.project?.dependencies || []
@@ -154,11 +155,33 @@ export default class Python_poetry extends Base_pyproject {
 							transitiveMarkers.get(pkgKey).set(this._canonicalize(depName), markers)
 						}
 					}
+
+					let sha256Hex = this._extractSha256FromFiles(pkg.files)
+					if (sha256Hex) {
+						hashMap.set(pkgKey, [{alg: "SHA-256", content: sha256Hex}])
+					}
 				}
 			}
 		}
 
-		return { directMarkers, transitiveMarkers }
+		return { directMarkers, transitiveMarkers, hashMap }
+	}
+
+	/**
+	 * Extract a SHA-256 hex digest from poetry.lock files array.
+	 * Prefers the sdist (.tar.gz) hash; falls back to the first wheel hash.
+	 * @param {Array<{file: string, hash: string}>} [files]
+	 * @returns {string|null}
+	 */
+	_extractSha256FromFiles(files) {
+		if (!Array.isArray(files) || files.length === 0) { return null }
+		let sdist = files.find(f => f.file.endsWith('.tar.gz'))
+		let entry = sdist || files[0]
+		let hash = entry.hash
+		if (hash && hash.startsWith('sha256:')) {
+			return hash.slice(7)
+		}
+		return null
 	}
 
 	/**
@@ -166,8 +189,8 @@ export default class Python_poetry extends Base_pyproject {
 	 *
 	 * @param {string} treeOutput
 	 * @param {Map<string, string>} versionMap - canonical name -> resolved version
-	 * @param {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>}} markerData
-	 * @returns {{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}}
+	 * @param {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>, hashMap: Map<string, Array<{alg: string, content: string}>>}} markerData
+	 * @returns {{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[], hashes?: Array<{alg: string, content: string}>}>}}
 	 */
 	_parsePoetryTree(treeOutput, versionMap, markerData) {
 		let lines = treeOutput.split(/\r?\n/)
@@ -196,7 +219,10 @@ export default class Python_poetry extends Base_pyproject {
 
 				directDeps.push(key)
 				if (!graph.has(key)) {
-					graph.set(key, { name, version, children: [] })
+					let entry = { name, version, children: [] }
+					let hashes = markerData.hashMap.get(key)
+					if (hashes) { entry.hashes = hashes }
+					graph.set(key, entry)
 				}
 				currentDirectDep = key
 				stack = [{ key, depth: -1 }]
@@ -243,7 +269,10 @@ export default class Python_poetry extends Base_pyproject {
 			}
 
 			if (!graph.has(depKey)) {
-				graph.set(depKey, { name: depName, version, children: [] })
+				let entry = { name: depName, version, children: [] }
+				let hashes = markerData.hashMap.get(depKey)
+				if (hashes) { entry.hashes = hashes }
+				graph.set(depKey, entry)
 			}
 
 			if (parentKey) {

@@ -1,199 +1,283 @@
 {
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
-  "version": 1,
-  "metadata": {
-    "timestamp": "2023-10-01T00:00:00.000Z",
-    "component": {
-      "name": "poetry-only-project",
-      "version": "1.0.0",
-      "purl": "pkg:pypi/poetry-only-project@1.0.0",
-      "type": "application",
-      "bom-ref": "pkg:pypi/poetry-only-project@1.0.0"
-    }
-  },
-  "components": [
-    {
-      "name": "click",
-      "version": "8.1.8",
-      "purl": "pkg:pypi/click@8.1.8",
-      "type": "library",
-      "bom-ref": "pkg:pypi/click@8.1.8"
-    },
-    {
-      "name": "flask",
-      "version": "2.3.3",
-      "purl": "pkg:pypi/flask@2.3.3",
-      "type": "library",
-      "bom-ref": "pkg:pypi/flask@2.3.3"
-    },
-    {
-      "name": "requests",
-      "version": "2.32.4",
-      "purl": "pkg:pypi/requests@2.32.4",
-      "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.32.4"
-    },
-    {
-      "name": "blinker",
-      "version": "1.8.2",
-      "purl": "pkg:pypi/blinker@1.8.2",
-      "type": "library",
-      "bom-ref": "pkg:pypi/blinker@1.8.2"
-    },
-    {
-      "name": "importlib-metadata",
-      "version": "8.5.0",
-      "purl": "pkg:pypi/importlib-metadata@8.5.0",
-      "type": "library",
-      "bom-ref": "pkg:pypi/importlib-metadata@8.5.0"
-    },
-    {
-      "name": "itsdangerous",
-      "version": "2.2.0",
-      "purl": "pkg:pypi/itsdangerous@2.2.0",
-      "type": "library",
-      "bom-ref": "pkg:pypi/itsdangerous@2.2.0"
-    },
-    {
-      "name": "jinja2",
-      "version": "3.1.6",
-      "purl": "pkg:pypi/jinja2@3.1.6",
-      "type": "library",
-      "bom-ref": "pkg:pypi/jinja2@3.1.6"
-    },
-    {
-      "name": "werkzeug",
-      "version": "3.0.6",
-      "purl": "pkg:pypi/werkzeug@3.0.6",
-      "type": "library",
-      "bom-ref": "pkg:pypi/werkzeug@3.0.6"
-    },
-    {
-      "name": "zipp",
-      "version": "3.20.2",
-      "purl": "pkg:pypi/zipp@3.20.2",
-      "type": "library",
-      "bom-ref": "pkg:pypi/zipp@3.20.2"
-    },
-    {
-      "name": "markupsafe",
-      "version": "2.1.5",
-      "purl": "pkg:pypi/markupsafe@2.1.5",
-      "type": "library",
-      "bom-ref": "pkg:pypi/markupsafe@2.1.5"
-    },
-    {
-      "name": "certifi",
-      "version": "2026.2.25",
-      "purl": "pkg:pypi/certifi@2026.2.25",
-      "type": "library",
-      "bom-ref": "pkg:pypi/certifi@2026.2.25"
-    },
-    {
-      "name": "charset-normalizer",
-      "version": "3.4.6",
-      "purl": "pkg:pypi/charset-normalizer@3.4.6",
-      "type": "library",
-      "bom-ref": "pkg:pypi/charset-normalizer@3.4.6"
-    },
-    {
-      "name": "idna",
-      "version": "3.11",
-      "purl": "pkg:pypi/idna@3.11",
-      "type": "library",
-      "bom-ref": "pkg:pypi/idna@3.11"
-    },
-    {
-      "name": "urllib3",
-      "version": "2.2.3",
-      "purl": "pkg:pypi/urllib3@2.2.3",
-      "type": "library",
-      "bom-ref": "pkg:pypi/urllib3@2.2.3"
-    }
-  ],
-  "dependencies": [
-    {
-      "ref": "pkg:pypi/poetry-only-project@1.0.0",
-      "dependsOn": [
-        "pkg:pypi/click@8.1.8",
-        "pkg:pypi/flask@2.3.3",
-        "pkg:pypi/requests@2.32.4"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/click@8.1.8",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/flask@2.3.3",
-      "dependsOn": [
-        "pkg:pypi/blinker@1.8.2",
-        "pkg:pypi/click@8.1.8",
-        "pkg:pypi/importlib-metadata@8.5.0",
-        "pkg:pypi/itsdangerous@2.2.0",
-        "pkg:pypi/jinja2@3.1.6",
-        "pkg:pypi/werkzeug@3.0.6"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/requests@2.32.4",
-      "dependsOn": [
-        "pkg:pypi/certifi@2026.2.25",
-        "pkg:pypi/charset-normalizer@3.4.6",
-        "pkg:pypi/idna@3.11",
-        "pkg:pypi/urllib3@2.2.3"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/blinker@1.8.2",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/importlib-metadata@8.5.0",
-      "dependsOn": [
-        "pkg:pypi/zipp@3.20.2"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/itsdangerous@2.2.0",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/jinja2@3.1.6",
-      "dependsOn": [
-        "pkg:pypi/markupsafe@2.1.5"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/werkzeug@3.0.6",
-      "dependsOn": [
-        "pkg:pypi/markupsafe@2.1.5"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/zipp@3.20.2",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/markupsafe@2.1.5",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/certifi@2026.2.25",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/charset-normalizer@3.4.6",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/idna@3.11",
-      "dependsOn": []
-    },
-    {
-      "ref": "pkg:pypi/urllib3@2.2.3",
-      "dependsOn": []
-    }
-  ]
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.4",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-10-01T00:00:00.000Z",
+		"component": {
+			"name": "poetry-only-project",
+			"version": "1.0.0",
+			"purl": "pkg:pypi/poetry-only-project@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:pypi/poetry-only-project@1.0.0"
+		}
+	},
+	"components": [
+		{
+			"name": "click",
+			"version": "8.1.8",
+			"purl": "pkg:pypi/click@8.1.8",
+			"type": "library",
+			"bom-ref": "pkg:pypi/click@8.1.8",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a"
+				}
+			]
+		},
+		{
+			"name": "flask",
+			"version": "2.3.3",
+			"purl": "pkg:pypi/flask@2.3.3",
+			"type": "library",
+			"bom-ref": "pkg:pypi/flask@2.3.3",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "09c347a92aa7ff4a8e7f3206795f30d826654baf38b873d0744cd571ca609efc"
+				}
+			]
+		},
+		{
+			"name": "requests",
+			"version": "2.32.4",
+			"purl": "pkg:pypi/requests@2.32.4",
+			"type": "library",
+			"bom-ref": "pkg:pypi/requests@2.32.4",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "27d0316682c8a29834d3264820024b62a36942083d52caf2f14c0591336d3422"
+				}
+			]
+		},
+		{
+			"name": "blinker",
+			"version": "1.8.2",
+			"purl": "pkg:pypi/blinker@1.8.2",
+			"type": "library",
+			"bom-ref": "pkg:pypi/blinker@1.8.2",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83"
+				}
+			]
+		},
+		{
+			"name": "importlib-metadata",
+			"version": "8.5.0",
+			"purl": "pkg:pypi/importlib-metadata@8.5.0",
+			"type": "library",
+			"bom-ref": "pkg:pypi/importlib-metadata@8.5.0",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "71522656f0abace1d072b9e5481a48f07c138e00f079c38c8f883823f9c26bd7"
+				}
+			]
+		},
+		{
+			"name": "itsdangerous",
+			"version": "2.2.0",
+			"purl": "pkg:pypi/itsdangerous@2.2.0",
+			"type": "library",
+			"bom-ref": "pkg:pypi/itsdangerous@2.2.0",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"
+				}
+			]
+		},
+		{
+			"name": "jinja2",
+			"version": "3.1.6",
+			"purl": "pkg:pypi/jinja2@3.1.6",
+			"type": "library",
+			"bom-ref": "pkg:pypi/jinja2@3.1.6",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"
+				}
+			]
+		},
+		{
+			"name": "werkzeug",
+			"version": "3.0.6",
+			"purl": "pkg:pypi/werkzeug@3.0.6",
+			"type": "library",
+			"bom-ref": "pkg:pypi/werkzeug@3.0.6",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a8dd59d4de28ca70471a34cba79bed5f7ef2e036a76b3ab0835474246eb41f8d"
+				}
+			]
+		},
+		{
+			"name": "zipp",
+			"version": "3.20.2",
+			"purl": "pkg:pypi/zipp@3.20.2",
+			"type": "library",
+			"bom-ref": "pkg:pypi/zipp@3.20.2",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bc9eb26f4506fda01b81bcde0ca78103b6e62f991b381fec825435c836edbc29"
+				}
+			]
+		},
+		{
+			"name": "markupsafe",
+			"version": "2.1.5",
+			"purl": "pkg:pypi/markupsafe@2.1.5",
+			"type": "library",
+			"bom-ref": "pkg:pypi/markupsafe@2.1.5",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d283d37a890ba4c1ae73ffadf8046435c76e7bc2247bbb63c00bd1a709c6544b"
+				}
+			]
+		},
+		{
+			"name": "certifi",
+			"version": "2026.2.25",
+			"purl": "pkg:pypi/certifi@2026.2.25",
+			"type": "library",
+			"bom-ref": "pkg:pypi/certifi@2026.2.25",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7"
+				}
+			]
+		},
+		{
+			"name": "charset-normalizer",
+			"version": "3.4.6",
+			"purl": "pkg:pypi/charset-normalizer@3.4.6",
+			"type": "library",
+			"bom-ref": "pkg:pypi/charset-normalizer@3.4.6",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1ae6b62897110aa7c79ea2f5dd38d1abca6db663687c0b1ad9aed6f6bae3d9d6"
+				}
+			]
+		},
+		{
+			"name": "idna",
+			"version": "3.11",
+			"purl": "pkg:pypi/idna@3.11",
+			"type": "library",
+			"bom-ref": "pkg:pypi/idna@3.11",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902"
+				}
+			]
+		},
+		{
+			"name": "urllib3",
+			"version": "2.2.3",
+			"purl": "pkg:pypi/urllib3@2.2.3",
+			"type": "library",
+			"bom-ref": "pkg:pypi/urllib3@2.2.3",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e7d814a81dad81e6caf2ec9fdedb284ecc9c73076b62654547cc64ccdcae26e9"
+				}
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:pypi/poetry-only-project@1.0.0",
+			"dependsOn": [
+				"pkg:pypi/click@8.1.8",
+				"pkg:pypi/flask@2.3.3",
+				"pkg:pypi/requests@2.32.4"
+			]
+		},
+		{
+			"ref": "pkg:pypi/click@8.1.8",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/flask@2.3.3",
+			"dependsOn": [
+				"pkg:pypi/blinker@1.8.2",
+				"pkg:pypi/click@8.1.8",
+				"pkg:pypi/importlib-metadata@8.5.0",
+				"pkg:pypi/itsdangerous@2.2.0",
+				"pkg:pypi/jinja2@3.1.6",
+				"pkg:pypi/werkzeug@3.0.6"
+			]
+		},
+		{
+			"ref": "pkg:pypi/requests@2.32.4",
+			"dependsOn": [
+				"pkg:pypi/certifi@2026.2.25",
+				"pkg:pypi/charset-normalizer@3.4.6",
+				"pkg:pypi/idna@3.11",
+				"pkg:pypi/urllib3@2.2.3"
+			]
+		},
+		{
+			"ref": "pkg:pypi/blinker@1.8.2",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/importlib-metadata@8.5.0",
+			"dependsOn": [
+				"pkg:pypi/zipp@3.20.2"
+			]
+		},
+		{
+			"ref": "pkg:pypi/itsdangerous@2.2.0",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/jinja2@3.1.6",
+			"dependsOn": [
+				"pkg:pypi/markupsafe@2.1.5"
+			]
+		},
+		{
+			"ref": "pkg:pypi/werkzeug@3.0.6",
+			"dependsOn": [
+				"pkg:pypi/markupsafe@2.1.5"
+			]
+		},
+		{
+			"ref": "pkg:pypi/zipp@3.20.2",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/markupsafe@2.1.5",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/certifi@2026.2.25",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/charset-normalizer@3.4.6",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/idna@3.11",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/urllib3@2.2.3",
+			"dependsOn": []
+		}
+	]
 }

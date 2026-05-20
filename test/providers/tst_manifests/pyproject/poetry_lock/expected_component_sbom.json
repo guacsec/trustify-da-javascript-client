@@ -18,14 +18,26 @@
 			"version": "3.1.3",
 			"purl": "pkg:pypi/flask@3.1.3",
 			"type": "library",
-			"bom-ref": "pkg:pypi/flask@3.1.3"
+			"bom-ref": "pkg:pypi/flask@3.1.3",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb"
+				}
+			]
 		},
 		{
 			"name": "requests",
 			"version": "2.33.0",
 			"purl": "pkg:pypi/requests@2.33.0",
 			"type": "library",
-			"bom-ref": "pkg:pypi/requests@2.33.0"
+			"bom-ref": "pkg:pypi/requests@2.33.0",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c7ebc5e8b0f21837386ad0e1c8fe8b829fa5f544d8df3b2253bff14ef29d7652"
+				}
+			]
 		}
 	],
 	"dependencies": [

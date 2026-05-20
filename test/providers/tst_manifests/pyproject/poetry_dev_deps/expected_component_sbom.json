@@ -1,36 +1,42 @@
 {
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
-  "version": 1,
-  "metadata": {
-    "timestamp": "2023-10-01T00:00:00.000Z",
-    "component": {
-      "name": "dev-deps-project",
-      "version": "1.0.0",
-      "purl": "pkg:pypi/dev-deps-project@1.0.0",
-      "type": "application",
-      "bom-ref": "pkg:pypi/dev-deps-project@1.0.0"
-    }
-  },
-  "components": [
-    {
-      "name": "requests",
-      "version": "2.33.1",
-      "purl": "pkg:pypi/requests@2.33.1",
-      "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.33.1"
-    }
-  ],
-  "dependencies": [
-    {
-      "ref": "pkg:pypi/dev-deps-project@1.0.0",
-      "dependsOn": [
-        "pkg:pypi/requests@2.33.1"
-      ]
-    },
-    {
-      "ref": "pkg:pypi/requests@2.33.1",
-      "dependsOn": []
-    }
-  ]
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.4",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-10-01T00:00:00.000Z",
+		"component": {
+			"name": "dev-deps-project",
+			"version": "1.0.0",
+			"purl": "pkg:pypi/dev-deps-project@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:pypi/dev-deps-project@1.0.0"
+		}
+	},
+	"components": [
+		{
+			"name": "requests",
+			"version": "2.33.1",
+			"purl": "pkg:pypi/requests@2.33.1",
+			"type": "library",
+			"bom-ref": "pkg:pypi/requests@2.33.1",
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517"
+				}
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:pypi/dev-deps-project@1.0.0",
+			"dependsOn": [
+				"pkg:pypi/requests@2.33.1"
+			]
+		},
+		{
+			"ref": "pkg:pypi/requests@2.33.1",
+			"dependsOn": []
+		}
+	]
 }
