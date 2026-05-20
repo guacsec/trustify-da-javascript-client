@@ -22,6 +22,51 @@ function getPipShowOutput(depNames) {
 	}
 }
 
+/**
+ * Get pip inspect output from env var override or by invoking pip inspect.
+ * Returns null if pip inspect is unavailable (pip < 22.2) or if freeze/show
+ * env vars are set without an inspect override (to avoid inconsistent data).
+ * @return {string|null} pip inspect JSON output, or null on failure
+ */
+function getPipInspectOutput() {
+	if (environmentVariableIsPopulated("TRUSTIFY_DA_PIP_INSPECT")) {
+		return new Buffer.from(process.env["TRUSTIFY_DA_PIP_INSPECT"], 'base64').toString('ascii');
+	}
+	if (environmentVariableIsPopulated("TRUSTIFY_DA_PIP_FREEZE") || environmentVariableIsPopulated("TRUSTIFY_DA_PIP_SHOW")) {
+		return null;
+	}
+	try {
+		return invokeCommand(this.pathToPipBin, ['inspect']).toString();
+	} catch (error) {
+		console.warn('pip inspect is not available (requires pip 22.2+), SBOM will be generated without hashes');
+		return null;
+	}
+}
+
+/**
+ * Parse pip inspect JSON output and build a hash lookup map.
+ * @param {string|null} inspectOutput - raw pip inspect JSON string
+ * @return {Map<string, Array<{alg: string, content: string}>>} map of lowercase package name to hashes
+ */
+function parsePipInspectHashes(inspectOutput) {
+	if (!inspectOutput) { return new Map(); }
+	try {
+		let inspectData = JSON.parse(inspectOutput);
+		let hashMap = new Map();
+		for (let pkg of (inspectData.installed || [])) {
+			let name = pkg.metadata?.name;
+			let sha256 = pkg.download_info?.archive_info?.hashes?.sha256;
+			if (name && sha256) {
+				hashMap.set(name.toLowerCase(), [{alg: "SHA-256", content: sha256}]);
+			}
+		}
+		return hashMap;
+	} catch (error) {
+		console.warn('Failed to parse pip inspect output, SBOM will be generated without hashes');
+		return new Map();
+	}
+}
+
 /** @typedef {{name: string, version: string, dependencies: DependencyEntry[], hashes?: Array<{alg: string, content: string}>}} DependencyEntry */
 
 export default class Python_controller {
@@ -225,6 +270,9 @@ export default class Python_controller {
 				CachedEnvironmentDeps[packageName.replace("_", "-")] = pipDepTreeEntryForCache
 			})
 		}
+		const inspectOutput = getPipInspectOutput.call(this);
+		const hashMap = parsePipInspectHashes(inspectOutput);
+
 		parsedRequirements.forEach(({ name: depName, version: manifestVersion, hasMarker }) => {
 			if(hasMarker && CachedEnvironmentDeps[depName.toLowerCase()] === undefined) {
 				return
@@ -246,7 +294,7 @@ export default class Python_controller {
 			}
 			let path = []
 			path.push(depName.toLowerCase())
-			bringAllDependencies(dependencies, depName, CachedEnvironmentDeps, includeTransitive, path, usePipDepTree)
+			bringAllDependencies(dependencies, depName, CachedEnvironmentDeps, includeTransitive, path, usePipDepTree, hashMap)
 		})
 		dependencies.sort((dep1,dep2) =>{
 			const DEP1 = dep1.name.toLowerCase()
@@ -330,8 +378,9 @@ function getDepsList(record) {
  * @param includeTransitive
  * @param usePipDepTree
  * @param {[string]}path array representing the path of the current branch in dependency tree, starting with a root dependency - that is - a given dependency in requirements.txt
+ * @param {Map<string, Array<{alg: string, content: string}>>} hashMap - map of lowercase package name to hashes
  */
-function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDeps, includeTransitive, path, usePipDepTree) {
+function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDeps, includeTransitive, path, usePipDepTree, hashMap) {
 	if(dependencyName?.trim() === "" ) {
 		return
 	}
@@ -353,7 +402,9 @@ function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDep
 	}
 	let targetDeps = []
 
+	let hashes = hashMap?.get(depName.toLowerCase())
 	let entry = { "name": depName, "version": version, "dependencies": [] }
+	if (hashes) { entry.hashes = hashes }
 	dependencies.push(entry)
 	directDeps.forEach( (dep) => {
 		let depArray = []
@@ -363,7 +414,7 @@ function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDep
 			depArray.push(dep.toLowerCase())
 			if (includeTransitive) {
 				// send to recurrsion the array of all deps in path + the current dependency name which is not on the path.
-				bringAllDependencies(targetDeps, dep, cachedEnvironmentDeps, includeTransitive, path.concat(depArray), usePipDepTree)
+				bringAllDependencies(targetDeps, dep, cachedEnvironmentDeps, includeTransitive, path.concat(depArray), usePipDepTree, hashMap)
 			}
 		}
 		// sort ra
