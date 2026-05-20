@@ -41,20 +41,22 @@ export default class Python_uv extends Base_pyproject {
 	/**
 	 * Parse uv.lock and attach SHA-256 hashes to graph entries.
 	 * @param {string} lockFilePath - path to uv.lock
-	 * @param {Map<string, {name: string, version: string, children: string[]}>} graph
+	 * @param {Map<string, import('./base_pyproject.js').GraphEntry>} graph
 	 */
 	_attachHashesFromLockFile(lockFilePath, graph) {
 		let lockContent
 		try {
 			lockContent = fs.readFileSync(lockFilePath, 'utf-8')
-		} catch {
+		} catch (e) {
+			console.error(`uv: could not read lock file ${lockFilePath}: ${e.message}`)
 			return
 		}
 
 		let parsed
 		try {
 			parsed = parseToml(lockContent)
-		} catch {
+		} catch (e) {
+			console.error(`uv: could not parse lock file ${lockFilePath}: ${e.message}`)
 			return
 		}
 
@@ -68,7 +70,7 @@ export default class Python_uv extends Base_pyproject {
 
 			let key = this._canonicalize(pkg.name)
 			let entry = graph.get(key)
-			if (!entry) { continue }
+			if (!entry || entry.hashes) { continue }
 
 			entry.hashes = [{alg: "SHA-256", content: hashStr.slice(7)}]
 		}
