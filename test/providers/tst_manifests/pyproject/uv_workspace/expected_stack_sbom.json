@@ -25,7 +25,13 @@
       "version": "2.0.3",
       "purl": "pkg:pypi/flask@2.0.3",
       "type": "library",
-      "bom-ref": "pkg:pypi/flask@2.0.3"
+      "bom-ref": "pkg:pypi/flask@2.0.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e1120c228ca2f553b470df4a5fa927ab66258467526069981b3eb0a91902687d"
+        }
+      ]
     },
     {
       "name": "sub-pkg",
@@ -39,70 +45,130 @@
       "version": "2.33.1",
       "purl": "pkg:pypi/requests@2.33.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.33.1"
+      "bom-ref": "pkg:pypi/requests@2.33.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517"
+        }
+      ]
     },
     {
       "name": "click",
       "version": "8.3.2",
       "purl": "pkg:pypi/click@8.3.2",
       "type": "library",
-      "bom-ref": "pkg:pypi/click@8.3.2"
+      "bom-ref": "pkg:pypi/click@8.3.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "14162b8b3b3550a7d479eafa77dfd3c38d9dc8951f6f69c78913a8f9a7540fd5"
+        }
+      ]
     },
     {
       "name": "itsdangerous",
       "version": "2.2.0",
       "purl": "pkg:pypi/itsdangerous@2.2.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/itsdangerous@2.2.0"
+      "bom-ref": "pkg:pypi/itsdangerous@2.2.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"
+        }
+      ]
     },
     {
       "name": "jinja2",
       "version": "3.1.6",
       "purl": "pkg:pypi/jinja2@3.1.6",
       "type": "library",
-      "bom-ref": "pkg:pypi/jinja2@3.1.6"
+      "bom-ref": "pkg:pypi/jinja2@3.1.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"
+        }
+      ]
     },
     {
       "name": "werkzeug",
       "version": "3.1.8",
       "purl": "pkg:pypi/werkzeug@3.1.8",
       "type": "library",
-      "bom-ref": "pkg:pypi/werkzeug@3.1.8"
+      "bom-ref": "pkg:pypi/werkzeug@3.1.8",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44"
+        }
+      ]
     },
     {
       "name": "markupsafe",
       "version": "3.0.3",
       "purl": "pkg:pypi/markupsafe@3.0.3",
       "type": "library",
-      "bom-ref": "pkg:pypi/markupsafe@3.0.3"
+      "bom-ref": "pkg:pypi/markupsafe@3.0.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698"
+        }
+      ]
     },
     {
       "name": "certifi",
       "version": "2026.2.25",
       "purl": "pkg:pypi/certifi@2026.2.25",
       "type": "library",
-      "bom-ref": "pkg:pypi/certifi@2026.2.25"
+      "bom-ref": "pkg:pypi/certifi@2026.2.25",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e887ab5cee78ea814d3472169153c2d12cd43b14bd03329a39a9c6e2e80bfba7"
+        }
+      ]
     },
     {
       "name": "charset-normalizer",
       "version": "3.4.7",
       "purl": "pkg:pypi/charset-normalizer@3.4.7",
       "type": "library",
-      "bom-ref": "pkg:pypi/charset-normalizer@3.4.7"
+      "bom-ref": "pkg:pypi/charset-normalizer@3.4.7",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ae89db9e5f98a11a4bf50407d4363e7b09b31e55bc117b4f7d80aab97ba009e5"
+        }
+      ]
     },
     {
       "name": "idna",
       "version": "3.11",
       "purl": "pkg:pypi/idna@3.11",
       "type": "library",
-      "bom-ref": "pkg:pypi/idna@3.11"
+      "bom-ref": "pkg:pypi/idna@3.11",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902"
+        }
+      ]
     },
     {
       "name": "urllib3",
       "version": "2.6.3",
       "purl": "pkg:pypi/urllib3@2.6.3",
       "type": "library",
-      "bom-ref": "pkg:pypi/urllib3@2.6.3"
+      "bom-ref": "pkg:pypi/urllib3@2.6.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed"
+        }
+      ]
     }
   ],
   "dependencies": [

@@ -18,7 +18,13 @@
       "version": "2.33.1",
       "purl": "pkg:pypi/requests@2.33.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.33.1"
+      "bom-ref": "pkg:pypi/requests@2.33.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517"
+        }
+      ]
     }
   ],
   "dependencies": [

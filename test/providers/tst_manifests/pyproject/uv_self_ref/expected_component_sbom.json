@@ -18,42 +18,78 @@
       "version": "4.12.2",
       "purl": "pkg:pypi/beautifulsoup4@4.12.2",
       "type": "library",
-      "bom-ref": "pkg:pypi/beautifulsoup4@4.12.2"
+      "bom-ref": "pkg:pypi/beautifulsoup4@4.12.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "492bbc69dca35d12daac71c4db1bfff0c876c00ef4a2ffacce226d4638eb72da"
+        }
+      ]
     },
     {
       "name": "certifi",
       "version": "2023.7.22",
       "purl": "pkg:pypi/certifi@2023.7.22",
       "type": "library",
-      "bom-ref": "pkg:pypi/certifi@2023.7.22"
+      "bom-ref": "pkg:pypi/certifi@2023.7.22",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "539cc1d13202e33ca466e88b2807e29f4c13049d6d87031a3c110744495cb082"
+        }
+      ]
     },
     {
       "name": "click",
       "version": "8.0.4",
       "purl": "pkg:pypi/click@8.0.4",
       "type": "library",
-      "bom-ref": "pkg:pypi/click@8.0.4"
+      "bom-ref": "pkg:pypi/click@8.0.4",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8458d7b1287c5fb128c90e23381cf99dcde74beaf6c7ff6384ce84d6fe090adb"
+        }
+      ]
     },
     {
       "name": "flask",
       "version": "2.0.3",
       "purl": "pkg:pypi/flask@2.0.3",
       "type": "library",
-      "bom-ref": "pkg:pypi/flask@2.0.3"
+      "bom-ref": "pkg:pypi/flask@2.0.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e1120c228ca2f553b470df4a5fa927ab66258467526069981b3eb0a91902687d"
+        }
+      ]
     },
     {
       "name": "requests",
       "version": "2.25.1",
       "purl": "pkg:pypi/requests@2.25.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.25.1"
+      "bom-ref": "pkg:pypi/requests@2.25.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804"
+        }
+      ]
     },
     {
       "name": "uvicorn",
       "version": "0.17.0",
       "purl": "pkg:pypi/uvicorn@0.17.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/uvicorn@0.17.0"
+      "bom-ref": "pkg:pypi/uvicorn@0.17.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "192c2422b056a3beb512c6c260bf77a7a884204a4ae41856719c1913ead63bbb"
+        }
+      ]
     }
   ],
   "dependencies": [

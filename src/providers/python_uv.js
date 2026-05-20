@@ -28,12 +28,50 @@ export default class Python_uv extends Base_pyproject {
 	 * @param {string} workspaceDir - workspace root (for resolving editable install paths)
 	 * @param {object} parsed - parsed pyproject.toml
 	 * @param {Object} opts
-	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
+	 * @returns {Promise<{directDeps: string[], graph: Map<string, import('./base_pyproject.js').default.GraphEntry>}>}
 	 */
 	async _getDependencyData(manifestDir, workspaceDir, parsed, opts) {
 		let projectName = this._getProjectName(parsed)
 		let uvOutput = this._getUvExportOutput(manifestDir, opts)
-		return this._parseUvExport(uvOutput, projectName, workspaceDir)
+		let { directDeps, graph } = await this._parseUvExport(uvOutput, projectName, workspaceDir)
+		this._attachHashesFromLockFile(path.join(workspaceDir, 'uv.lock'), graph)
+		return { directDeps, graph }
+	}
+
+	/**
+	 * Parse uv.lock and attach SHA-256 hashes to graph entries.
+	 * @param {string} lockFilePath - path to uv.lock
+	 * @param {Map<string, {name: string, version: string, children: string[]}>} graph
+	 */
+	_attachHashesFromLockFile(lockFilePath, graph) {
+		let lockContent
+		try {
+			lockContent = fs.readFileSync(lockFilePath, 'utf-8')
+		} catch {
+			return
+		}
+
+		let parsed
+		try {
+			parsed = parseToml(lockContent)
+		} catch {
+			return
+		}
+
+		let packages = parsed.package
+		if (!Array.isArray(packages)) { return }
+
+		for (let pkg of packages) {
+			if (!pkg.name) { continue }
+			let hashStr = pkg.sdist?.hash || pkg.wheels?.[0]?.hash
+			if (!hashStr || !hashStr.startsWith('sha256:')) { continue }
+
+			let key = this._canonicalize(pkg.name)
+			let entry = graph.get(key)
+			if (!entry) { continue }
+
+			entry.hashes = [{alg: "SHA-256", content: hashStr.slice(7)}]
+		}
 	}
 
 	/**
