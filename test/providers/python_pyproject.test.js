@@ -666,6 +666,19 @@ suite('testing python-poetry error handling', () => {
 			.to.throw('poetry is not accessible at "/nonexistent/poetry"')
 	}).timeout(TIMEOUT)
 
+	/** Verifies that an accessible poetry binary does not throw. */
+	test('verify no error when poetry binary is accessible', async () => {
+		let provider = await esmock('../../src/providers/python_poetry.js', {
+			'../../src/tools.js': {
+				getCustomPath: () => 'poetry',
+				invokeCommand: () => Buffer.from('Poetry (version 1.8.0)')
+			}
+		})
+
+		let instance = new provider.default()
+		expect(() => instance._verifyPoetryAccessible('poetry')).to.not.throw()
+	}).timeout(TIMEOUT)
+
 	/** Verifies that non-ENOENT errors are re-thrown with cause chain preserved. */
 	test('verify non-ENOENT errors are re-thrown with cause', async () => {
 		let originalError = new Error('permission denied')
