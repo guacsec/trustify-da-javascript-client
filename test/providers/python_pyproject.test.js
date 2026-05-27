@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 
 import { expect } from 'chai'
+import esmock from 'esmock'
 import { useFakeTimers } from 'sinon'
 
 import Python_pip_pyproject from '../../src/providers/python_pip_pyproject.js'
@@ -644,4 +645,43 @@ suite('testing the python-pyproject data provider', () => {
 }).afterAll(() => {
 	Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true })
 	clock.restore()
+})
+
+suite('testing python-poetry error handling', () => {
+	/** Verifies that a missing poetry binary produces a clear error message. */
+	test('verify error when poetry binary is not accessible', async () => {
+		let provider = await esmock('../../src/providers/python_poetry.js', {
+			'../../src/tools.js': {
+				getCustomPath: () => '/nonexistent/poetry',
+				invokeCommand: () => {
+					let err = new Error('spawn /nonexistent/poetry ENOENT')
+					err.code = 'ENOENT'
+					throw err
+				}
+			}
+		})
+
+		let instance = new provider.default()
+		expect(() => instance._verifyPoetryAccessible('/nonexistent/poetry'))
+			.to.throw('poetry is not accessible at "/nonexistent/poetry"')
+	}).timeout(TIMEOUT)
+
+	/** Verifies that non-ENOENT errors are re-thrown with cause chain preserved. */
+	test('verify non-ENOENT errors are re-thrown with cause', async () => {
+		let originalError = new Error('permission denied')
+		originalError.code = 'EACCES'
+
+		let provider = await esmock('../../src/providers/python_poetry.js', {
+			'../../src/tools.js': {
+				getCustomPath: () => 'poetry',
+				invokeCommand: () => {
+					throw originalError
+				}
+			}
+		})
+
+		let instance = new provider.default()
+		expect(() => instance._verifyPoetryAccessible('poetry'))
+			.to.throw('failed to check for poetry binary')
+	}).timeout(TIMEOUT)
 })

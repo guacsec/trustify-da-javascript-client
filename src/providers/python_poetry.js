@@ -47,8 +47,21 @@ export default class Python_poetry extends Base_pyproject {
 	 * @param {Object} opts
 	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
 	 */
+	_verifyPoetryAccessible(poetryBin) {
+		try {
+			invokeCommand(poetryBin, ['--version'])
+		} catch (error) {
+			if (error.code === 'ENOENT') {
+				throw new Error(`poetry is not accessible at "${poetryBin}"`)
+			}
+			throw new Error('failed to check for poetry binary', { cause: error })
+		}
+	}
+
 	// eslint-disable-next-line no-unused-vars
 	async _getDependencyData(manifestDir, _workspaceDir, parsed, opts) {
+		let poetryBin = getCustomPath('poetry', opts)
+		this._verifyPoetryAccessible(poetryBin)
 		let hasDevGroup = !!(parsed.tool?.poetry?.group?.dev || parsed.tool?.poetry?.['dev-dependencies'])
 		let treeOutput = this._getPoetryShowTreeOutput(manifestDir, hasDevGroup, opts)
 		let showAllOutput = this._getPoetryShowAllOutput(manifestDir, opts)
