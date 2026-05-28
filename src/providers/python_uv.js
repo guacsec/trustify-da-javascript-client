@@ -28,13 +28,13 @@ export default class Python_uv extends Base_pyproject {
 	 * @param {string} workspaceDir - workspace root (for resolving editable install paths)
 	 * @param {object} parsed - parsed pyproject.toml
 	 * @param {Object} opts
-	 * @returns {Promise<{directDeps: string[], graph: Map<string, import('./base_pyproject.js').default.GraphEntry>}>}
+	 * @returns {Promise<{directDeps: string[], graph: Map<string, import('./base_pyproject.js').GraphEntry>}>}
 	 */
 	async _getDependencyData(manifestDir, workspaceDir, parsed, opts) {
 		let projectName = this._getProjectName(parsed)
 		let uvOutput = this._getUvExportOutput(manifestDir, opts)
 		let { directDeps, graph } = await this._parseUvExport(uvOutput, projectName, workspaceDir)
-		this._attachHashesFromLockFile(path.join(workspaceDir, 'uv.lock'), graph)
+		await this._attachHashesFromLockFile(path.join(workspaceDir, 'uv.lock'), graph)
 		return { directDeps, graph }
 	}
 
@@ -43,20 +43,18 @@ export default class Python_uv extends Base_pyproject {
 	 * @param {string} lockFilePath - path to uv.lock
 	 * @param {Map<string, import('./base_pyproject.js').GraphEntry>} graph
 	 */
-	_attachHashesFromLockFile(lockFilePath, graph) {
+	async _attachHashesFromLockFile(lockFilePath, graph) {
 		let lockContent
 		try {
-			lockContent = fs.readFileSync(lockFilePath, 'utf-8')
-		} catch (e) {
-			console.error(`uv: could not read lock file ${lockFilePath}: ${e.message}`)
+			lockContent = await fs.promises.readFile(lockFilePath, 'utf-8')
+		} catch {
 			return
 		}
 
 		let parsed
 		try {
 			parsed = parseToml(lockContent)
-		} catch (e) {
-			console.error(`uv: could not parse lock file ${lockFilePath}: ${e.message}`)
+		} catch {
 			return
 		}
 
