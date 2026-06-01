@@ -61,7 +61,11 @@ export default class Python_poetry extends Base_pyproject {
 	// eslint-disable-next-line no-unused-vars
 	async _getDependencyData(manifestDir, _workspaceDir, parsed, opts) {
 		let poetryBin = getCustomPath('poetry', opts)
-		this._verifyPoetryAccessible(poetryBin)
+		let envBypass = environmentVariableIsPopulated('TRUSTIFY_DA_POETRY_SHOW_TREE')
+			&& environmentVariableIsPopulated('TRUSTIFY_DA_POETRY_SHOW_ALL')
+		if (!envBypass) {
+			this._verifyPoetryAccessible(poetryBin)
+		}
 		let hasDevGroup = !!(parsed.tool?.poetry?.group?.dev || parsed.tool?.poetry?.['dev-dependencies'])
 		let treeOutput = this._getPoetryShowTreeOutput(manifestDir, hasDevGroup, poetryBin)
 		let showAllOutput = this._getPoetryShowAllOutput(manifestDir, poetryBin)

@@ -697,4 +697,54 @@ suite('testing python-poetry error handling', () => {
 		expect(() => instance._verifyPoetryAccessible('poetry'))
 			.to.throw('failed to check for poetry binary')
 	}).timeout(TIMEOUT)
+
+	/** Verifies that _getDependencyData skips binary verification when both env vars bypass poetry. */
+	test('verify _getDependencyData skips binary check when both env vars are set', async () => {
+		let provider = await esmock('../../src/providers/python_poetry.js', {
+			'../../src/tools.js': {
+				getCustomPath: () => '/nonexistent/poetry',
+				environmentVariableIsPopulated: (name) => {
+					return name === 'TRUSTIFY_DA_POETRY_SHOW_TREE' || name === 'TRUSTIFY_DA_POETRY_SHOW_ALL'
+				},
+				invokeCommand: () => {
+					let err = new Error('spawn /nonexistent/poetry ENOENT')
+					err.code = 'ENOENT'
+					throw err
+				}
+			}
+		})
+
+		let instance = new provider.default()
+		instance._getPoetryShowTreeOutput = () => ''
+		instance._getPoetryShowAllOutput = () => ''
+		instance._parsePoetryShowAll = () => new Map()
+		instance._findLockFileDir = () => '/tmp'
+		instance._extractMarkerData = () => ({})
+		instance._parsePoetryTree = () => ({ directDeps: [], graph: new Map() })
+
+		await instance._getDependencyData('/tmp', '/tmp', { tool: {} }, {})
+	}).timeout(TIMEOUT)
+
+	/** Verifies that _getDependencyData runs binary verification when env vars are not set. */
+	test('verify _getDependencyData runs binary check when env vars are not set', async () => {
+		let provider = await esmock('../../src/providers/python_poetry.js', {
+			'../../src/tools.js': {
+				getCustomPath: () => '/nonexistent/poetry',
+				environmentVariableIsPopulated: () => false,
+				invokeCommand: () => {
+					let err = new Error('spawn /nonexistent/poetry ENOENT')
+					err.code = 'ENOENT'
+					throw err
+				}
+			}
+		})
+
+		let instance = new provider.default()
+		try {
+			await instance._getDependencyData('/tmp', '/tmp', { tool: {} }, {})
+			expect.fail('Expected error to be thrown')
+		} catch (e) {
+			expect(e.message).to.include('poetry is not accessible')
+		}
+	}).timeout(TIMEOUT)
 })
