@@ -40,13 +40,6 @@ export default class Python_poetry extends Base_pyproject {
 		return 'poetry'
 	}
 
-	/**
-	 * @param {string} manifestDir
-	 * @param {string} _workspaceDir - unused (poetry has no workspace support)
-	 * @param {object} parsed - parsed pyproject.toml
-	 * @param {Object} opts
-	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
-	 */
 	_verifyPoetryAccessible(poetryBin) {
 		try {
 			invokeCommand(poetryBin, ['--version'])
@@ -58,6 +51,13 @@ export default class Python_poetry extends Base_pyproject {
 		}
 	}
 
+	/**
+	 * @param {string} manifestDir
+	 * @param {string} _workspaceDir - unused (poetry has no workspace support)
+	 * @param {object} parsed - parsed pyproject.toml
+	 * @param {Object} opts
+	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
+	 */
 	// eslint-disable-next-line no-unused-vars
 	async _getDependencyData(manifestDir, _workspaceDir, parsed, opts) {
 		let poetryBin = getCustomPath('poetry', opts)
