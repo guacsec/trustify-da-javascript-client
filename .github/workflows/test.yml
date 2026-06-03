@@ -18,6 +18,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: Lint and test project
+    permissions:
+      id-token: write
     strategy:
       matrix:
         node: ['22', '24']
@@ -110,4 +112,13 @@ jobs:
         with:
           name: coverage
           path: ./coverage/coverage-final.json
+
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.node == env.MAIN_NODE_VER }}
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          flags: unit-tests
+          files: ./coverage/lcov.info
+          slug: guacsec/trustify-da-javascript-client
 
