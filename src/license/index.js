@@ -95,11 +95,14 @@ export async function runLicenseCheck(sbomContent, manifestPath, url, opts = {},
 
 		const status = getCompatibility(projectCategory, entry.category);
 		if (status === 'incompatible') {
+			const reason = entry.category?.toUpperCase() === 'UNKNOWN'
+				? 'License not recognized as a standard SPDX identifier. Manual review recommended to verify compatibility.'
+				: 'Dependency license(s) are incompatible with the project license.';
 			incompatibleDependencies.push({
 				purl,
 				licenses: entry.licenses,
 				category: entry.category,
-				reason: 'Dependency license(s) are incompatible with the project license.'
+				reason
 			});
 		}
 	}

@@ -11,6 +11,7 @@ import Javascript_pnpm from '../../src/providers/javascript_pnpm.js'
 import Javascript_yarn from '../../src/providers/javascript_yarn.js'
 import pythonPipProvider from '../../src/providers/python_pip.js'
 import rustCargoProvider from '../../src/providers/rust_cargo.js'
+import { getCompatibility } from '../../src/license/license_utils.js'
 import { normalizeLicensesResponse } from '../../src/license/licenses_api.js'
 
 suite('normalizeLicensesResponse', () => {
@@ -61,6 +62,39 @@ suite('normalizeLicensesResponse', () => {
 		expect(map.get('pkg:maven/commons-collections/commons-collections@3.2.1').category).to.equal('PERMISSIVE')
 	})
 })
+
+suite('getCompatibility with UNKNOWN category', () => {
+	/** @type {Array<{proj: string, dep: string, expected: string}>} */
+	const cases = [
+		{ proj: 'PERMISSIVE', dep: 'UNKNOWN', expected: 'incompatible' },
+		{ proj: 'WEAK_COPYLEFT', dep: 'UNKNOWN', expected: 'incompatible' },
+		{ proj: 'STRONG_COPYLEFT', dep: 'UNKNOWN', expected: 'incompatible' },
+		{ proj: 'UNKNOWN', dep: 'PERMISSIVE', expected: 'unknown' },
+		{ proj: 'UNKNOWN', dep: 'UNKNOWN', expected: 'unknown' },
+	];
+
+	cases.forEach(({ proj, dep, expected }) => {
+		/// Verifies getCompatibility returns the expected result for the given project/dependency category pair.
+		test(`getCompatibility('${proj}', '${dep}') returns '${expected}'`, () => {
+			expect(getCompatibility(proj, dep)).to.equal(expected);
+		});
+	});
+
+	/// Verifies that a null project category with UNKNOWN dependency returns 'unknown'.
+	test("getCompatibility(null, 'UNKNOWN') returns 'unknown'", () => {
+		expect(getCompatibility(null, 'UNKNOWN')).to.equal('unknown');
+	});
+
+	/// Verifies that existing known-category incompatibility checks still work correctly.
+	test("existing incompatibility check: STRONG_COPYLEFT dep vs PERMISSIVE proj returns 'incompatible'", () => {
+		expect(getCompatibility('PERMISSIVE', 'STRONG_COPYLEFT')).to.equal('incompatible');
+	});
+
+	/// Verifies that compatible known-category checks are unaffected.
+	test("existing compatibility check: PERMISSIVE dep vs STRONG_COPYLEFT proj returns 'compatible'", () => {
+		expect(getCompatibility('STRONG_COPYLEFT', 'PERMISSIVE')).to.equal('compatible');
+	});
+});
 
 suite('testing readLicenseFromManifest with existing test manifests', () => {
 
