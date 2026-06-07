@@ -102,8 +102,12 @@ export function getCompatibility(projectCategory, dependencyCategory) {
 	const proj = projectCategory.toUpperCase();
 	const dep = dependencyCategory.toUpperCase();
 
-	if (proj === 'UNKNOWN' || dep === 'UNKNOWN') {
+	if (proj === 'UNKNOWN') {
 		return 'unknown';
+	}
+
+	if (dep === 'UNKNOWN') {
+		return 'incompatible';
 	}
 
 	const restrictiveness = {
