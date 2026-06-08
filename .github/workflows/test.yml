@@ -120,5 +120,4 @@ jobs:
           use_oidc: true
           flags: unit-tests
           files: ./coverage/lcov.info
-          slug: guacsec/trustify-da-javascript-client
 
