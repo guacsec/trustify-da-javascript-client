@@ -19,7 +19,7 @@ jobs:
     if: |
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
-    uses: trustification/exhort-integration-tests/.github/workflows/integration.yml@main
+    uses: ruromero/exhort-integration-tests/.github/workflows/integration.yml@fix/update-node-setup-actions
     with:
       language: javascript
       repo-url: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name || github.repository }}
