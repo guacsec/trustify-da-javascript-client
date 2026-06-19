@@ -61,13 +61,13 @@
 		"p-limit": "^7.3.0",
 		"packageurl-js": "~1.0.2",
 		"smol-toml": "^1.6.0",
-		"tree-sitter-gomod": "github:strum355/tree-sitter-go-mod#56326f2ad478892ace58ff247a97d492a3cbcdda",
-		"tree-sitter-requirements": "github:Strum355/tree-sitter-requirements#d0261ee76b84253997fe70d7d397e78c006c3801",
 		"web-tree-sitter": "^0.26.7",
 		"yargs": "^18.0.0"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
+		"tree-sitter-gomod": "github:strum355/tree-sitter-go-mod#56326f2ad478892ace58ff247a97d492a3cbcdda",
+		"tree-sitter-requirements": "github:Strum355/tree-sitter-requirements#d0261ee76b84253997fe70d7d397e78c006c3801",
 		"@trustify-da/trustify-da-api-model": "^2.0.9",
 		"@types/node": "^25.9.1",
 		"@types/which": "^3.0.4",
