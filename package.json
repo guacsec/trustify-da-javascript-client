@@ -47,14 +47,14 @@
 		"postcompile": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm dist/src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm dist/src/providers/tree-sitter-gomod.wasm"
 	},
 	"dependencies": {
-		"@babel/core": "^7.23.2",
+		"@babel/core": "^8.0.1",
 		"@cyclonedx/cyclonedx-library": "^10.0.0",
 		"eslint-import-resolver-typescript": "^4.4.4",
 		"fast-glob": "^3.3.3",
 		"fast-xml-parser": "^5.3.4",
 		"help": "^3.0.2",
 		"https-proxy-agent": "^9.0.0",
-		"js-yaml": "^4.1.1",
+		"js-yaml": "^5.0.0",
 		"jsonc-parser": "^3.3.1",
 		"micromatch": "^4.0.8",
 		"node-fetch": "^3.3.2",
@@ -67,9 +67,9 @@
 		"yargs": "^18.0.0"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.23.2",
+		"@babel/core": "^8.0.1",
 		"@trustify-da/trustify-da-api-model": "^2.0.9",
-		"@types/node": "^25.9.1",
+		"@types/node": "^26.0.0",
 		"@types/which": "^3.0.4",
 		"babel-plugin-rewire": "^1.2.0",
 		"c8": "^11.0.0",
