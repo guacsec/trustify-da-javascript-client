@@ -8,6 +8,7 @@ import Javascript_bun from './providers/javascript_bun.js';
 import Javascript_npm from './providers/javascript_npm.js';
 import Javascript_pnpm from './providers/javascript_pnpm.js';
 import Javascript_yarn from './providers/javascript_yarn.js';
+import dockerfileProvider from './providers/oci_dockerfile.js'
 import pythonPipProvider from './providers/python_pip.js'
 import Python_pip_pyproject from './providers/python_pip_pyproject.js'
 import Python_poetry from './providers/python_poetry.js'
@@ -34,7 +35,8 @@ export const availableProviders = [
 	new Python_poetry(),
 	new Python_uv(),
 	new Python_pip_pyproject(),
-	rustCargoProvider]
+	rustCargoProvider,
+	dockerfileProvider]
 
 /**
  * Match a provider by manifest type only (no lock file check). Used for license reading.
