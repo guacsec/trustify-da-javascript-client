@@ -55,6 +55,9 @@ export function parseFromImage(manifestContent) {
 	if (!lastFrom) {
 		throw new Error('No FROM line found in Dockerfile')
 	}
+	if (lastFrom.includes('${')) {
+		throw new Error('Dockerfile uses ARG substitution in FROM line — cannot resolve variable references')
+	}
 	return lastFrom
 }
 

@@ -77,6 +77,12 @@ suite('testing the Dockerfile/Containerfile data provider', () => {
 			expect(parseFromImage(content)).to.equal('httpd@sha256:abc123')
 		})
 
+		/** Verifies that ARG-substituted FROM targets are rejected with a clear error. */
+		test('throws when FROM target uses ARG substitution', () => {
+			const content = 'ARG BASE_IMAGE=ubuntu:22.04\nFROM ${BASE_IMAGE}\n'
+			expect(() => parseFromImage(content)).to.throw('Dockerfile uses ARG substitution in FROM line')
+		})
+
 		/** Verifies that an error is thrown when no FROM line is present. */
 		test('throws when no FROM line found', () => {
 			const content = 'RUN echo hello\n'
