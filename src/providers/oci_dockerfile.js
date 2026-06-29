@@ -42,13 +42,14 @@ export function parseFromImage(manifestContent) {
 	for (const line of lines) {
 		const trimmed = line.trim()
 		if (/^FROM\s+/i.test(trimmed)) {
-			// Extract image ref: FROM [--platform=...] image [AS name]
-			const withoutFrom = trimmed.replace(/^FROM\s+/i, '')
-			// Skip optional --platform flag
-			const withoutFlags = withoutFrom.replace(/^--\S+\s+/, '')
-			// Take only the image part (before AS alias)
-			const parts = withoutFlags.split(/\s+/)
-			lastFrom = parts[0]
+			// Extract image ref: FROM [--flag=val ...] image [AS name]
+			const tokens = trimmed.replace(/^FROM\s+/i, '').split(/\s+/)
+			// Skip all leading --flag tokens (e.g. --platform=linux/amd64)
+			let i = 0
+			while (i < tokens.length && tokens[i].startsWith('--')) {
+				i++
+			}
+			lastFrom = tokens[i] || null
 		}
 	}
 	if (!lastFrom) {

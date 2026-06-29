@@ -59,9 +59,15 @@ suite('testing the Dockerfile/Containerfile data provider', () => {
 			expect(parseFromImage(content)).to.equal('nginx:alpine')
 		})
 
-		/** Verifies that --platform flags are skipped when parsing FROM lines. */
+		/** Verifies that a single --platform flag is skipped when parsing FROM lines. */
 		test('handles --platform flag', () => {
 			const content = 'FROM --platform=linux/amd64 ubuntu:22.04\n'
+			expect(parseFromImage(content)).to.equal('ubuntu:22.04')
+		})
+
+		/** Verifies that multiple flags before the image reference are all skipped. */
+		test('handles multiple flags before image', () => {
+			const content = 'FROM --platform=linux/amd64 --some-flag=value ubuntu:22.04 AS base\n'
 			expect(parseFromImage(content)).to.equal('ubuntu:22.04')
 		})
 
