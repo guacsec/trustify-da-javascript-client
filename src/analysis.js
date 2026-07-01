@@ -44,7 +44,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v5/analysis`);
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -106,7 +106,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v5/analysis`);
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -150,7 +150,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  */
 async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
 	const finalUrl = new URL(`${url}/api/v5/batch-analysis`)
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false')
 	}
 
@@ -203,7 +203,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 	}
 
 	const finalUrl = new URL(`${url}/api/v5/batch-analysis`);
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 

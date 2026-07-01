@@ -266,8 +266,22 @@ export class ImageRef {
 	getPackageURL() {
 		/** @type {Object.<string, string>} */
 		const qualifiers = {};
-		const repositoryUrl = this.image.getNameWithoutTag();
+		let repositoryUrl = this.image.getNameWithoutTag();
 		const simpleName = this.image.getSimpleName();
+
+		// Normalize Docker Hub image references so all forms produce the same PURL:
+		//   node         → docker.io/node
+		//   docker.io/library/node → docker.io/node
+		if (repositoryUrl != null) {
+			const lower = repositoryUrl.toLowerCase();
+			if (lower === simpleName.toLowerCase()) {
+				// Bare name (e.g. "node") — default to docker.io
+				repositoryUrl = `docker.io/${simpleName}`;
+			} else if (lower.startsWith('docker.io/library/')) {
+				// Official image with library/ prefix — strip it
+				repositoryUrl = `docker.io/${lower.substring('docker.io/library/'.length)}`;
+			}
+		}
 
 		if (repositoryUrl != null && repositoryUrl.toLowerCase() !== simpleName.toLowerCase()) {
 			qualifiers[ImageRef.REPOSITORY_QUALIFIER] = repositoryUrl.toLowerCase();
