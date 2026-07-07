@@ -2,7 +2,7 @@ import fs from 'node:fs'
 
 import { generateImageSBOM, parseImageRef } from '../oci_image/utils.js'
 
-import { getFromQuery, getParser } from './containerfile_parser.js'
+import { getArgQuery, getFromQuery, getParser } from './containerfile_parser.js'
 
 export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest, packageManagerName() { return 'oci' } }
 
@@ -51,43 +51,103 @@ function containsExpansion(node) {
 }
 
 /**
- * Parse the last FROM instruction from a Dockerfile using tree-sitter to extract the base image reference.
- * In multi-stage builds, the last FROM represents the final stage.
- * @param {string} manifestContent the content of the Dockerfile
- * @returns {Promise<string>} the image reference from the last FROM instruction
- * @throws {Error} when no FROM instruction is found or when ARG substitution is used
+ * Collect ARG key-value pairs from the Dockerfile AST.
+ * Only ARGs with a default value are collected (ARGs without defaults cannot be resolved statically).
+ * @param {import('web-tree-sitter').Tree} tree the parsed Dockerfile tree
+ * @param {import('web-tree-sitter').Query} argQuery the tree-sitter query for arg_instruction nodes
+ * @returns {Map<string, string>} map of ARG names to their default values
+ * @private
  */
-export async function parseFromImage(manifestContent) {
-	const [parser, fromQuery] = await Promise.all([getParser(), getFromQuery()])
+function collectArgs(tree, argQuery) {
+	const args = new Map()
+	for (const match of argQuery.matches(tree.rootNode)) {
+		const name = match.captures.find(c => c.name === 'name')?.node.text
+		const defaultValue = match.captures.find(c => c.name === 'default')?.node.text
+		if (name && defaultValue) {
+			args.set(name, defaultValue)
+		}
+	}
+	return args
+}
+
+/**
+ * Resolve ARG substitutions in an image spec text using the collected ARG map.
+ * Replaces ${VAR} and $VAR patterns with their ARG default values.
+ * @param {string} text the image spec text potentially containing variable references
+ * @param {Map<string, string>} args map of ARG names to their default values
+ * @returns {string|null} the resolved text, or null if any variable could not be resolved
+ * @private
+ */
+function resolveArgs(text, args) {
+	let resolved = text
+	let hasUnresolved = false
+	resolved = resolved.replace(/\$\{([^}]+)\}|\$([A-Za-z_]\w*)/g, (_match, braced, plain) => {
+		const key = braced || plain
+		if (args.has(key)) {
+			return args.get(key)
+		}
+		hasUnresolved = true
+		return _match
+	})
+	return hasUnresolved ? null : resolved
+}
+
+/**
+ * Parse all FROM instructions from a Dockerfile using tree-sitter to extract base image references.
+ * In multi-stage builds, every FROM line is returned so each image can be analyzed independently.
+ * ARG substitutions are resolved using declared default values. FROM lines with unresolvable
+ * variables (ARGs without defaults) are silently skipped.
+ * @param {string} manifestContent the content of the Dockerfile
+ * @returns {Promise<string[]>} array of image references from all resolvable FROM instructions
+ * @throws {Error} when no FROM instruction is found or when no FROM lines can be resolved
+ */
+export async function parseAllFromImages(manifestContent) {
+	const [parser, fromQuery, argQuery] = await Promise.all([getParser(), getFromQuery(), getArgQuery()])
 	const tree = parser.parse(manifestContent)
 	const matches = fromQuery.matches(tree.rootNode)
 	if (matches.length === 0) {
 		throw new Error('No FROM line found in Dockerfile')
 	}
-	const lastMatch = matches[matches.length - 1]
-	const imageSpec = lastMatch.captures.find(c => c.name === 'image').node
-	if (containsExpansion(imageSpec)) {
-		throw new Error('Dockerfile uses ARG substitution in FROM line — cannot resolve variable references')
+	const args = collectArgs(tree, argQuery)
+	const images = []
+	for (const match of matches) {
+		const imageSpec = match.captures.find(c => c.name === 'image').node
+		if (containsExpansion(imageSpec)) {
+			const resolved = resolveArgs(imageSpec.text, args)
+			if (resolved != null) {
+				images.push(resolved)
+			}
+			continue
+		}
+		images.push(imageSpec.text)
 	}
-	return imageSpec.text
+	if (images.length === 0) {
+		throw new Error('Dockerfile uses ARG substitution in all FROM lines — cannot resolve variable references')
+	}
+	return images
 }
 
 /**
- * Generate an image SBOM from a Dockerfile manifest using syft.
+ * Generate image SBOMs for all FROM instructions in a Dockerfile manifest using syft.
+ * Returns a batch result with a purl-to-SBOM map suitable for the batch-analysis endpoint.
  * @param {string} manifest path to the Dockerfile
  * @param {{}} [opts={}] optional various options to pass along the application
- * @returns {Promise<{ecosystem: string, content: string, contentType: string}>}
+ * @returns {Promise<{ecosystem: string, content: string, contentType: string, batch: boolean}>}
  * @private
  */
 async function getImageSBOM(manifest, opts = {}) {
 	const manifestContent = fs.readFileSync(manifest, 'utf-8')
-	const image = await parseFromImage(manifestContent)
-	const imageRef = parseImageRef(image, opts)
-	const sbom = generateImageSBOM(imageRef, opts)
+	const images = await parseAllFromImages(manifestContent)
+	const sbomByPurl = {}
+	for (const image of images) {
+		const imageRef = parseImageRef(image, opts)
+		sbomByPurl[imageRef.getPackageURL().toString()] = generateImageSBOM(imageRef, opts)
+	}
 	return {
 		ecosystem,
-		content: JSON.stringify(sbom),
-		contentType: 'application/vnd.cyclonedx+json'
+		content: JSON.stringify(sbomByPurl),
+		contentType: 'application/vnd.cyclonedx+json',
+		batch: true
 	}
 }
 
