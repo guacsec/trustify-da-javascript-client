@@ -51,6 +51,19 @@ function containsExpansion(node) {
 }
 
 /**
+ * Strip surrounding single or double quotes from a string.
+ * @param {string} text
+ * @returns {string}
+ * @private
+ */
+function stripQuotes(text) {
+	if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+		return text.slice(1, -1)
+	}
+	return text
+}
+
+/**
  * Collect ARG key-value pairs from the Dockerfile AST.
  * Only ARGs with a default value are collected (ARGs without defaults cannot be resolved statically).
  * @param {import('web-tree-sitter').Tree} tree the parsed Dockerfile tree
@@ -64,7 +77,7 @@ function collectArgs(tree, argQuery) {
 		const name = match.captures.find(c => c.name === 'name')?.node.text
 		const defaultValue = match.captures.find(c => c.name === 'default')?.node.text
 		if (name && defaultValue) {
-			args.set(name, defaultValue)
+			args.set(name, stripQuotes(defaultValue))
 		}
 	}
 	return args
@@ -141,7 +154,9 @@ async function getImageSBOM(manifest, opts = {}) {
 	const sbomByPurl = {}
 	for (const image of images) {
 		const imageRef = parseImageRef(image, opts)
-		sbomByPurl[imageRef.getPackageURL().toString()] = generateImageSBOM(imageRef, opts)
+		const purl = imageRef.getPackageURL().toString()
+		if (purl in sbomByPurl) continue
+		sbomByPurl[purl] = generateImageSBOM(imageRef, opts)
 	}
 	return {
 		ecosystem,

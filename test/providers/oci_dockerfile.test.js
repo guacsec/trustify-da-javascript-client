@@ -147,6 +147,20 @@ suite('testing the Dockerfile/Containerfile data provider', () => {
 			expect(result).to.deep.equal(['alpine:3.18'])
 		})
 
+		/** Verifies that ARG with double-quoted default is resolved correctly. */
+		test('resolves ARG with double-quoted default', async () => {
+			const content = 'ARG BASE_IMAGE="ubuntu:22.04"\nFROM ${BASE_IMAGE}\n'
+			const result = await parseAllFromImages(content)
+			expect(result).to.deep.equal(['ubuntu:22.04'])
+		})
+
+		/** Verifies that ARG with single-quoted default is resolved correctly. */
+		test('resolves ARG with single-quoted default', async () => {
+			const content = "ARG BASE_IMAGE='alpine:3.18'\nFROM ${BASE_IMAGE}\n"
+			const result = await parseAllFromImages(content)
+			expect(result).to.deep.equal(['alpine:3.18'])
+		})
+
 		/** Verifies that comment lines and blank lines are ignored. */
 		test('ignores comments and blank lines', async () => {
 			const content = [

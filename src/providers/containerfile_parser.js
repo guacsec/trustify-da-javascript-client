@@ -22,5 +22,5 @@ export async function getFromQuery() {
 
 export async function getArgQuery() {
 	const language = await init();
-	return new Query(language, '(arg_instruction (arg_pair name: (unquoted_string) @name default: (unquoted_string) @default))');
+	return new Query(language, '(arg_instruction (arg_pair name: (_) @name default: (_) @default))');
 }
