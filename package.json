@@ -40,11 +40,11 @@
 		"test": "c8 npm run tests",
 		"tests": "mocha --config .mocharc.json",
 		"tests:rep": "mocha --reporter-option maxDiffSize=0 --reporter json > unit-tests-result.json",
-		"pretest": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm src/providers/tree-sitter-gomod.wasm",
+		"pretest": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm src/providers/tree-sitter-gomod.wasm && cp node_modules/tree-sitter-containerfile/tree-sitter-containerfile.wasm src/providers/tree-sitter-containerfile.wasm",
 		"precompile": "rm -rf dist",
 		"compile": "tsc -p tsconfig.json",
 		"compile:dev": "tsc -p tsconfig.dev.json",
-		"postcompile": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm dist/src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm dist/src/providers/tree-sitter-gomod.wasm"
+		"postcompile": "cp node_modules/tree-sitter-requirements/tree-sitter-requirements.wasm dist/src/providers/tree-sitter-requirements.wasm && cp node_modules/tree-sitter-gomod/tree-sitter-gomod.wasm dist/src/providers/tree-sitter-gomod.wasm && cp node_modules/tree-sitter-containerfile/tree-sitter-containerfile.wasm dist/src/providers/tree-sitter-containerfile.wasm"
 	},
 	"dependencies": {
 		"@babel/core": "^7.23.2",
@@ -61,6 +61,7 @@
 		"p-limit": "^7.3.0",
 		"packageurl-js": "~1.0.2",
 		"smol-toml": "^1.6.0",
+		"tree-sitter-containerfile": "^0.8.1",
 		"tree-sitter-gomod": "github:strum355/tree-sitter-go-mod#56326f2ad478892ace58ff247a97d492a3cbcdda",
 		"tree-sitter-requirements": "github:Strum355/tree-sitter-requirements#d0261ee76b84253997fe70d7d397e78c006c3801",
 		"web-tree-sitter": "^0.26.7",
@@ -68,18 +69,18 @@
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
+		"@eslint/js": "^10.0.0",
 		"@trustify-da/trustify-da-api-model": "^2.0.9",
 		"@types/node": "^25.9.1",
 		"@types/which": "^3.0.4",
 		"babel-plugin-rewire": "^1.2.0",
 		"c8": "^11.0.0",
 		"chai": "^6.2.2",
-		"@eslint/js": "^10.0.0",
 		"eslint": "^10.4.1",
 		"eslint-import-resolver-typescript": "^4.4.4",
 		"eslint-plugin-import-x": "^4.16.2",
-		"globals": "^17.6.0",
 		"esmock": "^2.6.2",
+		"globals": "^17.6.0",
 		"mocha": "^11.7.6",
 		"msw": "^2.12.7",
 		"sinon": "^22.0.0",
@@ -116,6 +117,9 @@
 			"lcov",
 			"text"
 		]
+	},
+	"overrides": {
+		"tree-sitter": "0.22.4"
 	},
 	"resolutions": {
 		"@hapi/joi": "17.1.1"

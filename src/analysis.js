@@ -24,6 +24,9 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	opts["source-manifest"] = Buffer.from(fs.readFileSync(manifest).toString()).toString('base64')
 	opts["manifest-type"] = path.parse(manifest).base
 	let provided = await provider.provideStack(manifest, opts) // throws error if content providing failed
+	if (provided.batch) {
+		return requestStackBatch(JSON.parse(provided.content), url, html, opts)
+	}
 	opts["source-manifest"] = ""
 	opts[TRUSTIFY_DA_OPERATION_TYPE_HEADER.toUpperCase().replaceAll("-", "_")] = "stack-analysis"
 	let startTime = new Date()
@@ -44,7 +47,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v5/analysis`);
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -88,6 +91,9 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	opts["source-manifest"] = Buffer.from(fs.readFileSync(manifest).toString()).toString('base64')
 
 	let provided = await provider.provideComponent(manifest, opts) // throws error if content providing failed
+	if (provided.batch) {
+		return requestStackBatch(JSON.parse(provided.content), url, false, opts)
+	}
 	opts["source-manifest"] = ""
 	opts[TRUSTIFY_DA_OPERATION_TYPE_HEADER.toUpperCase().replaceAll("-", "_")] = "component-analysis"
 	if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
@@ -106,7 +112,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v5/analysis`);
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 
@@ -150,7 +156,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  */
 async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
 	const finalUrl = new URL(`${url}/api/v5/batch-analysis`)
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false')
 	}
 
@@ -203,7 +209,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 	}
 
 	const finalUrl = new URL(`${url}/api/v5/batch-analysis`);
-	if (opts['TRUSTIFY_DA_RECOMMENDATIONS_ENABLED'] === 'false') {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
 		finalUrl.searchParams.append('recommend', 'false');
 	}
 

@@ -695,7 +695,7 @@ By default, The API algorithm will use native commands of PIP installer as data 
 It's also possible to use the lightweight Python PIP utility [pipdeptree](https://pypi.org/project/pipdeptree/) as data source instead. In order to activate this, you need to set the environment variable/option `TRUSTIFY_DA_PIP_USE_DEP_TREE` to 'true'.
 
 #### Toggle Red Hat Trusted Content recommendations
-Both the HTML-based report and JSON response will by default contain recommendations for migrating to Red Hat-based Trusted Content repositories. This feature can be disabled by setting `TRUSTIFY_DA_RECOMMENDATIONS_ENABLED` to 'false' via environment variables or options.
+Both the HTML-based report and JSON response will by default contain recommendations for migrating to Red Hat-based Trusted Content repositories. This feature can be disabled by setting `TRUSTIFY_DA_RECOMMEND` to 'false' via environment variables or options.
 
 #### Additional CLI arguments
 For some ecosystems we support passing additional CLI arguments to the underlying tools. The following table outlines the supported ecosystems and the environment variable/option that configures this. Note that the arguments are expected to be in the format of a JSON array.

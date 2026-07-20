@@ -61,7 +61,7 @@ export {
  * TRUSTIFY_DA_PYTHON_PATH?: string | undefined,
  * TRUSTIFY_DA_PYTHON_VIRTUAL_ENV?: string | undefined,
  * TRUSTIFY_DA_PYTHON3_PATH?: string | undefined,
- * TRUSTIFY_DA_RECOMMENDATIONS_ENABLED?: string | undefined,
+ * TRUSTIFY_DA_RECOMMEND?: string | undefined,
  * TRUSTIFY_DA_SKOPEO_CONFIG_PATH?: string | undefined,
  * TRUSTIFY_DA_SKOPEO_PATH?: string | undefined,
  * TRUSTIFY_DA_SYFT_CONFIG_PATH?: string | undefined,

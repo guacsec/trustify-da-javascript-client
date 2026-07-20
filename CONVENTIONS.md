@@ -8,7 +8,8 @@
 - **TypeScript**: Configuration present but code is primarily JavaScript with JSDoc
 - **Node.js**: Requires Node >= 20.0.0, npm >= 11.5.1
 - **CLI**: `yargs` for command-line argument parsing
-- **Parsing Libraries**: `fast-xml-parser`, `fast-toml`, `smol-toml`, `tree-sitter-requirements`
+- **Parsing Libraries**: `fast-xml-parser`, `fast-toml`, `smol-toml`, `web-tree-sitter` with grammar packages (`tree-sitter-requirements`, `tree-sitter-gomod`, `tree-sitter-containerfile`)
+- **Prefer proper parsers over regex**: When parsing structured file formats (e.g., go.mod, requirements.txt, Dockerfile), use tree-sitter grammars rather than hand-written regex. Tree-sitter grammars already exist for several formats and provide a well-defined AST that handles edge cases. Follow the existing pattern: add the grammar package, create a `*_parser.js` module under `src/providers/`, copy the `.wasm` file in `pretest`/`postcompile` scripts, and use queries to extract data from the syntax tree.
 
 ## Code Style
 
