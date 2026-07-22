@@ -103,6 +103,34 @@ for provider in $providers; do
       printf "      High           :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.high' <<< $report)"
       printf "      Medium         :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.medium' <<< $report)"
       printf "      Low            :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.low' <<< $report)"
+      remediations_count=$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.remediations' <<< $report)
+      printf "    Remediations     :  %s \n" "$remediations_count"
+      if [ "$remediations_count" -gt 0 ] 2>/dev/null; then
+        jq -r --arg provider "$provider" --arg source "$source" '
+          [.providers[$provider].sources[$source].dependencies[] |
+            . as $dep |
+            [(.issues // [])[] | select(.remediation.trustedContent.ref != null) |
+              {ref: $dep.ref, tc: .remediation.trustedContent.ref, cves: ((.cves // [.id]) | join(", "))}
+            ] + [(.transitive // [])[] | . as $t |
+              (.issues // [])[] | select(.remediation.trustedContent.ref != null) |
+              {ref: $t.ref, tc: .remediation.trustedContent.ref, cves: ((.cves // [.id]) | join(", "))}
+            ]
+          ] | flatten | unique_by(.ref + .tc) | .[] |
+          "      \(.ref)\n        → \(.tc)\n        CVEs: \(.cves)"
+        ' <<< "$report"
+      fi
+    done
+
+    rec_sources=$(jq -r --arg provider "$provider" '.providers[$provider].recommendations // {} | keys[]' <<< "$report" 2>/dev/null)
+    for rec_source in $rec_sources; do
+      rec_total=$(jq -r --arg provider "$provider" --arg rs "$rec_source" '.providers[$provider].recommendations[$rs].summary.total // 0' <<< "$report")
+      printf "  Recommendations (%s): %s\n" "$rec_source" "$rec_total"
+      if [ "$rec_total" -gt 0 ] 2>/dev/null; then
+        jq -r --arg provider "$provider" --arg rs "$rec_source" '
+          .providers[$provider].recommendations[$rs].dependencies[]? |
+          "    \(.ref)\n      → \(.recommendation)"
+        ' <<< "$report"
+      fi
     done
   fi
 done
