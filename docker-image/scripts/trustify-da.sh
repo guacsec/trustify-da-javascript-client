@@ -93,7 +93,7 @@ for provider in $providers; do
   code=$(echo $provider_status | jq -r '.code')
   if [ "$code" -eq 200 ]; then
     sources=$(jq -r --arg provider "$provider" '.providers[$provider].sources | keys[]' <<< "$report")
-    for source in $sources; do
+    while IFS= read -r source; do
       printf "  Source: %s\n" "${source^}"
       printf "    Vulnerabilities\n"
       printf "      Total          :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.total' <<< $report)"
@@ -119,7 +119,7 @@ for provider in $providers; do
           "      \(.ref)\n        → \(.tc)\n        CVEs: \(.cves)"
         ' <<< "$report"
       fi
-    done
+    done <<< "$sources"
 
     rec_sources=$(jq -r --arg provider "$provider" '.providers[$provider].recommendations // {} | keys[]' <<< "$report" 2>/dev/null)
     for rec_source in $rec_sources; do
