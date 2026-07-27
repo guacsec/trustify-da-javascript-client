@@ -70,7 +70,7 @@
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
 		"@eslint/js": "^10.0.0",
-		"@trustify-da/trustify-da-api-model": "^2.0.9",
+		"@trustify-da/trustify-da-api-model": "^2.0.12",
 		"@types/node": "^25.9.1",
 		"@types/which": "^3.0.4",
 		"babel-plugin-rewire": "^1.2.0",
