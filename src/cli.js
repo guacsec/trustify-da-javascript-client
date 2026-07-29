@@ -28,11 +28,25 @@ const component = {
 			desc: 'Workspace root directory (for monorepos; lock file is expected here)',
 			type: 'string',
 			normalize: true,
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
 		let manifestName = args['/path/to/manifest']
 		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
+		}
 		let res = await client.componentAnalysis(manifestName, opts)
 		console.log(JSON.stringify(res, null, 2))
 	}
@@ -152,6 +166,14 @@ const stack = {
 			desc: 'Workspace root directory (for monorepos; lock file is expected here)',
 			type: 'string',
 			normalize: true,
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
@@ -159,6 +181,12 @@ const stack = {
 		let html = args['html']
 		let summary = args['summary']
 		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
+		}
 		let theProvidersSummary = new Map();
 		let theProvidersObject ={}
 		let res = await client.stackAnalysis(manifest, html, opts)
@@ -230,6 +258,14 @@ const stackBatch = {
 			desc: 'Stop on first invalid package.json or SBOM error (env: TRUSTIFY_DA_CONTINUE_ON_ERROR=false)',
 			type: 'boolean',
 			default: false,
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
@@ -249,6 +285,12 @@ const stackBatch = {
 		}
 		if (args.failFast) {
 			opts.continueOnError = false
+		}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
 		}
 		let res = await client.stackAnalysisBatch(workspaceRoot, html, opts)
 		const batchAnalysis =
