@@ -1,0 +1,31 @@
+# Gradle version catalog for testing TOML updater
+# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
+
+[versions]
+quarkus = "3.8.4"
+jackson = "2.17.0"
+log4j = "2.23.1"
+lombok = "1.18.32"
+
+[libraries]
+# Centralized version references
+quarkus-resteasy = { module = "io.quarkus:quarkus-resteasy", version.ref = "quarkus" }
+quarkus-arc = { module = "io.quarkus:quarkus-arc", version.ref = "quarkus" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+
+# Inline version
+guava = { module = "com.google.guava:guava", version = "33.1.0-jre" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version = "3.14.0" }
+
+# String shorthand notation
+junit = "org.junit.jupiter:junit-jupiter:5.10.2"
+
+# No version (BOM-managed)
+lombok = { module = "org.projectlombok:lombok" }
+
+[bundles]
+quarkus = ["quarkus-resteasy", "quarkus-arc"]
+
+[plugins]
+quarkus = { id = "io.quarkus", version.ref = "quarkus" }
