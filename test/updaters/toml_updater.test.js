@@ -324,6 +324,48 @@ mylib = { group = "com.example", name = "mylib", version.ref = "myver" }
 			expect(result.content).to.include('myver = "2.0.0"')
 		})
 
+		/** Verifies that $ in newVersion is not interpreted as a regex replacement pattern. */
+		test('handles $ characters in newVersion without corruption', () => {
+			const toml = `[versions]
+myver = "1.0.0"
+
+[libraries]
+mylib = { module = "com.example:mylib", version.ref = "myver" }
+`
+			const changes = [{ groupId: 'com.example', artifactId: 'mylib', newVersion: 'ver$1ify' }]
+
+			const result = updateTomlVersions(toml, changes)
+
+			expect(result.applied).to.have.lengthOf(1)
+			expect(result.content).to.include('myver = "ver$1ify"')
+		})
+
+		/** Verifies that $$ and $& in newVersion are treated as literal characters. */
+		test('handles $$ and $& in newVersion for inline versions', () => {
+			const toml = `[libraries]
+mylib = { module = "com.example:mylib", version = "1.0.0" }
+`
+			const changes = [{ groupId: 'com.example', artifactId: 'mylib', newVersion: 'price$$5' }]
+
+			const result = updateTomlVersions(toml, changes)
+
+			expect(result.applied).to.have.lengthOf(1)
+			expect(result.content).to.include('version = "price$$5"')
+		})
+
+		/** Verifies that $1 in newVersion works for string shorthand notation. */
+		test('handles $ in newVersion for string shorthand', () => {
+			const toml = `[libraries]
+mylib = "com.example:mylib:1.0.0"
+`
+			const changes = [{ groupId: 'com.example', artifactId: 'mylib', newVersion: '2.0.0-$TAG' }]
+
+			const result = updateTomlVersions(toml, changes)
+
+			expect(result.applied).to.have.lengthOf(1)
+			expect(result.content).to.include('mylib = "com.example:mylib:2.0.0-$TAG"')
+		})
+
 		/** Verifies that versions with special characters (dots, hyphens) are handled correctly. */
 		test('handles version strings with dots, hyphens, and qualifiers', () => {
 			const toml = `[versions]

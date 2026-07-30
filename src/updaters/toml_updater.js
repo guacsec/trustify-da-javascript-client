@@ -222,7 +222,7 @@ function replaceVersionInSection(content, section, key, oldVersion, newVersion) 
 		`^(\\s*${escapedKey}\\s*=\\s*")${escapedOld}("\\s*)$`,
 		'm'
 	)
-	return content.replace(pattern, `$1${newVersion}$2`)
+	return content.replace(pattern, (_, p1, p2) => `${p1}${newVersion}${p2}`)
 }
 
 /**
@@ -242,7 +242,7 @@ function replaceInlineVersion(content, alias, oldVersion, newVersion) {
 		`^(\\s*${escapedAlias}\\s*=\\s*\\{[^}]*version\\s*=\\s*")${escapedOld}("[^}]*\\}\\s*)$`,
 		'm'
 	)
-	const result = content.replace(pattern, `$1${newVersion}$2`)
+	const result = content.replace(pattern, (_, p1, p2) => `${p1}${newVersion}${p2}`)
 	if (result !== content) {
 		return result
 	}
@@ -250,7 +250,7 @@ function replaceInlineVersion(content, alias, oldVersion, newVersion) {
 		`^(\\s*${escapedAlias}\\s*=\\s*"[^:]+:[^:]+:)${escapedOld}("\\s*)$`,
 		'm'
 	)
-	return content.replace(stringPattern, `$1${newVersion}$2`)
+	return content.replace(stringPattern, (_, p1, p2) => `${p1}${newVersion}${p2}`)
 }
 
 /**
