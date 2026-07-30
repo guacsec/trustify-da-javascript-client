@@ -102,6 +102,14 @@ const image = {
 			desc: 'For JSON report, get only the \'summary\'',
 			type: 'boolean',
 			conflicts: 'html'
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
@@ -111,7 +119,14 @@ const image = {
 		}
 		let html = args['html']
 		let summary = args['summary']
-		let res = await client.imageAnalysis(imageRefs, html)
+		const opts = {}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
+		}
+		let res = await client.imageAnalysis(imageRefs, html, opts)
 		if(summary && !html) {
 			let summaries = {}
 			for (let [imageRef, report] of Object.entries(res)) {
