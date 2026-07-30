@@ -110,15 +110,25 @@ export function updateTomlVersions(tomlContent, versionChanges) {
 				})
 				continue
 			}
+			const beforeInline = updatedContent
 			updatedContent = replaceInlineVersion(
 				updatedContent, alias, inlineVersion, change.newVersion
 			)
-			applied.push({
-				groupId: change.groupId,
-				artifactId: change.artifactId,
-				newVersion: change.newVersion,
-				oldVersion: inlineVersion
-			})
+			if (updatedContent !== beforeInline) {
+				applied.push({
+					groupId: change.groupId,
+					artifactId: change.artifactId,
+					newVersion: change.newVersion,
+					oldVersion: inlineVersion
+				})
+			} else {
+				skipped.push({
+					groupId: change.groupId,
+					artifactId: change.artifactId,
+					newVersion: change.newVersion,
+					reason: `Inline version replacement did not match for library "${alias}"`
+				})
+			}
 		}
 	}
 

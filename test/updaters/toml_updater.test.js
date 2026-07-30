@@ -366,6 +366,25 @@ mylib = "com.example:mylib:1.0.0"
 			expect(result.content).to.include('mylib = "com.example:mylib:2.0.0-$TAG"')
 		})
 
+		/** Verifies that an inline version with a trailing comment that breaks the regex is reported as skipped. */
+		test('reports skipped when inline version regex does not match', () => {
+			// Given a library entry with a trailing comment after the closing brace
+			// smol-toml parses this correctly but the replacement regex expects }$ at end-of-line
+			const toml = `[libraries]
+mylib = { module = "com.example:mylib", version = "1.0.0" } # pinned
+`
+			const changes = [{ groupId: 'com.example', artifactId: 'mylib', newVersion: '2.0.0' }]
+
+			// When attempting to update
+			const result = updateTomlVersions(toml, changes)
+
+			// Then the change should be reported as skipped, not applied
+			expect(result.applied).to.have.lengthOf(0)
+			expect(result.skipped).to.have.lengthOf(1)
+			expect(result.skipped[0].reason).to.include('did not match')
+			expect(result.content).to.equal(toml)
+		})
+
 		/** Verifies that versions with special characters (dots, hyphens) are handled correctly. */
 		test('handles version strings with dots, hyphens, and qualifiers', () => {
 			const toml = `[versions]
