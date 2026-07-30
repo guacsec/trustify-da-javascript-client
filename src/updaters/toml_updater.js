@@ -82,7 +82,7 @@ export function updateTomlVersions(tomlContent, versionChanges) {
 				continue
 			}
 			updatedContent = replaceVersionInSection(
-				updatedContent, 'versions', versionRef, oldVersion, change.newVersion
+				updatedContent, versionRef, oldVersion, change.newVersion
 			)
 			applied.push({
 				groupId: change.groupId,
@@ -206,16 +206,15 @@ function getInlineVersion(entry) {
 }
 
 /**
- * Replaces a version value in the [versions] section using position-based string replacement.
+ * Replaces a version value using position-based string replacement.
  * Targets lines matching: key = "oldVersion"
  * @param {string} content - raw TOML content
- * @param {string} section - section name (e.g. "versions")
  * @param {string} key - version alias key
  * @param {string} oldVersion - current version string
  * @param {string} newVersion - replacement version string
  * @returns {string} updated content
  */
-function replaceVersionInSection(content, section, key, oldVersion, newVersion) {
+function replaceVersionInSection(content, key, oldVersion, newVersion) {
 	const escapedKey = escapeRegExp(key)
 	const escapedOld = escapeRegExp(oldVersion)
 	const pattern = new RegExp(
