@@ -115,14 +115,14 @@ for provider in $providers; do
               (.issues // [])[] | select(.remediation.trustedContent.ref != null) |
               {ref: $t.ref, tc: .remediation.trustedContent.ref, cves: ((.cves // [.id]) | join(", "))}
             ]
-          ] | flatten | unique_by(.ref + .tc) | .[] |
+          ] | flatten | unique_by({ref, tc}) | .[] |
           "      \(.ref)\n        → \(.tc)\n        CVEs: \(.cves)"
         ' <<< "$report"
       fi
     done <<< "$sources"
 
     rec_sources=$(jq -r --arg provider "$provider" '.providers[$provider].recommendations // {} | keys[]' <<< "$report" 2>/dev/null)
-    for rec_source in $rec_sources; do
+    while IFS= read -r rec_source; do
       rec_total=$(jq -r --arg provider "$provider" --arg rs "$rec_source" '.providers[$provider].recommendations[$rs].summary.total // 0' <<< "$report")
       printf "  Recommendations (%s): %s\n" "$rec_source" "$rec_total"
       if [ "$rec_total" -gt 0 ] 2>/dev/null; then
@@ -131,7 +131,7 @@ for provider in $providers; do
           "    \(.ref)\n      → \(.recommendation)"
         ' <<< "$report"
       fi
-    done
+    done <<< "$rec_sources"
   fi
 done
 printf "=%.0s" {1..50}
