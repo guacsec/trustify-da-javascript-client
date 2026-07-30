@@ -321,11 +321,24 @@ export function updateMavenVersions(pomContent, versionChanges) {
 				property: resolved.terminalPropName,
 			});
 		} else {
-			replacementsByPosition.set(versionPos.start, {
-				start: versionPos.start,
-				end: versionPos.end,
-				newValue: change.newVersion,
-			});
+			const existing = replacementsByPosition.get(versionPos.start);
+			if (existing) {
+				if (existing.newValue !== change.newVersion) {
+					skipped.push({
+						groupId: change.groupId,
+						artifactId: change.artifactId,
+						newVersion: change.newVersion,
+						reason: `Version already targeted with a different version '${existing.newValue}'`,
+					});
+					continue;
+				}
+			} else {
+				replacementsByPosition.set(versionPos.start, {
+					start: versionPos.start,
+					end: versionPos.end,
+					newValue: change.newVersion,
+				});
+			}
 
 			applied.push({
 				groupId: change.groupId,
