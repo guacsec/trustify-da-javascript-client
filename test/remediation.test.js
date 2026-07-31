@@ -248,6 +248,18 @@ suite('remediation extractor', () => {
 			expect(result).to.have.lengthOf(1)
 			expect(result[0].severity).to.equal('CRITICAL')
 		})
+
+		/** Verifies that severity values are normalized to uppercase in output. */
+		test('severity is normalized to uppercase', () => {
+			const report = buildReport({
+				severity: 'critical',
+			})
+
+			const result = extractRemediations(report)
+
+			expect(result).to.have.lengthOf(1)
+			expect(result[0].severity).to.equal('CRITICAL')
+		})
 	})
 
 	suite('edge cases', () => {
@@ -375,6 +387,39 @@ suite('remediation extractor', () => {
 			// takes the higher version
 			expect(result).to.have.lengthOf(1)
 			expect(result[0].fixedInVersion).to.equal('1.2.0')
+		})
+	})
+
+	suite('source and recommendation merging', () => {
+		/** Verifies that CVEs from source issues are preserved when a recommendation also exists for the same dep. */
+		test('source CVEs are preserved when recommendation provides a higher version', () => {
+			// Given a dep with a CVE from source and a recommendation with a higher version
+			const report = buildReport({
+				depRef: 'pkg:maven/com.example/lib@1.0.0',
+				issueId: 'CVE-2024-11111',
+				severity: 'HIGH',
+				trustedContentRef: 'pkg:maven/com.example/lib@1.1.0',
+				fixedIn: null,
+				advisory: { id: 'ADV-001', url: 'https://example.com/ADV-001' },
+				recommendations: {
+					dependencies: [{
+						ref: 'pkg:maven/com.example/lib@1.0.0',
+						recommendation: {
+							ref: 'pkg:maven/com.example/lib@1.2.0',
+						},
+					}],
+				},
+			})
+
+			const result = extractRemediations(report)
+
+			// Then the entry should have the recommendation's higher version but retain source CVEs
+			expect(result).to.have.lengthOf(1)
+			expect(result[0].fixedInVersion).to.equal('1.2.0')
+			expect(result[0].cves).to.deep.equal(['CVE-2024-11111'])
+			expect(result[0].advisories).to.deep.equal([
+				{ id: 'ADV-001', url: 'https://example.com/ADV-001' },
+			])
 		})
 	})
 

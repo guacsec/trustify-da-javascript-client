@@ -22,19 +22,15 @@ export function extractRemediations(analysisReport, options = {}) {
 
 	const priorityMap = buildPriorityMap(options.providerPriority)
 	const remediationsByDep = new Map()
+	const rankByDep = new Map()
 
 	for (const [providerName, providerReport] of Object.entries(analysisReport.providers)) {
 		const providerRank = priorityMap.get(providerName) ?? 0
-		extractFromSources(providerReport, providerName, providerRank, remediationsByDep)
-		extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep)
+		extractFromSources(providerReport, providerName, providerRank, remediationsByDep, rankByDep)
+		extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep, rankByDep)
 	}
 
 	return Array.from(remediationsByDep.values())
-		.map(entry => {
-			const cleaned = { ...entry }
-			delete cleaned._priority
-			return cleaned
-		})
 		.sort((a, b) => a.purl.localeCompare(b.purl))
 }
 
@@ -61,8 +57,9 @@ function buildPriorityMap(providerPriority) {
  * @param {string} providerName
  * @param {number} providerRank - numeric priority rank for this provider
  * @param {Map<string, object>} remediationsByDep - accumulator keyed by dependency PURL
+ * @param {Map<string, number>} rankByDep - tracks current winning rank per dependency
  */
-function extractFromSources(providerReport, providerName, providerRank, remediationsByDep) {
+function extractFromSources(providerReport, providerName, providerRank, remediationsByDep, rankByDep) {
 	if (!providerReport.sources) {
 		return
 	}
@@ -77,7 +74,7 @@ function extractFromSources(providerReport, providerName, providerRank, remediat
 			}
 			for (const issue of dep.issues) {
 				processIssueRemediation(
-					issue, dep, providerName, sourceName, providerRank, remediationsByDep
+					issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep
 				)
 			}
 		}
@@ -92,8 +89,9 @@ function extractFromSources(providerReport, providerName, providerRank, remediat
  * @param {string} sourceName
  * @param {number} providerRank
  * @param {Map<string, object>} remediationsByDep
+ * @param {Map<string, number>} rankByDep
  */
-function processIssueRemediation(issue, dep, providerName, sourceName, providerRank, remediationsByDep) {
+function processIssueRemediation(issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep) {
 	const fixedInPurl = getFixedInPurl(issue)
 	if (!fixedInPurl) {
 		return
@@ -135,10 +133,10 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 			provider: providerName,
 			source: sourceName,
 			advisories,
-			severity,
+			severity: severity.toUpperCase(),
 			cves: cveId ? [cveId] : [],
-			_priority: providerRank,
 		})
+		rankByDep.set(depPurl, providerRank)
 		return
 	}
 
@@ -148,14 +146,16 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 
 	mergeAdvisories(existing.advisories, advisories)
 
-	if (providerRank > existing._priority) {
+	const existingRank = rankByDep.get(depPurl)
+
+	if (providerRank > existingRank) {
 		existing.fixedInVersion = fixedInVersion
 		existing.fixedInPurl = fixedInPurl
 		existing.provider = providerName
 		existing.source = sourceName
 		existing.severity = higherSeverity(existing.severity, severity)
-		existing._priority = providerRank
-	} else if (providerRank === existing._priority) {
+		rankByDep.set(depPurl, providerRank)
+	} else if (providerRank === existingRank) {
 		if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
 			existing.fixedInVersion = fixedInVersion
 			existing.fixedInPurl = fixedInPurl
@@ -168,12 +168,14 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 
 /**
  * Extracts remediations from the recommendations section of a provider report.
+ * Merges CVEs and advisories into existing entries when present.
  * @param {object} providerReport
  * @param {string} providerName
  * @param {number} providerRank
  * @param {Map<string, object>} remediationsByDep
+ * @param {Map<string, number>} rankByDep
  */
-function extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep) {
+function extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep, rankByDep) {
 	if (!providerReport.recommendations || !providerReport.recommendations.dependencies) {
 		return
 	}
@@ -218,15 +220,20 @@ function extractFromRecommendations(providerReport, providerName, providerRank, 
 				advisories: [],
 				severity: 'UNKNOWN',
 				cves: [],
-				_priority: providerRank,
 			})
-		} else if (providerRank > existing._priority) {
+			rankByDep.set(depPurl, providerRank)
+			continue
+		}
+
+		const existingRank = rankByDep.get(depPurl)
+
+		if (providerRank > existingRank) {
 			existing.fixedInVersion = fixedInVersion
 			existing.fixedInPurl = recommendedPurl
 			existing.provider = providerName
 			existing.source = 'recommendation'
-			existing._priority = providerRank
-		} else if (providerRank === existing._priority) {
+			rankByDep.set(depPurl, providerRank)
+		} else if (providerRank === existingRank) {
 			if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
 				existing.fixedInVersion = fixedInVersion
 				existing.fixedInPurl = recommendedPurl
@@ -321,13 +328,15 @@ function compareVersions(a, b) {
 const SEVERITY_ORDER = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
 /**
- * Returns the higher of two severity strings.
+ * Returns the higher of two severity strings, normalized to uppercase.
  * @param {string} a
  * @param {string} b
  * @returns {string}
  */
 function higherSeverity(a, b) {
-	const indexA = SEVERITY_ORDER.indexOf(a.toUpperCase())
-	const indexB = SEVERITY_ORDER.indexOf(b.toUpperCase())
-	return indexA >= indexB ? a : b
+	const upperA = a.toUpperCase()
+	const upperB = b.toUpperCase()
+	const indexA = SEVERITY_ORDER.indexOf(upperA)
+	const indexB = SEVERITY_ORDER.indexOf(upperB)
+	return indexA >= indexB ? upperA : upperB
 }
