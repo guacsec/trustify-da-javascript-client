@@ -1,16 +1,6 @@
 import { PackageURL } from 'packageurl-js'
 
 /**
- * Provider priority levels. Higher value = higher priority.
- * Lightwell rebuilt packages (.rhlw-) > Red Hat advisories (.redhat-) > generic.
- */
-const PROVIDER_PRIORITY = {
-	lightwell: 3,
-	redhat: 2,
-	generic: 1,
-}
-
-/**
  * Extracts actionable remediation instructions from a DA AnalysisReport response.
  *
  * Walks the provider/source/dependency/issue tree, collects fixedIn and trustedContent
@@ -19,18 +9,24 @@ const PROVIDER_PRIORITY = {
  * provider. Dependencies with no remediation data are skipped.
  *
  * @param {object} analysisReport - raw DA AnalysisReport JSON response
+ * @param {object} [options] - extraction options
+ * @param {string[]} [options.providerPriority] - provider names in descending priority order.
+ *   The first entry has the highest priority. Providers not listed share the lowest priority.
+ *   When omitted or empty, all providers are treated equally and the highest fix version wins.
  * @returns {Array<{purl: string, groupId: string, artifactId: string, currentVersion: string, fixedInVersion: string, fixedInPurl: string, provider: string, source: string, advisories: Array<{id: string, url: string}>, severity: string, cves: string[]}>}
  */
-export function extractRemediations(analysisReport) {
+export function extractRemediations(analysisReport, options = {}) {
 	if (!analysisReport || !analysisReport.providers) {
 		return []
 	}
 
+	const priorityMap = buildPriorityMap(options.providerPriority)
 	const remediationsByDep = new Map()
 
 	for (const [providerName, providerReport] of Object.entries(analysisReport.providers)) {
-		extractFromSources(providerReport, providerName, remediationsByDep)
-		extractFromRecommendations(providerReport, providerName, remediationsByDep)
+		const providerRank = priorityMap.get(providerName) ?? 0
+		extractFromSources(providerReport, providerName, providerRank, remediationsByDep)
+		extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep)
 	}
 
 	return Array.from(remediationsByDep.values())
@@ -43,12 +39,30 @@ export function extractRemediations(analysisReport) {
 }
 
 /**
+ * Builds a priority lookup map from a provider priority array.
+ * First entry gets the highest numeric priority.
+ * @param {string[]} [providerPriority]
+ * @returns {Map<string, number>}
+ */
+function buildPriorityMap(providerPriority) {
+	const map = new Map()
+	if (!providerPriority || providerPriority.length === 0) {
+		return map
+	}
+	for (let i = 0; i < providerPriority.length; i++) {
+		map.set(providerPriority[i], providerPriority.length - i)
+	}
+	return map
+}
+
+/**
  * Extracts remediations from the sources/dependencies/issues tree of a provider report.
  * @param {object} providerReport
  * @param {string} providerName
+ * @param {number} providerRank - numeric priority rank for this provider
  * @param {Map<string, object>} remediationsByDep - accumulator keyed by dependency PURL
  */
-function extractFromSources(providerReport, providerName, remediationsByDep) {
+function extractFromSources(providerReport, providerName, providerRank, remediationsByDep) {
 	if (!providerReport.sources) {
 		return
 	}
@@ -63,7 +77,7 @@ function extractFromSources(providerReport, providerName, remediationsByDep) {
 			}
 			for (const issue of dep.issues) {
 				processIssueRemediation(
-					issue, dep, providerName, sourceName, remediationsByDep
+					issue, dep, providerName, sourceName, providerRank, remediationsByDep
 				)
 			}
 		}
@@ -76,9 +90,10 @@ function extractFromSources(providerReport, providerName, remediationsByDep) {
  * @param {object} dep - dependency object containing the ref PURL
  * @param {string} providerName
  * @param {string} sourceName
+ * @param {number} providerRank
  * @param {Map<string, object>} remediationsByDep
  */
-function processIssueRemediation(issue, dep, providerName, sourceName, remediationsByDep) {
+function processIssueRemediation(issue, dep, providerName, sourceName, providerRank, remediationsByDep) {
 	const fixedInPurl = getFixedInPurl(issue)
 	if (!fixedInPurl) {
 		return
@@ -103,7 +118,6 @@ function processIssueRemediation(issue, dep, providerName, sourceName, remediati
 		return
 	}
 
-	const priority = detectProviderPriority(fixedInPurl)
 	const cveId = issue.id || issue.cve
 	const severity = issue.severity || 'UNKNOWN'
 	const advisories = extractAdvisories(issue)
@@ -123,7 +137,7 @@ function processIssueRemediation(issue, dep, providerName, sourceName, remediati
 			advisories,
 			severity,
 			cves: cveId ? [cveId] : [],
-			_priority: priority,
+			_priority: providerRank,
 		})
 		return
 	}
@@ -134,14 +148,14 @@ function processIssueRemediation(issue, dep, providerName, sourceName, remediati
 
 	mergeAdvisories(existing.advisories, advisories)
 
-	if (priority > existing._priority) {
+	if (providerRank > existing._priority) {
 		existing.fixedInVersion = fixedInVersion
 		existing.fixedInPurl = fixedInPurl
 		existing.provider = providerName
 		existing.source = sourceName
 		existing.severity = higherSeverity(existing.severity, severity)
-		existing._priority = priority
-	} else if (priority === existing._priority) {
+		existing._priority = providerRank
+	} else if (providerRank === existing._priority) {
 		if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
 			existing.fixedInVersion = fixedInVersion
 			existing.fixedInPurl = fixedInPurl
@@ -156,9 +170,10 @@ function processIssueRemediation(issue, dep, providerName, sourceName, remediati
  * Extracts remediations from the recommendations section of a provider report.
  * @param {object} providerReport
  * @param {string} providerName
+ * @param {number} providerRank
  * @param {Map<string, object>} remediationsByDep
  */
-function extractFromRecommendations(providerReport, providerName, remediationsByDep) {
+function extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep) {
 	if (!providerReport.recommendations || !providerReport.recommendations.dependencies) {
 		return
 	}
@@ -188,7 +203,6 @@ function extractFromRecommendations(providerReport, providerName, remediationsBy
 		}
 
 		const depPurl = dep.ref
-		const priority = detectProviderPriority(recommendedPurl)
 		const existing = remediationsByDep.get(depPurl)
 
 		if (!existing) {
@@ -204,14 +218,21 @@ function extractFromRecommendations(providerReport, providerName, remediationsBy
 				advisories: [],
 				severity: 'UNKNOWN',
 				cves: [],
-				_priority: priority,
+				_priority: providerRank,
 			})
-		} else if (priority > existing._priority) {
+		} else if (providerRank > existing._priority) {
 			existing.fixedInVersion = fixedInVersion
 			existing.fixedInPurl = recommendedPurl
 			existing.provider = providerName
 			existing.source = 'recommendation'
-			existing._priority = priority
+			existing._priority = providerRank
+		} else if (providerRank === existing._priority) {
+			if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
+				existing.fixedInVersion = fixedInVersion
+				existing.fixedInPurl = recommendedPurl
+				existing.provider = providerName
+				existing.source = 'recommendation'
+			}
 		}
 	}
 }
@@ -232,21 +253,6 @@ function getFixedInPurl(issue) {
 		return issue.remediation.fixedIn
 	}
 	return undefined
-}
-
-/**
- * Detects provider priority from PURL qualifiers.
- * @param {string} purlStr
- * @returns {number} priority level
- */
-function detectProviderPriority(purlStr) {
-	if (purlStr.includes('.rhlw-')) {
-		return PROVIDER_PRIORITY.lightwell
-	}
-	if (purlStr.includes('.redhat-')) {
-		return PROVIDER_PRIORITY.redhat
-	}
-	return PROVIDER_PRIORITY.generic
 }
 
 /**
@@ -294,6 +300,7 @@ function mergeAdvisories(existing, incoming) {
 /**
  * Compares two version strings segment by segment.
  * Returns positive if a > b, negative if a < b, zero if equal.
+ * Falls back to lexicographic comparison for non-numeric segments.
  * @param {string} a
  * @param {string} b
  * @returns {number}
@@ -308,7 +315,7 @@ function compareVersions(a, b) {
 			return diff
 		}
 	}
-	return 0
+	return a.localeCompare(b)
 }
 
 const SEVERITY_ORDER = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']

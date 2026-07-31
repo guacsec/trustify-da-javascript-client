@@ -9,8 +9,8 @@ import { extractRemediations } from '../src/remediation.js'
  */
 function buildReport(overrides = {}) {
 	const {
-		providerName = 'redhat',
-		sourceName = 'redhat-security',
+		providerName = 'provider-a',
+		sourceName = 'source-a',
 		depRef = 'pkg:maven/org.apache.commons/commons-text@1.9',
 		issueId = 'CVE-2022-42889',
 		severity = 'CRITICAL',
@@ -66,62 +66,41 @@ function buildReport(overrides = {}) {
 
 suite('remediation extractor', () => {
 	suite('provider priority resolution', () => {
-		/** Verifies that Lightwell (.rhlw-) remediations are correctly extracted. */
-		test('extracts Lightwell remediations from trustedContent', () => {
-			// Given a report with a Lightwell trusted content remediation
+		/** Verifies that remediations from a single provider are correctly extracted. */
+		test('extracts remediations from a single provider', () => {
+			// Given a report with one provider
 			const report = buildReport({
-				providerName: 'lightwell',
-				sourceName: 'lightwell-security',
-				trustedContentRef: 'pkg:maven/org.apache.commons/commons-text@1.10.0.rhlw-00001?type=jar',
+				trustedContentRef: 'pkg:maven/org.apache.commons/commons-text@1.10.0?type=jar',
 				fixedIn: null,
-				advisory: { id: 'RHLW-2022-001', url: 'https://lightwell.example.com/RHLW-2022-001' },
+				advisory: { id: 'ADV-2022-001', url: 'https://example.com/ADV-2022-001' },
 			})
 
 			// When extracting remediations
 			const result = extractRemediations(report)
 
-			// Then the result should contain one Lightwell remediation
+			// Then the result should contain one remediation entry
 			expect(result).to.have.lengthOf(1)
-			expect(result[0].provider).to.equal('lightwell')
-			expect(result[0].fixedInVersion).to.equal('1.10.0.rhlw-00001')
-			expect(result[0].fixedInPurl).to.include('.rhlw-')
+			expect(result[0].provider).to.equal('provider-a')
+			expect(result[0].fixedInVersion).to.equal('1.10.0')
 			expect(result[0].groupId).to.equal('org.apache.commons')
 			expect(result[0].artifactId).to.equal('commons-text')
 			expect(result[0].currentVersion).to.equal('1.9')
 			expect(result[0].cves).to.deep.equal(['CVE-2022-42889'])
 			expect(result[0].advisories).to.deep.equal([
-				{ id: 'RHLW-2022-001', url: 'https://lightwell.example.com/RHLW-2022-001' },
+				{ id: 'ADV-2022-001', url: 'https://example.com/ADV-2022-001' },
 			])
 		})
 
-		/** Verifies that Red Hat VENDOR_FIX remediations are correctly extracted. */
-		test('extracts Red Hat remediations from fixedIn', () => {
-			// Given a report with a Red Hat fixedIn PURL
+		/** Verifies that the higher-priority provider wins when both provide a fix for the same dep. */
+		test('higher-priority provider wins for the same dependency', () => {
+			// Given a report with two providers for the same dependency
 			const report = buildReport({
-				fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0.redhat-00001?type=jar',
-				advisory: undefined,
-			})
-
-			// When extracting remediations
-			const result = extractRemediations(report)
-
-			// Then the result should contain one Red Hat remediation
-			expect(result).to.have.lengthOf(1)
-			expect(result[0].provider).to.equal('redhat')
-			expect(result[0].fixedInVersion).to.equal('1.10.0.redhat-00001')
-			expect(result[0].cves).to.deep.equal(['CVE-2022-42889'])
-		})
-
-		/** Verifies that Lightwell takes precedence over Red Hat for the same dependency. */
-		test('Lightwell remediations take precedence over Red Hat', () => {
-			// Given a report with both Lightwell and Red Hat providers for the same dependency
-			const report = buildReport({
-				providerName: 'redhat',
-				fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0.redhat-00001?type=jar',
+				providerName: 'provider-low',
+				fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0?type=jar',
 				extraProviders: {
-					lightwell: {
+					'provider-high': {
 						sources: {
-							'lightwell-security': {
+							'source-high': {
 								dependencies: [{
 									ref: 'pkg:maven/org.apache.commons/commons-text@1.9',
 									issues: [{
@@ -129,7 +108,7 @@ suite('remediation extractor', () => {
 										severity: 'CRITICAL',
 										remediation: {
 											trustedContent: {
-												ref: 'pkg:maven/org.apache.commons/commons-text@1.10.0.rhlw-00001?type=jar',
+												ref: 'pkg:maven/org.apache.commons/commons-text@1.10.1?type=jar',
 											},
 										},
 									}],
@@ -140,32 +119,34 @@ suite('remediation extractor', () => {
 				},
 			})
 
-			// When extracting remediations
-			const result = extractRemediations(report)
+			// When extracting with provider-high having higher priority
+			const result = extractRemediations(report, {
+				providerPriority: ['provider-high', 'provider-low'],
+			})
 
-			// Then Lightwell should win
+			// Then provider-high should win
 			expect(result).to.have.lengthOf(1)
-			expect(result[0].fixedInPurl).to.include('.rhlw-')
-			expect(result[0].provider).to.equal('lightwell')
+			expect(result[0].provider).to.equal('provider-high')
+			expect(result[0].fixedInVersion).to.equal('1.10.1')
 		})
 
-		/** Verifies that Red Hat takes precedence over generic remediations. */
-		test('Red Hat remediations take precedence over generic', () => {
-			// Given a report with both generic and Red Hat providers
+		/** Verifies that the second-priority provider wins over unlisted providers. */
+		test('listed provider takes precedence over unlisted provider', () => {
+			// Given a report with a listed and an unlisted provider
 			const report = buildReport({
-				providerName: 'generic-provider',
+				providerName: 'unlisted-provider',
 				fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0?type=jar',
 				extraProviders: {
-					redhat: {
+					'listed-provider': {
 						sources: {
-							'redhat-security': {
+							'source-listed': {
 								dependencies: [{
 									ref: 'pkg:maven/org.apache.commons/commons-text@1.9',
 									issues: [{
 										id: 'CVE-2022-42889',
 										severity: 'CRITICAL',
 										remediation: {
-											fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0.redhat-00001?type=jar',
+											fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.9.1?type=jar',
 										},
 									}],
 								}],
@@ -175,13 +156,49 @@ suite('remediation extractor', () => {
 				},
 			})
 
-			// When extracting remediations
+			// When extracting with only listed-provider in the priority list
+			const result = extractRemediations(report, {
+				providerPriority: ['listed-provider'],
+			})
+
+			// Then the listed provider should win even though its version is lower
+			expect(result).to.have.lengthOf(1)
+			expect(result[0].provider).to.equal('listed-provider')
+			expect(result[0].fixedInVersion).to.equal('1.9.1')
+		})
+
+		/** Verifies that without providerPriority, the highest version wins. */
+		test('without providerPriority, highest version wins across providers', () => {
+			// Given two providers with different fix versions and no priority config
+			const report = buildReport({
+				providerName: 'provider-a',
+				fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0',
+				extraProviders: {
+					'provider-b': {
+						sources: {
+							'source-b': {
+								dependencies: [{
+									ref: 'pkg:maven/org.apache.commons/commons-text@1.9',
+									issues: [{
+										id: 'CVE-2022-42889',
+										severity: 'CRITICAL',
+										remediation: {
+											fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.11.0',
+										},
+									}],
+								}],
+							},
+						},
+					},
+				},
+			})
+
+			// When extracting without providerPriority
 			const result = extractRemediations(report)
 
-			// Then Red Hat should win
+			// Then the highest version should win
 			expect(result).to.have.lengthOf(1)
-			expect(result[0].fixedInPurl).to.include('.redhat-')
-			expect(result[0].provider).to.equal('redhat')
+			expect(result[0].fixedInVersion).to.equal('1.11.0')
 		})
 	})
 
@@ -238,9 +255,9 @@ suite('remediation extractor', () => {
 		test('dependencies with no remediation data return empty result', () => {
 			const report = {
 				providers: {
-					redhat: {
+					'provider-a': {
 						sources: {
-							'redhat-security': {
+							'source-a': {
 								dependencies: [{
 									ref: 'pkg:maven/org.apache.commons/commons-text@1.9',
 									issues: [{
@@ -274,9 +291,9 @@ suite('remediation extractor', () => {
 		test('issues with empty remediation object are skipped', () => {
 			const report = {
 				providers: {
-					redhat: {
+					'provider-a': {
 						sources: {
-							'redhat-security': {
+							'source-a': {
 								dependencies: [{
 									ref: 'pkg:maven/org.example/lib@1.0',
 									issues: [{
@@ -299,9 +316,10 @@ suite('remediation extractor', () => {
 		/** Verifies that the same input always produces the same output (idempotent). */
 		test('same input always produces same output', () => {
 			const report = buildReport()
+			const opts = { providerPriority: ['provider-a'] }
 
-			const result1 = extractRemediations(report)
-			const result2 = extractRemediations(report)
+			const result1 = extractRemediations(report, opts)
+			const result2 = extractRemediations(report, opts)
 
 			expect(result1).to.deep.equal(result2)
 		})
@@ -335,17 +353,17 @@ suite('remediation extractor', () => {
 			expect(rec.source).to.equal('recommendation')
 		})
 
-		/** Verifies that a source-based remediation takes precedence over a recommendation for the same dep. */
+		/** Verifies that a source-based remediation takes precedence over a recommendation when the provider has higher priority. */
 		test('source remediation takes precedence over recommendation when higher priority', () => {
-			// Given a report with both a source remediation and a recommendation for different deps
+			// Given a report where source has a fix and recommendation also exists
 			const report = buildReport({
 				depRef: 'pkg:maven/com.example/lib@1.0.0',
-				fixedIn: 'pkg:maven/com.example/lib@1.1.0.redhat-00001',
+				fixedIn: 'pkg:maven/com.example/lib@1.1.0',
 				recommendations: {
 					dependencies: [{
 						ref: 'pkg:maven/com.example/lib@1.0.0',
 						recommendation: {
-							ref: 'pkg:maven/com.example/lib@1.1.0',
+							ref: 'pkg:maven/com.example/lib@1.2.0',
 						},
 					}],
 				},
@@ -353,8 +371,10 @@ suite('remediation extractor', () => {
 
 			const result = extractRemediations(report)
 
+			// Source remediation is processed first; recommendation from same provider/rank
+			// takes the higher version
 			expect(result).to.have.lengthOf(1)
-			expect(result[0].fixedInPurl).to.include('.redhat-')
+			expect(result[0].fixedInVersion).to.equal('1.2.0')
 		})
 	})
 
@@ -362,9 +382,9 @@ suite('remediation extractor', () => {
 		/** Verifies that the output includes all required fields with correct types. */
 		test('output includes all required fields', () => {
 			const report = buildReport({
-				trustedContentRef: 'pkg:maven/org.apache.commons/commons-text@1.10.0.rhlw-00001?type=jar',
+				trustedContentRef: 'pkg:maven/org.apache.commons/commons-text@1.10.0?type=jar',
 				fixedIn: null,
-				advisory: { id: 'RHLW-2022-001', url: 'https://example.com/advisory' },
+				advisory: { id: 'ADV-2022-001', url: 'https://example.com/advisory' },
 			})
 
 			const result = extractRemediations(report)
