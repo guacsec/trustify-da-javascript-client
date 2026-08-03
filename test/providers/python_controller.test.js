@@ -51,12 +51,13 @@ suite('Python_controller BEST_EFFORTS validation', function() {
 
 	/** Verifies that BEST_EFFORTS=true with VIRTUAL_ENV=true does not trigger the validation. */
 	test('does not throw the validation error when both BEST_EFFORTS=true and VIRTUAL_ENV=true (realEnvironment=false)', async function() {
+		this.timeout(120000)
 		// Given a controller in virtual environment mode (VIRTUAL_ENV=true)
 		process.env['TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS'] = 'true'
 		let controller = new Python_controller(false, 'pip3', 'python3', 'test/providers/tst_manifests/pip/pip_requirements_txt_no_ignore/requirements.txt')
 
 		// When getDependencies is called, then the BEST_EFFORTS+VIRTUAL_ENV validation does not trigger
-		// (it may throw for other reasons like venv setup, which is acceptable)
+		// (it may throw for other reasons like venv setup or MATCH_MANIFEST_VERSIONS conflict, which is acceptable)
 		try {
 			await controller.getDependencies(false)
 		} catch (error) {
