@@ -24,6 +24,7 @@ import * as url from 'url';
 export { parseImageRef } from "./oci_image/utils.js";
 export { ImageRef } from "./oci_image/images.js";
 export { getProjectLicense, findLicenseFilePath, identifyLicense, getLicenseDetails, licensesFromReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility } from "./license/index.js";
+export { extractRemediations } from "./remediation.js";
 
 export default { componentAnalysis, stackAnalysis, stackAnalysisBatch, imageAnalysis, validateToken, generateSbom }
 export {

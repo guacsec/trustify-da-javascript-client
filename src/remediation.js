@@ -313,16 +313,23 @@ function mergeAdvisories(existing, incoming) {
  * @returns {number}
  */
 function compareVersions(a, b) {
-	const partsA = a.split('.').map(s => parseInt(s, 10) || 0)
-	const partsB = b.split('.').map(s => parseInt(s, 10) || 0)
+	const partsA = a.split('.')
+	const partsB = b.split('.')
 	const len = Math.max(partsA.length, partsB.length)
 	for (let i = 0; i < len; i++) {
-		const diff = (partsA[i] || 0) - (partsB[i] || 0)
-		if (diff !== 0) {
-			return diff
+		const segA = partsA[i] || ''
+		const segB = partsB[i] || ''
+		const numA = Number(segA)
+		const numB = Number(segB)
+		if (Number.isFinite(numA) && Number.isFinite(numB)) {
+			const diff = numA - numB
+			if (diff !== 0) return diff
+		} else {
+			const cmp = segA.localeCompare(segB)
+			if (cmp !== 0) return cmp
 		}
 	}
-	return a.localeCompare(b)
+	return 0
 }
 
 const SEVERITY_ORDER = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
