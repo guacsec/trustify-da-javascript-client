@@ -62,8 +62,8 @@ function generatePerDependencyReport(remediations) {
 			lines.push('')
 			lines.push('| CVE | Severity | Advisory |')
 			lines.push('| --- | --- | --- |')
+			const advisoryLinks = formatAdvisoryLinks(rem.advisories)
 			for (const cve of rem.cves) {
-				const advisoryLinks = formatAdvisoryLinks(rem.advisories)
 				lines.push(`| ${cve} | ${rem.severity} | ${advisoryLinks} |`)
 			}
 		}

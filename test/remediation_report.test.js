@@ -271,6 +271,26 @@ suite('remediation report generator', () => {
 
 			expect(report).to.equal('[]')
 		})
+
+		/** Verifies that JSON format takes precedence over dry-run option. */
+		test('JSON format takes precedence over dry-run option', () => {
+			const remediations = [buildRemediation()]
+
+			const report = generateReport(remediations, { format: 'json', dryRun: true })
+			const parsed = JSON.parse(report)
+
+			expect(parsed).to.deep.equal(remediations)
+		})
+
+		/** Verifies that JSON format takes precedence over groupBy option. */
+		test('JSON format takes precedence over groupBy option', () => {
+			const remediations = [buildRemediation()]
+
+			const report = generateReport(remediations, { format: 'json', groupBy: 'bundle' })
+			const parsed = JSON.parse(report)
+
+			expect(parsed).to.deep.equal(remediations)
+		})
 	})
 
 	suite('edge cases', () => {
