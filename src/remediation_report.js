@@ -57,7 +57,7 @@ function generatePerDependencyReport(remediations) {
 			'',
 		]
 
-		if (rem.cves.length > 0) {
+		if (rem.cves && rem.cves.length > 0) {
 			lines.push('### Vulnerabilities resolved')
 			lines.push('')
 			lines.push('| CVE | Severity | Advisory |')
@@ -99,7 +99,7 @@ function generateBundledReport(remediations) {
 			const depName = rem.groupId
 				? `${rem.groupId}:${rem.artifactId}`
 				: rem.artifactId
-			const cves = rem.cves.join(', ')
+			const cves = (rem.cves || []).join(', ')
 			const advisoryLinks = formatAdvisoryLinks(rem.advisories)
 			lines.push(
 				`| ${depName} | ${rem.currentVersion} | ${rem.fixedInVersion}`

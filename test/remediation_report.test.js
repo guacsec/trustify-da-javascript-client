@@ -293,6 +293,38 @@ suite('remediation report generator', () => {
 		})
 	})
 
+	suite('null/undefined cves handling', () => {
+		/** Verifies that per-dependency report handles null cves without throwing. */
+		test('per-dependency report handles null cves', () => {
+			const remediations = [buildRemediation({ cves: null })]
+			const report = generateReport(remediations)
+			expect(report).to.include('Security Update:')
+			expect(report).to.not.include('Vulnerabilities resolved')
+		})
+
+		/** Verifies that per-dependency report handles undefined cves without throwing. */
+		test('per-dependency report handles undefined cves', () => {
+			const remediations = [buildRemediation({ cves: undefined })]
+			const report = generateReport(remediations)
+			expect(report).to.include('Security Update:')
+			expect(report).to.not.include('Vulnerabilities resolved')
+		})
+
+		/** Verifies that bundled report handles null cves without throwing. */
+		test('bundled report handles null cves', () => {
+			const remediations = [buildRemediation({ cves: null })]
+			const report = generateReport(remediations, { groupBy: 'bundle' })
+			expect(report).to.include('# Security Update Summary')
+		})
+
+		/** Verifies that bundled report handles undefined cves without throwing. */
+		test('bundled report handles undefined cves', () => {
+			const remediations = [buildRemediation({ cves: undefined })]
+			const report = generateReport(remediations, { groupBy: 'bundle' })
+			expect(report).to.include('# Security Update Summary')
+		})
+	})
+
 	suite('edge cases', () => {
 		/** Verifies that null input returns a no-remediations message. */
 		test('null input returns no-remediations message', () => {
