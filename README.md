@@ -688,7 +688,7 @@ This increasing the chances and the probability that the automatic installation 
 ###### Usage
 A New setting is introduced - `TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS` (as both env variable/key in `options` object)
 1. `TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS`="false" - install requirements.txt while respecting declared versions for all packages.
-2. `TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS`="true" - install all packages from requirements.txt, not respecting the declared version, but trying to install a version tailored for the used python version. When using this setting, you must set setting `MATCH_MANIFEST_VERSIONS` to 'false'.
+2. `TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS`="true" - install all packages from requirements.txt, not respecting the declared version, but trying to install a version tailored for the used python version. When using this setting, you must set `TRUSTIFY_DA_PYTHON_VIRTUAL_ENV` to 'true' and `MATCH_MANIFEST_VERSIONS` to 'false'.
 
 ##### Using `pipdeptree`
 By default, The API algorithm will use native commands of PIP installer as data source to build the dependency tree.
