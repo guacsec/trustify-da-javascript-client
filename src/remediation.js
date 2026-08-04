@@ -332,7 +332,7 @@ function compareVersions(a, b) {
 	return 0
 }
 
-const SEVERITY_ORDER = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+export const SEVERITY_ORDER = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
 /**
  * Returns the higher of two severity strings, normalized to uppercase.

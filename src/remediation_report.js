@@ -3,7 +3,7 @@
  * markdown for PR bodies, CLI dry-run output, and JSON.
  */
 
-const SEVERITY_ORDER = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+import { SEVERITY_ORDER } from './remediation.js'
 
 /**
  * Generates a formatted report from an array of remediation entries.
