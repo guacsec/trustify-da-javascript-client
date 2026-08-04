@@ -71,8 +71,22 @@ suite('testing the various tools and utility functions', () => {
 		/** Verifies that bare command names pass validation (resolved via OS PATH lookup). */
 		test('allows bare command names without path separators', () => {
 			const commands = ['mvn', 'npm', 'go', 'cargo', 'pip3']
+			const saved = {}
 			for (const cmd of commands) {
-				expect(getCustomPath(cmd)).to.equal(cmd)
+				const envKey = `TRUSTIFY_DA_${cmd.toUpperCase()}_PATH`
+				if (envKey in process.env) {
+					saved[envKey] = process.env[envKey]
+					delete process.env[envKey]
+				}
+			}
+			try {
+				for (const cmd of commands) {
+					expect(getCustomPath(cmd)).to.equal(cmd)
+				}
+			} finally {
+				for (const [key, val] of Object.entries(saved)) {
+					process.env[key] = val
+				}
 			}
 		})
 
