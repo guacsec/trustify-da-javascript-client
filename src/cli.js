@@ -484,12 +484,14 @@ const remediate = {
 			type: 'boolean',
 			default: false,
 			describe: 'Preview changes without modifying files',
+			conflicts: 'apply',
 		},
 		apply: {
 			alias: 'a',
 			type: 'boolean',
 			default: false,
 			describe: 'Apply changes to manifest files',
+			conflicts: 'dry-run',
 		},
 		providers: {
 			type: 'string',

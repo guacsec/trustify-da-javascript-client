@@ -137,7 +137,7 @@ export async function runRemediation(targetPath, options = {}) {
 
 		const analysisReport = await analysis.requestStack(provider, manifestPath, url, false, opts)
 		const remediations = extractRemediations(analysisReport, {
-			providerPriority: providers ? providers.split(',') : undefined,
+			providerPriority: providers ? providers.split(',').map(p => p.trim()).filter(Boolean) : undefined,
 		})
 
 		if (remediations.length === 0) {
@@ -146,7 +146,7 @@ export async function runRemediation(targetPath, options = {}) {
 
 		allRemediations.push(...remediations)
 
-		if (apply) {
+		if (apply && !dryRun) {
 			const content = fs.readFileSync(manifestPath, 'utf-8')
 			const versionChanges = remediations.map(r => ({
 				groupId: r.groupId,
