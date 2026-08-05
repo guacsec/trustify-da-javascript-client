@@ -31,6 +31,10 @@ export function extractRemediations(analysisReport, options = {}) {
 	}
 
 	return Array.from(remediationsByDep.values())
+		.map((entry) => {
+			delete entry._fromTrustedContent
+			return entry
+		})
 		.sort((a, b) => a.purl.localeCompare(b.purl))
 }
 
@@ -92,15 +96,17 @@ function extractFromSources(providerReport, providerName, providerRank, remediat
  * @param {Map<string, number>} rankByDep
  */
 function processIssueRemediation(issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep) {
-	const fixedInPurl = getFixedInPurl(issue)
-	if (!fixedInPurl) {
-		return
-	}
-
 	const depPurl = dep.ref
 	if (!depPurl) {
 		return
 	}
+
+	const fixedInPurl = getFixedInPurl(issue, depPurl)
+	if (!fixedInPurl) {
+		return
+	}
+
+	const isTrustedContent = !!(issue.remediation && issue.remediation.trustedContent && issue.remediation.trustedContent.ref)
 
 	let parsedDep
 	let parsedFix
@@ -135,6 +141,7 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 			advisories,
 			severity: severity.toUpperCase(),
 			cves: cveId ? [cveId] : [],
+			_fromTrustedContent: isTrustedContent,
 		})
 		rankByDep.set(depPurl, providerRank)
 		return
@@ -154,15 +161,27 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 		existing.provider = providerName
 		existing.source = sourceName
 		existing.severity = higherSeverity(existing.severity, severity)
+		existing._fromTrustedContent = isTrustedContent
 		rankByDep.set(depPurl, providerRank)
 	} else if (providerRank === existingRank) {
-		if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
+		if (existing._fromTrustedContent && !isTrustedContent) {
+			existing.severity = higherSeverity(existing.severity, severity)
+		} else if (!existing._fromTrustedContent && isTrustedContent) {
 			existing.fixedInVersion = fixedInVersion
 			existing.fixedInPurl = fixedInPurl
 			existing.provider = providerName
 			existing.source = sourceName
+			existing.severity = higherSeverity(existing.severity, severity)
+			existing._fromTrustedContent = true
+		} else if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
+			existing.fixedInVersion = fixedInVersion
+			existing.fixedInPurl = fixedInPurl
+			existing.provider = providerName
+			existing.source = sourceName
+			existing.severity = higherSeverity(existing.severity, severity)
+		} else {
+			existing.severity = higherSeverity(existing.severity, severity)
 		}
-		existing.severity = higherSeverity(existing.severity, severity)
 	}
 }
 
@@ -246,18 +265,40 @@ function extractFromRecommendations(providerReport, providerName, providerRank, 
 
 /**
  * Gets the fixedIn PURL from an issue's remediation, preferring trustedContent.
+ * When fixedIn is an array of version strings (not PURLs), constructs a PURL
+ * from the dependency ref by replacing the version.
  * @param {object} issue
+ * @param {string} depPurl - the dependency PURL, used to construct fixedIn PURLs from version strings
  * @returns {string|undefined}
  */
-function getFixedInPurl(issue) {
+function getFixedInPurl(issue, depPurl) {
 	if (!issue.remediation) {
 		return undefined
 	}
 	if (issue.remediation.trustedContent && issue.remediation.trustedContent.ref) {
 		return issue.remediation.trustedContent.ref
 	}
-	if (issue.remediation.fixedIn) {
-		return issue.remediation.fixedIn
+	const fixedIn = issue.remediation.fixedIn
+	if (!fixedIn) {
+		return undefined
+	}
+	if (typeof fixedIn === 'string') {
+		return fixedIn
+	}
+	if (Array.isArray(fixedIn) && fixedIn.length > 0) {
+		const version = fixedIn[0]
+		if (typeof version === 'string' && version.startsWith('pkg:')) {
+			return version
+		}
+		if (typeof version === 'string' && depPurl) {
+			try {
+				const parsed = PackageURL.fromString(depPurl)
+				parsed.version = version
+				return parsed.toString()
+			} catch {
+				return undefined
+			}
+		}
 	}
 	return undefined
 }
@@ -323,10 +364,10 @@ function compareVersions(a, b) {
 		const numB = Number(segB)
 		if (Number.isFinite(numA) && Number.isFinite(numB)) {
 			const diff = numA - numB
-			if (diff !== 0) return diff
+			if (diff !== 0) {return diff}
 		} else {
 			const cmp = segA.localeCompare(segB)
-			if (cmp !== 0) return cmp
+			if (cmp !== 0) {return cmp}
 		}
 	}
 	return 0
