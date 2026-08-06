@@ -166,7 +166,7 @@ export async function runRemediation(targetPath, options = {}) {
 		return { exitCode: 0, output: 'No remediations found.' }
 	}
 
-	const report = generateReport(allRemediations, { groupBy, dryRun })
+	const report = generateReport(allRemediations, { groupBy })
 
 	if (dryRun) {
 		return { exitCode: 2, output: report }
