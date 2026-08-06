@@ -1,18 +1,91 @@
 import { PackageURL } from 'packageurl-js'
 
 /**
+ * Extracts the major version segment from a version string.
+ * @param {string} version
+ * @returns {string} the first dot-separated segment
+ */
+function getMajorVersion(version) {
+	return version.split('.')[0] || ''
+}
+
+/**
+ * Version selection strategy that prefers the closest compatible version
+ * within the same major version stream. Falls back to the lowest cross-major
+ * version when no same-major option exists.
+ * @type {{selectVersion: function(string[], string): string, resolveConflict: function(object, object): string}}
+ */
+export const closestCoverageStrategy = {
+	selectVersion(fixedInVersions, currentVersion) {
+		const currentMajor = getMajorVersion(currentVersion)
+		const sameMajor = fixedInVersions.filter(v => getMajorVersion(v) === currentMajor)
+		if (sameMajor.length > 0) {
+			return sameMajor.sort((a, b) => compareVersions(b, a))[0]
+		}
+		return fixedInVersions.sort((a, b) => compareVersions(a, b))[0]
+	},
+
+	resolveConflict(existing, candidate) {
+		if (existing._fromTrustedContent && !candidate._fromTrustedContent) {
+			return 'existing'
+		}
+		if (!existing._fromTrustedContent && candidate._fromTrustedContent) {
+			return 'candidate'
+		}
+		const currentMajor = getMajorVersion(existing.currentVersion)
+		const existingSameMajor = getMajorVersion(existing.fixedInVersion) === currentMajor
+		const candidateSameMajor = getMajorVersion(candidate.fixedInVersion) === currentMajor
+		if (existingSameMajor && !candidateSameMajor) {
+			return 'existing'
+		}
+		if (!existingSameMajor && candidateSameMajor) {
+			return 'candidate'
+		}
+		return compareVersions(candidate.fixedInVersion, existing.fixedInVersion) > 0
+			? 'candidate'
+			: 'existing'
+	},
+}
+
+/**
+ * Version selection strategy that always picks the highest version regardless
+ * of major version distance. Guarantees maximum CVE coverage but may produce
+ * large version jumps. This is the original behavior before pluggable strategies.
+ * @type {{selectVersion: function(string[], string): string, resolveConflict: function(object, object): string}}
+ */
+export const highestStrategy = {
+	selectVersion(fixedInVersions) {
+		return fixedInVersions.sort((a, b) => compareVersions(b, a))[0]
+	},
+
+	resolveConflict(existing, candidate) {
+		if (existing._fromTrustedContent && !candidate._fromTrustedContent) {
+			return 'existing'
+		}
+		if (!existing._fromTrustedContent && candidate._fromTrustedContent) {
+			return 'candidate'
+		}
+		return compareVersions(candidate.fixedInVersion, existing.fixedInVersion) > 0
+			? 'candidate'
+			: 'existing'
+	},
+}
+
+/**
  * Extracts actionable remediation instructions from a DA AnalysisReport response.
  *
  * Walks the provider/source/dependency/issue tree, collects fixedIn and trustedContent
- * remediation data, applies provider priority resolution, and for the same dependency
- * affected by multiple CVEs selects the highest fixedIn version from the highest-priority
- * provider. Dependencies with no remediation data are skipped.
+ * remediation data, applies provider priority resolution, and uses the configured
+ * version selection strategy to resolve conflicts. Dependencies with no remediation
+ * data are skipped.
  *
  * @param {object} analysisReport - raw DA AnalysisReport JSON response
  * @param {object} [options] - extraction options
  * @param {string[]} [options.providerPriority] - provider names in descending priority order.
  *   The first entry has the highest priority. Providers not listed share the lowest priority.
  *   When omitted or empty, all providers are treated equally and the highest fix version wins.
+ * @param {object} [options.versionStrategy] - version selection strategy with selectVersion
+ *   and resolveConflict methods. Defaults to closestCoverageStrategy.
  * @returns {Array<{purl: string, groupId: string, artifactId: string, currentVersion: string, fixedInVersion: string, fixedInPurl: string, provider: string, source: string, advisories: Array<{id: string, url: string}>, severity: string, cves: string[]}>}
  */
 export function extractRemediations(analysisReport, options = {}) {
@@ -21,12 +94,13 @@ export function extractRemediations(analysisReport, options = {}) {
 	}
 
 	const priorityMap = buildPriorityMap(options.providerPriority)
+	const strategy = options.versionStrategy || closestCoverageStrategy
 	const remediationsByDep = new Map()
 	const rankByDep = new Map()
 
 	for (const [providerName, providerReport] of Object.entries(analysisReport.providers)) {
 		const providerRank = priorityMap.get(providerName) ?? 0
-		extractFromSources(providerReport, providerName, providerRank, remediationsByDep, rankByDep)
+		extractFromSources(providerReport, providerName, providerRank, remediationsByDep, rankByDep, strategy)
 		extractFromRecommendations(providerReport, providerName, providerRank, remediationsByDep, rankByDep)
 	}
 
@@ -62,8 +136,9 @@ function buildPriorityMap(providerPriority) {
  * @param {number} providerRank - numeric priority rank for this provider
  * @param {Map<string, object>} remediationsByDep - accumulator keyed by dependency PURL
  * @param {Map<string, number>} rankByDep - tracks current winning rank per dependency
+ * @param {object} strategy - version selection strategy
  */
-function extractFromSources(providerReport, providerName, providerRank, remediationsByDep, rankByDep) {
+function extractFromSources(providerReport, providerName, providerRank, remediationsByDep, rankByDep, strategy) {
 	if (!providerReport.sources) {
 		return
 	}
@@ -78,7 +153,7 @@ function extractFromSources(providerReport, providerName, providerRank, remediat
 			}
 			for (const issue of dep.issues) {
 				processIssueRemediation(
-					issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep
+					issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep, strategy
 				)
 			}
 		}
@@ -94,24 +169,31 @@ function extractFromSources(providerReport, providerName, providerRank, remediat
  * @param {number} providerRank
  * @param {Map<string, object>} remediationsByDep
  * @param {Map<string, number>} rankByDep
+ * @param {object} strategy - version selection strategy
  */
-function processIssueRemediation(issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep) {
+function processIssueRemediation(issue, dep, providerName, sourceName, providerRank, remediationsByDep, rankByDep, strategy) {
 	const depPurl = dep.ref
 	if (!depPurl) {
 		return
 	}
 
-	const fixedInPurl = getFixedInPurl(issue, depPurl)
+	let parsedDep
+	try {
+		parsedDep = PackageURL.fromString(depPurl)
+	} catch {
+		return
+	}
+
+	const currentVersion = parsedDep.version || ''
+	const fixedInPurl = getFixedInPurl(issue, depPurl, strategy, currentVersion)
 	if (!fixedInPurl) {
 		return
 	}
 
 	const isTrustedContent = !!(issue.remediation && issue.remediation.trustedContent && issue.remediation.trustedContent.ref)
 
-	let parsedDep
 	let parsedFix
 	try {
-		parsedDep = PackageURL.fromString(depPurl)
 		parsedFix = PackageURL.fromString(fixedInPurl)
 	} catch {
 		return
@@ -133,7 +215,7 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 			purl: depPurl,
 			groupId: parsedDep.namespace || '',
 			artifactId: parsedDep.name,
-			currentVersion: parsedDep.version || '',
+			currentVersion,
 			fixedInVersion,
 			fixedInPurl,
 			provider: providerName,
@@ -164,24 +246,18 @@ function processIssueRemediation(issue, dep, providerName, sourceName, providerR
 		existing._fromTrustedContent = isTrustedContent
 		rankByDep.set(depPurl, providerRank)
 	} else if (providerRank === existingRank) {
-		if (existing._fromTrustedContent && !isTrustedContent) {
-			existing.severity = higherSeverity(existing.severity, severity)
-		} else if (!existing._fromTrustedContent && isTrustedContent) {
+		const winner = strategy.resolveConflict(
+			{ fixedInVersion: existing.fixedInVersion, _fromTrustedContent: existing._fromTrustedContent, currentVersion },
+			{ fixedInVersion, _fromTrustedContent: isTrustedContent, currentVersion }
+		)
+		if (winner === 'candidate') {
 			existing.fixedInVersion = fixedInVersion
 			existing.fixedInPurl = fixedInPurl
 			existing.provider = providerName
 			existing.source = sourceName
-			existing.severity = higherSeverity(existing.severity, severity)
-			existing._fromTrustedContent = true
-		} else if (compareVersions(fixedInVersion, existing.fixedInVersion) > 0) {
-			existing.fixedInVersion = fixedInVersion
-			existing.fixedInPurl = fixedInPurl
-			existing.provider = providerName
-			existing.source = sourceName
-			existing.severity = higherSeverity(existing.severity, severity)
-		} else {
-			existing.severity = higherSeverity(existing.severity, severity)
+			existing._fromTrustedContent = isTrustedContent
 		}
+		existing.severity = higherSeverity(existing.severity, severity)
 	}
 }
 
@@ -265,13 +341,15 @@ function extractFromRecommendations(providerReport, providerName, providerRank, 
 
 /**
  * Gets the fixedIn PURL from an issue's remediation, preferring trustedContent.
- * When fixedIn is an array of version strings (not PURLs), constructs a PURL
- * from the dependency ref by replacing the version.
+ * When fixedIn is an array of version strings (not PURLs), uses the strategy's
+ * selectVersion to pick the best candidate and constructs a PURL from the dependency ref.
  * @param {object} issue
  * @param {string} depPurl - the dependency PURL, used to construct fixedIn PURLs from version strings
+ * @param {object} strategy - version selection strategy
+ * @param {string} currentVersion - the dependency's current version
  * @returns {string|undefined}
  */
-function getFixedInPurl(issue, depPurl) {
+function getFixedInPurl(issue, depPurl, strategy, currentVersion) {
 	if (!issue.remediation) {
 		return undefined
 	}
@@ -286,7 +364,9 @@ function getFixedInPurl(issue, depPurl) {
 		return fixedIn
 	}
 	if (Array.isArray(fixedIn) && fixedIn.length > 0) {
-		const version = fixedIn[0]
+		const version = fixedIn.length > 1
+			? strategy.selectVersion(fixedIn, currentVersion)
+			: fixedIn[0]
 		if (typeof version === 'string' && version.startsWith('pkg:')) {
 			return version
 		}

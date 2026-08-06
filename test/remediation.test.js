@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { extractRemediations } from '../src/remediation.js'
+import { extractRemediations, closestCoverageStrategy, highestStrategy } from '../src/remediation.js'
 
 /**
  * Builds a minimal AnalysisReport with a single provider, source, dependency, and issue.
@@ -448,6 +448,229 @@ suite('remediation extractor', () => {
 			expect(entry).to.have.property('severity').that.is.a('string')
 			expect(entry).to.have.property('cves').that.is.an('array')
 			expect(entry).to.not.have.property('_priority')
+		})
+	})
+})
+
+suite('version selection strategies', () => {
+	suite('closestCoverageStrategy.selectVersion', () => {
+		/** Verifies that same-major version is preferred when available. */
+		test('picks same-major version when available', () => {
+			const result = closestCoverageStrategy.selectVersion(
+				['2.13.9.Final-redhat-00003', '3.2.9.Final-redhat-00003'],
+				'2.13.5.Final'
+			)
+			expect(result).to.equal('2.13.9.Final-redhat-00003')
+		})
+
+		/** Verifies highest same-major is picked when multiple same-major options exist. */
+		test('picks highest same-major when multiple exist', () => {
+			const result = closestCoverageStrategy.selectVersion(
+				['2.13.7.Final', '2.13.9.Final', '3.0.0'],
+				'2.13.5.Final'
+			)
+			expect(result).to.equal('2.13.9.Final')
+		})
+
+		/** Verifies fallback to lowest cross-major when no same-major exists. */
+		test('falls back to lowest cross-major when no same-major exists', () => {
+			const result = closestCoverageStrategy.selectVersion(
+				['3.8.6.1', '4.0.0'],
+				'2.13.5.Final'
+			)
+			expect(result).to.equal('3.8.6.1')
+		})
+
+		/** Verifies single-element array returns that element. */
+		test('returns only option when array has one element', () => {
+			const result = closestCoverageStrategy.selectVersion(['3.8.6.1'], '2.13.5.Final')
+			expect(result).to.equal('3.8.6.1')
+		})
+	})
+
+	suite('closestCoverageStrategy.resolveConflict', () => {
+		/** Verifies trustedContent wins over non-trustedContent. */
+		test('trustedContent wins over non-trustedContent', () => {
+			const result = closestCoverageStrategy.resolveConflict(
+				{ fixedInVersion: '2.17.1.redhat-00002', _fromTrustedContent: true, currentVersion: '2.17.1' },
+				{ fixedInVersion: '3.0.0', _fromTrustedContent: false, currentVersion: '2.17.1' }
+			)
+			expect(result).to.equal('existing')
+		})
+
+		/** Verifies non-trustedContent loses to trustedContent candidate. */
+		test('trustedContent candidate wins over non-trustedContent existing', () => {
+			const result = closestCoverageStrategy.resolveConflict(
+				{ fixedInVersion: '3.0.0', _fromTrustedContent: false, currentVersion: '2.17.1' },
+				{ fixedInVersion: '2.17.1.redhat-00002', _fromTrustedContent: true, currentVersion: '2.17.1' }
+			)
+			expect(result).to.equal('candidate')
+		})
+
+		/** Verifies same-major wins over cross-major. */
+		test('same-major wins over cross-major', () => {
+			const result = closestCoverageStrategy.resolveConflict(
+				{ fixedInVersion: '2.13.9.Final', _fromTrustedContent: false, currentVersion: '2.13.5.Final' },
+				{ fixedInVersion: '3.8.6.1', _fromTrustedContent: false, currentVersion: '2.13.5.Final' }
+			)
+			expect(result).to.equal('existing')
+		})
+
+		/** Verifies cross-major candidate loses to same-major existing. */
+		test('cross-major candidate loses to same-major existing', () => {
+			const result = closestCoverageStrategy.resolveConflict(
+				{ fixedInVersion: '3.8.6.1', _fromTrustedContent: false, currentVersion: '2.13.5.Final' },
+				{ fixedInVersion: '2.13.9.Final', _fromTrustedContent: false, currentVersion: '2.13.5.Final' }
+			)
+			expect(result).to.equal('candidate')
+		})
+
+		/** Verifies higher version wins when both are same-major. */
+		test('higher version wins when both same-major', () => {
+			const result = closestCoverageStrategy.resolveConflict(
+				{ fixedInVersion: '2.13.7.Final', _fromTrustedContent: false, currentVersion: '2.13.5.Final' },
+				{ fixedInVersion: '2.13.9.Final', _fromTrustedContent: false, currentVersion: '2.13.5.Final' }
+			)
+			expect(result).to.equal('candidate')
+		})
+	})
+
+	suite('highestStrategy.selectVersion', () => {
+		/** Verifies highest version is selected regardless of major. */
+		test('picks highest version regardless of major', () => {
+			const result = highestStrategy.selectVersion(
+				['2.13.9.Final-redhat-00003', '3.2.9.Final-redhat-00003'],
+				'2.13.5.Final'
+			)
+			expect(result).to.equal('3.2.9.Final-redhat-00003')
+		})
+	})
+
+	suite('highestStrategy.resolveConflict', () => {
+		/** Verifies higher version wins. */
+		test('higher version wins', () => {
+			const result = highestStrategy.resolveConflict(
+				{ fixedInVersion: '2.13.9.Final', _fromTrustedContent: false, currentVersion: '2.13.5.Final' },
+				{ fixedInVersion: '3.8.6.1', _fromTrustedContent: false, currentVersion: '2.13.5.Final' }
+			)
+			expect(result).to.equal('candidate')
+		})
+
+		/** Verifies trustedContent still wins over higher version. */
+		test('trustedContent wins over higher version', () => {
+			const result = highestStrategy.resolveConflict(
+				{ fixedInVersion: '2.17.1.redhat-00002', _fromTrustedContent: true, currentVersion: '2.17.1' },
+				{ fixedInVersion: '3.0.0', _fromTrustedContent: false, currentVersion: '2.17.1' }
+			)
+			expect(result).to.equal('existing')
+		})
+	})
+
+	suite('extractRemediations with strategies', () => {
+		/** Verifies default strategy is closestCoverageStrategy — picks same-major over cross-major. */
+		test('default strategy picks same-major version for quarkus-resteasy scenario', () => {
+			// Given a dependency with CVEs having fixes in 2.x and 3.x
+			const report = {
+				providers: {
+					rhtpa: {
+						sources: {
+							'osv-github': {
+								dependencies: [{
+									ref: 'pkg:maven/io.quarkus/quarkus-resteasy@2.13.5.Final',
+									issues: [
+										{
+											id: 'CVE-2025-1634',
+											severity: 'HIGH',
+											remediation: { fixedIn: ['3.8.6.1'] },
+										},
+										{
+											id: 'CVE-2023-6267',
+											severity: 'HIGH',
+											remediation: { fixedIn: ['2.13.9.Final-redhat-00003', '3.2.9.Final-redhat-00003'] },
+										},
+										{
+											id: 'CVE-2023-5675',
+											severity: 'HIGH',
+											remediation: { fixedIn: ['2.13.9.Final-redhat-00003', '3.2.9.Final-redhat-00003'] },
+										},
+									],
+								}],
+							},
+						},
+					},
+				},
+			}
+
+			// When extracting with default strategy
+			const result = extractRemediations(report)
+
+			// Then same-major version should be preferred
+			expect(result).to.have.lengthOf(1)
+			expect(result[0].fixedInVersion).to.equal('2.13.9.Final-redhat-00003')
+			expect(result[0].cves).to.include('CVE-2025-1634')
+			expect(result[0].cves).to.include('CVE-2023-6267')
+			expect(result[0].cves).to.include('CVE-2023-5675')
+		})
+
+		/** Verifies highestStrategy picks highest version across all CVEs. */
+		test('highestStrategy picks highest version for same scenario', () => {
+			const report = {
+				providers: {
+					rhtpa: {
+						sources: {
+							'osv-github': {
+								dependencies: [{
+									ref: 'pkg:maven/io.quarkus/quarkus-resteasy@2.13.5.Final',
+									issues: [
+										{
+											id: 'CVE-2025-1634',
+											severity: 'HIGH',
+											remediation: { fixedIn: ['3.8.6.1'] },
+										},
+										{
+											id: 'CVE-2023-6267',
+											severity: 'HIGH',
+											remediation: { fixedIn: ['2.13.9.Final-redhat-00003', '3.2.9.Final-redhat-00003'] },
+										},
+									],
+								}],
+							},
+						},
+					},
+				},
+			}
+
+			const result = extractRemediations(report, { versionStrategy: highestStrategy })
+
+			expect(result).to.have.lengthOf(1)
+			expect(result[0].fixedInVersion).to.equal('3.8.6.1')
+		})
+
+		/** Verifies default strategy is closestCoverageStrategy. */
+		test('default strategy is closestCoverageStrategy', () => {
+			const report = {
+				providers: {
+					rhtpa: {
+						sources: {
+							'osv-github': {
+								dependencies: [{
+									ref: 'pkg:maven/com.example/lib@1.0.0',
+									issues: [{
+										id: 'CVE-2024-00001',
+										severity: 'HIGH',
+										remediation: { fixedIn: ['1.0.1', '2.0.0'] },
+									}],
+								}],
+							},
+						},
+					},
+				},
+			}
+
+			const result = extractRemediations(report)
+
+			expect(result).to.have.lengthOf(1)
+			expect(result[0].fixedInVersion).to.equal('1.0.1')
 		})
 	})
 })
