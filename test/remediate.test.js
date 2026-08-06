@@ -97,13 +97,8 @@ suite('remediate — runRemediation', () => {
 				match: matchStub,
 				availableProviders: [],
 			},
-			'../src/tools.js': {
-				getCustom: (key, def) => {
-					if (key === 'TRUSTIFY_DA_BACKEND_URL') {
-						return 'https://da.example.com'
-					}
-					return def
-				},
+			'../src/index.js': {
+				selectTrustifyDABackend: () => 'https://da.example.com',
 			},
 		})
 		runRemediation = mod.runRemediation

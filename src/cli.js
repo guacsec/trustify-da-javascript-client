@@ -482,28 +482,28 @@ const remediate = {
 		'dry-run': {
 			alias: 'd',
 			type: 'boolean',
-			describe: 'Preview changes without modifying files',
+			desc: 'Preview changes without modifying files',
 			conflicts: 'apply',
 		},
 		apply: {
 			alias: 'a',
 			type: 'boolean',
-			describe: 'Apply changes to manifest files',
+			desc: 'Apply changes to manifest files',
 			conflicts: 'dry-run',
 		},
 		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
 			type: 'string',
-			describe: 'Comma-separated provider list (e.g., redhat,lightwell)',
 		},
 		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
 			type: 'string',
-			describe: 'Comma-separated source list',
 		},
 		'group-by': {
 			type: 'string',
 			choices: ['dependency', 'bundle'],
 			default: 'dependency',
-			describe: 'Report grouping strategy',
+			desc: 'Report grouping strategy',
 		},
 	}),
 	handler: async args => {

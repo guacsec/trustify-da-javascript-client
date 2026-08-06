@@ -5,9 +5,10 @@ import analysis from './analysis.js'
 import { availableProviders, match } from './provider.js'
 import { extractRemediations } from './remediation.js'
 import { generateReport } from './remediation_report.js'
-import { getCustom } from './tools.js'
 import { updateMavenVersions } from './updaters/maven_updater.js'
 import { updateTomlVersions } from './updaters/toml_updater.js'
+
+import { selectTrustifyDABackend } from './index.js'
 
 /**
  * Supported manifest file patterns and their corresponding updater functions.
@@ -63,20 +64,6 @@ function getManifestType(basename) {
 }
 
 /**
- * Resolves the Trustify DA backend URL from environment or options.
- * @param {object} opts
- * @returns {string}
- * @throws {Error} if TRUSTIFY_DA_BACKEND_URL is unset
- */
-function resolveBackendUrl(opts) {
-	const url = getCustom('TRUSTIFY_DA_BACKEND_URL', null, opts)
-	if (!url) {
-		throw new Error('TRUSTIFY_DA_BACKEND_URL is unset')
-	}
-	return url
-}
-
-/**
  * Orchestrates the full remediation pipeline for a single manifest or directory:
  * discover manifests → scan via DA backend → extract remediations → apply or preview.
  *
@@ -95,7 +82,12 @@ export async function runRemediation(targetPath, options = {}) {
 	const resolvedPath = path.resolve(targetPath)
 
 	let manifestPaths
-	const stat = fs.statSync(resolvedPath)
+	let stat
+	try {
+		stat = fs.statSync(resolvedPath)
+	} catch {
+		throw new Error(`Path not found: ${resolvedPath}`)
+	}
 	if (stat.isDirectory()) {
 		manifestPaths = discoverManifests(resolvedPath)
 		if (manifestPaths.length === 0) {
@@ -117,7 +109,7 @@ export async function runRemediation(targetPath, options = {}) {
 		opts.TRUSTIFY_DA_SOURCES = sources
 	}
 
-	const url = resolveBackendUrl(opts)
+	const url = selectTrustifyDABackend(opts)
 	const allRemediations = []
 	const appliedFiles = []
 
