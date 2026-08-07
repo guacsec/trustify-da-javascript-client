@@ -483,13 +483,6 @@ const remediate = {
 			alias: 'd',
 			type: 'boolean',
 			desc: 'Preview changes without modifying files',
-			conflicts: 'apply',
-		},
-		apply: {
-			alias: 'a',
-			type: 'boolean',
-			desc: 'Apply changes to manifest files',
-			conflicts: 'dry-run',
 		},
 		providers: {
 			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
@@ -510,7 +503,6 @@ const remediate = {
 		try {
 			const result = await runRemediation(args.path, {
 				dryRun: args['dry-run'],
-				apply: args.apply,
 				providers: args.providers,
 				sources: args.sources,
 				groupBy: args['group-by'],

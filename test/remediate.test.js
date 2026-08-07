@@ -139,8 +139,8 @@ suite('remediate — runRemediation', () => {
 				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
 				requestStackStub.resolves(buildAnalysisReport())
 
-				// When running with --apply
-				const result = await runRemediation(pomPath, { apply: true })
+				// When running in apply mode (default)
+				const result = await runRemediation(pomPath, {})
 
 				// Then file should be modified and exit code should be 0
 				expect(result.exitCode).to.equal(0)
@@ -162,7 +162,7 @@ suite('remediate — runRemediation', () => {
 				requestStackStub.resolves(buildAnalysisReport())
 
 				// When applying twice
-				await runRemediation(pomPath, { apply: true })
+				await runRemediation(pomPath, {})
 				const afterFirst = fs.readFileSync(pomPath, 'utf-8')
 
 				// Reset stubs for second call — now the version is already 1.10.0
@@ -172,7 +172,7 @@ suite('remediate — runRemediation', () => {
 					fixedIn: 'pkg:maven/org.apache.commons/commons-text@1.10.0',
 				}))
 
-				await runRemediation(pomPath, { apply: true })
+				await runRemediation(pomPath, {})
 				const afterSecond = fs.readFileSync(pomPath, 'utf-8')
 
 				// Then the file should be identical after the second run
@@ -196,8 +196,8 @@ suite('remediate — runRemediation', () => {
 					fixedIn: 'pkg:maven/com.fasterxml.jackson.core/jackson-core@2.15.0',
 				}))
 
-				// When running with --apply
-				const result = await runRemediation(tomlPath, { apply: true })
+				// When running in apply mode (default)
+				const result = await runRemediation(tomlPath, {})
 
 				// Then the TOML should be updated
 				expect(result.exitCode).to.equal(0)
@@ -227,8 +227,8 @@ suite('remediate — runRemediation', () => {
 					fixedIn: 'pkg:maven/com.fasterxml.jackson.core/jackson-core@2.15.0',
 				}))
 
-				// When running with --apply on the directory
-				const result = await runRemediation(dir, { apply: true })
+				// When running in apply mode (default) on the directory
+				const result = await runRemediation(dir, {})
 
 				// Then both files should be processed
 				expect(result.exitCode).to.equal(0)

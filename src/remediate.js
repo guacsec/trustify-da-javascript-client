@@ -69,15 +69,14 @@ function getManifestType(basename) {
  *
  * @param {string} targetPath - path to a manifest file or directory
  * @param {object} [options]
- * @param {boolean} [options.dryRun=false] - preview changes without modifying files
- * @param {boolean} [options.apply=false] - apply changes to manifest files
+ * @param {boolean} [options.dryRun=false] - preview changes without modifying files (applies by default)
  * @param {string} [options.providers] - comma-separated provider list
  * @param {string} [options.sources] - comma-separated source list
  * @param {'dependency'|'bundle'} [options.groupBy='dependency'] - report grouping strategy
  * @returns {Promise<{exitCode: number, output: string}>}
  */
 export async function runRemediation(targetPath, options = {}) {
-	const { dryRun = false, apply = false, providers, sources, groupBy = 'dependency' } = options
+	const { dryRun = false, providers, sources, groupBy = 'dependency' } = options
 
 	const resolvedPath = path.resolve(targetPath)
 
@@ -138,7 +137,7 @@ export async function runRemediation(targetPath, options = {}) {
 
 		allRemediations.push(...remediations)
 
-		if (apply && !dryRun) {
+		if (!dryRun) {
 			const content = fs.readFileSync(manifestPath, 'utf-8')
 			const versionChanges = remediations.map(r => ({
 				groupId: r.groupId,
@@ -164,12 +163,8 @@ export async function runRemediation(targetPath, options = {}) {
 		return { exitCode: 2, output: report }
 	}
 
-	if (apply) {
-		const summary = appliedFiles.length > 0
-			? `Updated ${appliedFiles.length} file(s):\n${appliedFiles.map(f => `  ${f}`).join('\n')}\n\n${report}`
-			: report
-		return { exitCode: 0, output: summary }
-	}
-
-	return { exitCode: 0, output: report }
+	const summary = appliedFiles.length > 0
+		? `Updated ${appliedFiles.length} file(s):\n${appliedFiles.map(f => `  ${f}`).join('\n')}\n\n${report}`
+		: report
+	return { exitCode: 0, output: summary }
 }
