@@ -10,10 +10,9 @@ import { updateTomlVersions } from './updaters/toml_updater.js'
 
 import { selectTrustifyDABackend } from './index.js'
 
-/**
- * Supported manifest file patterns and their corresponding updater functions.
- * @type {Array<{test: function(string): boolean, updater: function(string, Array): object, label: string}>}
- */
+// Mirrors DEFAULT_WORKSPACE_DISCOVERY_IGNORE in workspace.js
+const SKIP_DIRS = new Set(['node_modules', '.git'])
+
 const MANIFEST_TYPES = [
 	{
 		test: (basename) => basename === 'pom.xml',
@@ -38,7 +37,7 @@ function discoverManifests(dirPath) {
 	function walk(dir) {
 		const entries = fs.readdirSync(dir, { withFileTypes: true })
 		for (const entry of entries) {
-			if (entry.name === 'node_modules' || entry.name === '.git') {
+			if (SKIP_DIRS.has(entry.name)) {
 				continue
 			}
 			const fullPath = path.join(dir, entry.name)
