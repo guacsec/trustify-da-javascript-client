@@ -99,7 +99,7 @@ suite('testing the golang-go-modules data provider', () => {
 			expect(comp.hashes[0].alg).to.equal('SHA-256')
 			expect(comp.hashes[0].content).to.match(/^[0-9a-f]{64}$/)
 		}
-	}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000)
+	}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000);
 
 	[
 		"go_mod_mvs_versions"
