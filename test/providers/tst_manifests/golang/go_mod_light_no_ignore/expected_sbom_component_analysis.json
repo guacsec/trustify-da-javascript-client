@@ -20,7 +20,13 @@
             "version": "v0.0.5",
             "purl": "pkg:golang/github.com/spf13/cobra@v0.0.5",
             "type": "library",
-            "bom-ref": "pkg:golang/github.com/spf13/cobra@v0.0.5"
+            "bom-ref": "pkg:golang/github.com/spf13/cobra@v0.0.5",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "7f407e2e42d7e83b66447d62b28340f554ed3542bd2bcc58776f0934d7cebffb"
+                }
+            ]
         },
         {
             "group": "golang.org/x",
