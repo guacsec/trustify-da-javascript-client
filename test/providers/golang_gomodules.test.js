@@ -73,6 +73,7 @@ suite('testing the golang-go-modules data provider', () => {
 		expect(cobra.hashes).to.be.an('array').with.lengthOf(1)
 		expect(cobra.hashes[0].alg).to.equal('SHA-256')
 		expect(cobra.hashes[0].content).to.match(/^[0-9a-f]{64}$/)
+		expect(cobra.hashes[0].content).to.equal('7f407e2e42d7e83b66447d62b28340f554ed3542bd2bcc58776f0934d7cebffb')
 	}).timeout(process.env.GITHUB_ACTIONS ? 30000 : 10000)
 
 	/** Verifies that a missing go.sum file results in omitted hashes, not errors. */
