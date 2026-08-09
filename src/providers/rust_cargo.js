@@ -370,7 +370,7 @@ function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, licen
 	}
 
 	if (includeTransitive) {
-		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set(), rootPurl, hashMap)
+		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set(), hashMap, rootPurl)
 	} else {
 		addDirectDeps(sbom, metadata, rootPackageId, rootPurl, ignoredDeps, hashMap)
 	}
@@ -421,7 +421,7 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 				: toPurl(memberPackage.name, memberPackage.version)
 
 			sbom.addDependency(rootPurl, memberPurl)
-			addTransitiveDeps(sbom, metadata, memberId, ignoredDeps, new Set(), memberPurl, hashMap)
+			addTransitiveDeps(sbom, metadata, memberId, ignoredDeps, new Set(), hashMap, memberPurl)
 		}
 	} else {
 		let workspaceDeps = getWorkspaceDepsFromManifest(manifest)
@@ -462,7 +462,7 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
  *   so callers can ensure it matches the purl already added to the SBOM
  * @private
  */
-function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, startingPurl, hashMap) {
+function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, hashMap, startingPurl) {
 	if (visited.has(packageId)) {return}
 	visited.add(packageId)
 
@@ -489,7 +489,7 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, star
 
 		let hashes = hashMap ? hashMap.get(`${depPackage.name}@${depPackage.version}`) : undefined
 		sbom.addDependency(sourcePurl, depPurl, undefined, hashes)
-		addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited, undefined, hashMap)
+		addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited, hashMap)
 	}
 }
 
