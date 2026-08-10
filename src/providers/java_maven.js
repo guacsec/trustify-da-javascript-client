@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -145,21 +146,90 @@ export default class Java_maven extends Base_java {
 		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.error("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content.toString())
 		}
-		let sbom = this.createSbomFileFromTextFormat(content.toString(), ignoredDeps, opts, manifest);
+		const depTreeContent = content.toString()
+		const hashMap = this._buildMavenHashMap(depTreeContent, opts)
+		let sbom = this.createSbomFileFromTextFormat(depTreeContent, ignoredDeps, opts, manifest, hashMap);
 		// delete temp file and directory
 		fs.rmSync(tmpDir, { recursive: true, force: true })
 		// return dependency graph as string
 		return sbom
 	}
 
+	/** @type {Object<string, string>} Packaging types that produce .jar files despite non-jar packaging names. */
+	static PACKAGING_TO_JAR = { 'bundle': 'jar', 'eclipse-plugin': 'jar' }
+
+	/** @type {string[]} */
+	static MAVEN_SCOPES = ['compile', 'provided', 'runtime', 'test', 'system', 'import']
+
 	/**
-	 *
+	 * Build a Map of PURL string → CycloneDX hash entries by reading artifact files from the local Maven repository.
+	 * @param {string} depTreeText Raw dependency tree text from mvn dependency:tree
+	 * @param {{}} [opts={}] Options bag (may contain TRUSTIFY_DA_MVN_REPO)
+	 * @returns {Map<string, Array<{alg: string, content: string}>>}
+	 */
+	_buildMavenHashMap(depTreeText, opts = {}) {
+		const m2Repo = getCustom('TRUSTIFY_DA_MVN_REPO', path.join(os.homedir(), '.m2', 'repository'), opts)
+		const hashMap = new Map()
+		const lines = depTreeText.split(EOL)
+
+		for (const rawLine of lines) {
+			const trimmed = rawLine.trim()
+			if (!trimmed || trimmed.startsWith('(')) { continue }
+
+			const parts = trimmed.split(':').map(p => p ? p.match(this.DEP_REGEX)?.[0] ?? '' : '')
+			if (parts.length < 4) { continue }
+
+			const groupId = parts[0]
+			const artifactId = parts[1]
+			const packaging = parts[2]
+
+			if (packaging === 'pom') { continue }
+
+			let version, classifier
+			if (parts.length >= 6 && Java_maven.MAVEN_SCOPES.includes(parts[5])) {
+				classifier = parts[3]
+				version = parts[4]
+			} else {
+				version = parts[3]
+				classifier = null
+			}
+
+			// Handle conflict overrides the same way parseDep does
+			const override = rawLine.match(this.CONFLICT_REGEX)
+			if (override) { version = override[1] }
+
+			const ext = Java_maven.PACKAGING_TO_JAR[packaging] || packaging
+			const groupPath = groupId.replaceAll('.', path.sep)
+			const fileName = classifier
+				? `${artifactId}-${version}-${classifier}.${ext}`
+				: `${artifactId}-${version}.${ext}`
+			const artifactPath = path.join(m2Repo, groupPath, artifactId, version, fileName)
+
+			try {
+				const fileContent = fs.readFileSync(artifactPath)
+				const digest = crypto.createHash('sha256').update(fileContent).digest('hex')
+				// Key by the PURL that parseDep() will produce for this line
+				const purlVersion = classifier ? `${version}-${classifier}` : version
+				const purl = this.toPurl(groupId, artifactId, purlVersion).toString()
+				hashMap.set(purl, [{ alg: 'SHA-256', content: digest }])
+			} catch {
+				if (process.env['TRUSTIFY_DA_DEBUG'] === 'true') {
+					console.error(`Maven hash: artifact not found at ${artifactPath}, omitting hash`)
+				}
+			}
+		}
+		return hashMap
+	}
+
+	/**
 	 * @param {String} textGraphList Text graph String of the manifest
 	 * @param {[String]} ignoredDeps List of ignored dependencies to be omitted from sbom
+	 * @param {{}} opts Options
 	 * @param {String} manifestPath Path to the pom.xml manifest
+	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] PURL→hashes map
 	 * @return {String} formatted sbom Json String with all dependencies
 	 */
-	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts, manifestPath) {
+	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts, manifestPath, hashMap) {
 		let lines = textGraphList.split(EOL);
 		// get root component
 		let root = lines[0];
@@ -167,7 +237,7 @@ export default class Java_maven extends Base_java {
 		const license = this.readLicenseFromManifest(manifestPath);
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
-		this.parseDependencyTree(root, 0, lines.slice(1), sbom);
+		this.parseDependencyTree(root, 0, lines.slice(1), sbom, hashMap);
 		return sbom.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts);
 	}
 
