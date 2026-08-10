@@ -812,7 +812,7 @@ When multiple vulnerability providers suggest different remediation versions for
 <ul>
 <li><code>0</code> — no remediations needed, or remediations applied successfully</li>
 <li><code>1</code> — error during execution</li>
-<li><code>2</code> — remediations available (returned in <code>--dry-run</code> mode when changes would be made)</li>
+<li><code>2</code> — remediations available (only returned in <code>--dry-run</code> mode when changes would be made; never returned when changes are applied)</li>
 </ul>
 
 <h4>Known Limitations</h4>
