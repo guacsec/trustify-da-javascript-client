@@ -172,7 +172,7 @@ $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --dr
 $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/project/
 
 # filter by vulnerability providers (order determines priority)
-$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --providers lightwell,redhat
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --providers provider1,provider2
 
 # group report output by bundle instead of per-dependency
 $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
@@ -240,7 +240,7 @@ $ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run
 $ trustify-da-javascript-client remediate /path/to/project/
 
 # filter by vulnerability providers (order determines priority)
-$ trustify-da-javascript-client remediate /path/to/pom.xml --providers lightwell,redhat
+$ trustify-da-javascript-client remediate /path/to/pom.xml --providers provider1,provider2
 
 # group report output by bundle instead of per-dependency
 $ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
@@ -799,7 +799,7 @@ When multiple vulnerability providers suggest different remediation versions for
 </p>
 <ul>
 <li>The provider ordering in <code>--providers</code> determines rank (first = highest priority).</li>
-<li>Trusted Content (Red Hat) recommendations always take precedence over non-trusted content at equal provider rank.</li>
+<li>Trustify vendor trusted packages always take precedence over non-trusted content at equal provider rank.</li>
 <li>Two version selection strategies are used internally:
   <ul>
   <li><strong>Closest coverage</strong> (default) — prefers the remediation version closest to the current version within the same major version.</li>
@@ -851,7 +851,7 @@ jobs:
           TRUSTIFY_DA_BACKEND_URL: ${{ secrets.TRUSTIFY_DA_BACKEND_URL }}
         with:
           entrypoint: trustify-da-javascript-client
-          args: remediate . --providers lightwell,redhat
+          args: remediate . --providers provider1,provider2
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
