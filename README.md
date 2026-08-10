@@ -110,7 +110,9 @@ Commands:
   trustify-da-javascript-client stack-batch </path/to/workspace-root> [--html|--summary]   produce stack report for all packages/crates in workspace
   trustify-da-javascript-client component <path/to/manifest> [--workspace-dir <path>]   produce component report for a manifest type and content
   trustify-da-javascript-client image <image-refs..> [--html|--summary]               produce image analysis report for OCI image references
+  trustify-da-javascript-client validate-token <token-provider> [--token-value <value>]   validate input token if authentic and authorized
   trustify-da-javascript-client license </path/to/manifest>               display project license information from manifest and LICENSE file in JSON format
+  trustify-da-javascript-client sbom </path/to/manifest> [--output <file>]               generate a CycloneDX SBOM from a manifest file
   trustify-da-javascript-client remediate <path> [--dry-run] [--providers <list>] [--sources <list>] [--group-by <strategy>]   scan and apply vulnerability remediations
 
 Options:
@@ -161,6 +163,12 @@ $ npx @trustify-da/trustify-da-javascript-client image httpd:2.4.49^^amd64
 
 # get project license information
 $ npx @trustify-da/trustify-da-javascript-client license /path/to/package.json
+
+# generate a CycloneDX SBOM from a manifest file
+$ npx @trustify-da/trustify-da-javascript-client sbom /path/to/pom.xml
+
+# generate SBOM and write to a file
+$ npx @trustify-da/trustify-da-javascript-client sbom /path/to/pom.xml --output sbom.json
 
 # scan a manifest and apply vulnerability remediations
 $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml
@@ -229,6 +237,12 @@ $ trustify-da-javascript-client image httpd:2.4.49^^amd64
 
 # get project license information
 $ trustify-da-javascript-client license /path/to/package.json
+
+# generate a CycloneDX SBOM from a manifest file
+$ trustify-da-javascript-client sbom /path/to/pom.xml
+
+# generate SBOM and write to a file
+$ trustify-da-javascript-client sbom /path/to/pom.xml --output sbom.json
 
 # scan a manifest and apply vulnerability remediations
 $ trustify-da-javascript-client remediate /path/to/pom.xml
