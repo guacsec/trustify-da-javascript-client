@@ -317,6 +317,18 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 		}
 	})
 
+	/** Verifies that lines with empty parts from DEP_REGEX mismatch are skipped without error. */
+	test('verify _buildMavenHashMap skips lines with empty parsed fields', () => {
+		const provider = new Java_maven()
+		const depTree = 'com.example:root:jar:1.0.0\n\\- :log4j:jar:1.2.17:compile\n\\- log4j::jar:1.2.17:compile\n'
+
+		// When building the hash map with lines that have empty groupId or artifactId
+		const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
+
+		// Then the hash map is empty — malformed lines are skipped
+		expect(hashMap.size).to.equal(0)
+	})
+
 	/** Verifies that parenthesized (omitted/duplicate) lines in the dependency tree are skipped. */
 	test('verify _buildMavenHashMap skips parenthesized duplicate entries', () => {
 		const provider = new Java_maven()

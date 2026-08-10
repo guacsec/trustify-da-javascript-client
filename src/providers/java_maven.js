@@ -183,6 +183,7 @@ export default class Java_maven extends Base_java {
 			const artifactId = parts[1]
 			const packaging = parts[2]
 
+			if (!groupId || !artifactId || !packaging) { continue }
 			if (packaging === 'pom') { continue }
 
 			let version, classifier
