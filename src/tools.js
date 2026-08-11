@@ -48,7 +48,7 @@ export function getCustom(key, def = null, opts = {}) {
  * Validates that an executable path does not use directory traversal or relative segments.
  * @param {string} binPath - The executable path to validate.
  * @returns {string} The validated path.
- * @throws {Error} If the path contains '..' segments or starts with './'.
+ * @throws {Error} If the path contains '..' segments or is a relative path with separators.
  */
 function validateExecutablePath(binPath) {
 	if (binPath.startsWith('./') || binPath.startsWith('.\\')) {
@@ -61,6 +61,12 @@ function validateExecutablePath(binPath) {
 	if (segments.includes('..')) {
 		throw new Error(
 			`Executable path rejected: path contains directory traversal segment (..): ${binPath}`
+		)
+	}
+
+	if ((binPath.includes('/') || binPath.includes('\\')) && !path.isAbsolute(binPath)) {
+		throw new Error(
+			`Executable path rejected: relative paths are not allowed, use an absolute path or a bare command name: ${binPath}`
 		)
 	}
 

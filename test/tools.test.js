@@ -140,6 +140,14 @@ suite('testing the various tools and utility functions', () => {
 			)
 		})
 
+		/** Verifies that relative paths with separators (e.g. subdir/binary) are rejected. */
+		test('rejects relative paths with separators', () => {
+			process.env['TRUSTIFY_DA_DUMMY_PATH'] = 'subdir/binary'
+			expect(() => getCustomPath('dummy')).to.throw(
+				Error, 'relative paths are not allowed, use an absolute path or a bare command name'
+			)
+		})
+
 		/** Verifies that rejected paths include the offending path in the error message. */
 		test('error message includes the rejected path', () => {
 			process.env['TRUSTIFY_DA_DUMMY_PATH'] = '../../sneaky/script'
