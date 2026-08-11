@@ -51,10 +51,6 @@ export function getCustom(key, def = null, opts = {}) {
  * @throws {Error} If the path contains '..' segments or starts with './'.
  */
 function validateExecutablePath(binPath) {
-	if (!binPath.includes('/') && !binPath.includes('\\')) {
-		return binPath
-	}
-
 	if (binPath.startsWith('./') || binPath.startsWith('.\\')) {
 		throw new Error(
 			`Executable path rejected: relative paths starting with './' are not allowed: ${binPath}`

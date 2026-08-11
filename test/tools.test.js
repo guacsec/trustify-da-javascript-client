@@ -132,6 +132,14 @@ suite('testing the various tools and utility functions', () => {
 			)
 		})
 
+		/** Verifies that a bare '..' without path separators is rejected. */
+		test('rejects bare ".." without path separators', () => {
+			process.env['TRUSTIFY_DA_DUMMY_PATH'] = '..'
+			expect(() => getCustomPath('dummy')).to.throw(
+				Error, 'path contains directory traversal segment (..)'
+			)
+		})
+
 		/** Verifies that rejected paths include the offending path in the error message. */
 		test('error message includes the rejected path', () => {
 			process.env['TRUSTIFY_DA_DUMMY_PATH'] = '../../sneaky/script'
