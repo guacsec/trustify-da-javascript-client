@@ -94,7 +94,6 @@ suite('testing the various tools and utility functions', () => {
 		test('allows valid absolute paths', () => {
 			process.env['TRUSTIFY_DA_DUMMY_PATH'] = '/usr/bin/mvn'
 			expect(getCustomPath('dummy')).to.equal('/usr/bin/mvn')
-			delete process.env['TRUSTIFY_DA_DUMMY_PATH']
 
 			process.env['TRUSTIFY_DA_DUMMY_PATH'] = '/usr/local/bin/npm'
 			expect(getCustomPath('dummy')).to.equal('/usr/local/bin/npm')
