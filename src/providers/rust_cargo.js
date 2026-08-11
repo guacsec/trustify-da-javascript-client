@@ -218,12 +218,13 @@ function getSBOM(manifest, opts = {}, includeTransitive) {
 	let ignoredDeps = getIgnoredDeps(manifest, metadata)
 	let crateType = detectCrateType(metadata)
 	let license = readLicenseFromManifest(manifest, metadata)
+	let hashMap = parseCargoLockHashes(manifestDir)
 
 	let sbom
 	if (crateType === CrateType.WORKSPACE_VIRTUAL) {
-		sbom = handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license)
+		sbom = handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license, hashMap)
 	} else {
-		sbom = handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license)
+		sbom = handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license, hashMap)
 	}
 
 	return sbom
@@ -264,6 +265,63 @@ function executeCargoMetadata(cargoBin, manifestDir) {
 }
 
 /**
+ * Parses Cargo.lock to extract SHA-256 checksums for each package.
+ * @param {string} manifestDir - directory containing Cargo.toml (Cargo.lock is searched upward)
+ * @returns {Map<string, Array<{alg: string, content: string}>>} map of "name@version" to CycloneDX hashes
+ * @private
+ */
+function parseCargoLockHashes(manifestDir) {
+	let hashMap = new Map()
+	let lockPath = findCargoLock(manifestDir)
+	if (!lockPath) {
+		return hashMap
+	}
+	try {
+		let content = fs.readFileSync(lockPath, 'utf-8')
+		let parsed = parseToml(content)
+		for (let pkg of (parsed.package || [])) {
+			if (pkg.name && pkg.version && pkg.checksum) {
+				hashMap.set(`${pkg.name}@${pkg.version}`, [{alg: 'SHA-256', content: pkg.checksum}])
+			}
+		}
+	} catch (error) {
+		console.warn('Failed to parse Cargo.lock for hashes, SBOM will be generated without hashes')
+	}
+	return hashMap
+}
+
+/**
+ * Searches upward from the manifest directory to find the nearest Cargo.lock.
+ * @param {string} manifestDir - starting directory
+ * @returns {string|null} absolute path to Cargo.lock or null if not found
+ * @private
+ */
+function findCargoLock(manifestDir) {
+	let dir = path.resolve(manifestDir)
+	let parent = dir
+	do {
+		dir = parent
+		let lockFile = path.join(dir, 'Cargo.lock')
+		if (fs.existsSync(lockFile)) {
+			return lockFile
+		}
+		let cargoToml = path.join(dir, 'Cargo.toml')
+		if (fs.existsSync(cargoToml)) {
+			try {
+				let content = fs.readFileSync(cargoToml, 'utf-8')
+				if (/\[workspace\]/.test(content)) {
+					return null
+				}
+			} catch (_) {
+				// ignore read errors, keep searching
+			}
+		}
+		parent = path.dirname(dir)
+	} while (parent !== dir)
+	return null
+}
+
+/**
  * Detects the type of Cargo project from metadata.
  * @param {object} metadata - parsed cargo metadata
  * @returns {string} one of CrateType values
@@ -298,7 +356,7 @@ function detectCrateType(metadata) {
  * @returns {string} SBOM json string
  * @private
  */
-function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license) {
+function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, license, hashMap) {
 	let rootPackageId = metadata.resolve.root
 	let rootPackage = findPackageById(metadata, rootPackageId)
 	let rootPurl = toPurl(rootPackage.name, rootPackage.version)
@@ -312,9 +370,9 @@ function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, licen
 	}
 
 	if (includeTransitive) {
-		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set(), rootPurl)
+		addTransitiveDeps(sbom, metadata, rootPackageId, ignoredDeps, new Set(), hashMap, rootPurl)
 	} else {
-		addDirectDeps(sbom, metadata, rootPackageId, rootPurl, ignoredDeps)
+		addDirectDeps(sbom, metadata, rootPackageId, rootPurl, ignoredDeps, hashMap)
 	}
 
 	return sbom.getAsJsonString(opts)
@@ -342,7 +400,7 @@ function handleSingleCrate(metadata, ignoredDeps, includeTransitive, opts, licen
  * @returns {string} SBOM json string
  * @private
  */
-function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license) {
+function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransitive, opts, license, hashMap) {
 	let workspaceRoot = metadata.workspace_root
 	let rootName = path.basename(workspaceRoot)
 	let workspaceVersion = getWorkspaceVersion(metadata)
@@ -352,7 +410,6 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 	sbom.addRoot(rootPurl, license)
 
 	if (includeTransitive) {
-		// Stack analysis: walk all members and their full dependency trees
 		let workspaceMembers = metadata.workspace_members || []
 
 		for (let memberId of workspaceMembers) {
@@ -364,10 +421,9 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 				: toPurl(memberPackage.name, memberPackage.version)
 
 			sbom.addDependency(rootPurl, memberPurl)
-			addTransitiveDeps(sbom, metadata, memberId, ignoredDeps, new Set(), memberPurl)
+			addTransitiveDeps(sbom, metadata, memberId, ignoredDeps, new Set(), hashMap, memberPurl)
 		}
 	} else {
-		// Component analysis: only [workspace.dependencies] from root Cargo.toml
 		let workspaceDeps = getWorkspaceDepsFromManifest(manifest)
 
 		for (let depName of workspaceDeps) {
@@ -384,7 +440,8 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
 				? toPathDepPurl(pkg.name, pkg.version)
 				: toPurl(pkg.name, pkg.version)
 
-			sbom.addDependency(rootPurl, depPurl)
+			let hashes = hashMap.get(`${pkg.name}@${pkg.version}`)
+			sbom.addDependency(rootPurl, depPurl, undefined, hashes)
 		}
 	}
 
@@ -405,7 +462,7 @@ function handleVirtualWorkspace(manifest, metadata, ignoredDeps, includeTransiti
  *   so callers can ensure it matches the purl already added to the SBOM
  * @private
  */
-function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, startingPurl) {
+function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, hashMap, startingPurl) {
 	if (visited.has(packageId)) {return}
 	visited.add(packageId)
 
@@ -430,8 +487,9 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, star
 			? toPathDepPurl(depPackage.name, depPackage.version)
 			: toPurl(depPackage.name, depPackage.version)
 
-		sbom.addDependency(sourcePurl, depPurl)
-		addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited)
+		let hashes = hashMap ? hashMap.get(`${depPackage.name}@${depPackage.version}`) : undefined
+		sbom.addDependency(sourcePurl, depPurl, undefined, hashes)
+		addTransitiveDeps(sbom, metadata, depId, ignoredDeps, visited, hashMap)
 	}
 }
 
@@ -445,7 +503,7 @@ function addTransitiveDeps(sbom, metadata, packageId, ignoredDeps, visited, star
  * @param {Set<string>} ignoredDeps - set of ignored dependency names
  * @private
  */
-function addDirectDeps(sbom, metadata, packageId, parentPurl, ignoredDeps) {
+function addDirectDeps(sbom, metadata, packageId, parentPurl, ignoredDeps, hashMap) {
 	let resolveNode = findResolveNode(metadata, packageId)
 	if (!resolveNode) {return}
 
@@ -460,7 +518,8 @@ function addDirectDeps(sbom, metadata, packageId, parentPurl, ignoredDeps) {
 			? toPathDepPurl(depPackage.name, depPackage.version)
 			: toPurl(depPackage.name, depPackage.version)
 
-		sbom.addDependency(parentPurl, depPurl)
+		let hashes = hashMap ? hashMap.get(`${depPackage.name}@${depPackage.version}`) : undefined
+		sbom.addDependency(parentPurl, depPurl, undefined, hashes)
 	}
 }
 

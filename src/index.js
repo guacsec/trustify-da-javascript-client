@@ -24,6 +24,8 @@ import * as url from 'url';
 export { parseImageRef } from "./oci_image/utils.js";
 export { ImageRef } from "./oci_image/images.js";
 export { getProjectLicense, findLicenseFilePath, identifyLicense, getLicenseDetails, licensesFromReport, normalizeLicensesResponse, runLicenseCheck, getCompatibility } from "./license/index.js";
+export { extractRemediations } from "./remediation.js";
+export { generateReport, generateDeduplicationKey } from './remediation_report.js'
 
 export default { componentAnalysis, stackAnalysis, stackAnalysisBatch, imageAnalysis, validateToken, generateSbom }
 export {
@@ -61,7 +63,9 @@ export {
  * TRUSTIFY_DA_PYTHON_PATH?: string | undefined,
  * TRUSTIFY_DA_PYTHON_VIRTUAL_ENV?: string | undefined,
  * TRUSTIFY_DA_PYTHON3_PATH?: string | undefined,
+ * TRUSTIFY_DA_PROVIDERS?: string | undefined,
  * TRUSTIFY_DA_RECOMMEND?: string | undefined,
+ * TRUSTIFY_DA_SOURCES?: string | undefined,
  * TRUSTIFY_DA_SKOPEO_CONFIG_PATH?: string | undefined,
  * TRUSTIFY_DA_SKOPEO_PATH?: string | undefined,
  * TRUSTIFY_DA_SYFT_CONFIG_PATH?: string | undefined,
