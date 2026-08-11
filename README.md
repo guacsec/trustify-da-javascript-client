@@ -103,14 +103,17 @@ Use as CLI Script
 ```shell
 $ npx @trustify-da/trustify-da-javascript-client help
 
-Usage: trustify-da-javascript-client {component|stack|image|validate-token|license}
+Usage: trustify-da-javascript-client {component|stack|stack-batch|image|validate-token|license|sbom|remediate}
 
 Commands:
   trustify-da-javascript-client stack </path/to/manifest> [--workspace-dir <path>] [--html|--summary]               produce stack report for manifest path
   trustify-da-javascript-client stack-batch </path/to/workspace-root> [--html|--summary]   produce stack report for all packages/crates in workspace
   trustify-da-javascript-client component <path/to/manifest> [--workspace-dir <path>]   produce component report for a manifest type and content
   trustify-da-javascript-client image <image-refs..> [--html|--summary]               produce image analysis report for OCI image references
+  trustify-da-javascript-client validate-token <token-provider> [--token-value <value>]   validate input token if authentic and authorized
   trustify-da-javascript-client license </path/to/manifest>               display project license information from manifest and LICENSE file in JSON format
+  trustify-da-javascript-client sbom </path/to/manifest> [--output <file>]               generate a CycloneDX SBOM from a manifest file
+  trustify-da-javascript-client remediate <path> [--dry-run] [--providers <list>] [--sources <list>] [--group-by <strategy>]   scan and apply vulnerability remediations
 
 Options:
   --help  Show help                                                    [boolean]
@@ -160,6 +163,27 @@ $ npx @trustify-da/trustify-da-javascript-client image httpd:2.4.49^^amd64
 
 # get project license information
 $ npx @trustify-da/trustify-da-javascript-client license /path/to/package.json
+
+# generate a CycloneDX SBOM from a manifest file
+$ npx @trustify-da/trustify-da-javascript-client sbom /path/to/pom.xml
+
+# generate SBOM and write to a file
+$ npx @trustify-da/trustify-da-javascript-client sbom /path/to/pom.xml --output sbom.json
+
+# scan a manifest and apply vulnerability remediations
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml
+
+# preview remediations without modifying files
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --dry-run
+
+# scan a directory for all supported manifests
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/project/
+
+# filter by vulnerability providers (order determines priority)
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --providers provider1,provider2
+
+# group report output by bundle instead of per-dependency
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
 ```
 </li>
 
@@ -213,6 +237,27 @@ $ trustify-da-javascript-client image httpd:2.4.49^^amd64
 
 # get project license information
 $ trustify-da-javascript-client license /path/to/package.json
+
+# generate a CycloneDX SBOM from a manifest file
+$ trustify-da-javascript-client sbom /path/to/pom.xml
+
+# generate SBOM and write to a file
+$ trustify-da-javascript-client sbom /path/to/pom.xml --output sbom.json
+
+# scan a manifest and apply vulnerability remediations
+$ trustify-da-javascript-client remediate /path/to/pom.xml
+
+# preview remediations without modifying files
+$ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run
+
+# scan a directory for all supported manifests
+$ trustify-da-javascript-client remediate /path/to/project/
+
+# filter by vulnerability providers (order determines priority)
+$ trustify-da-javascript-client remediate /path/to/pom.xml --providers provider1,provider2
+
+# group report output by bundle instead of per-dependency
+$ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
 ```
 </li>
 </ul>
@@ -704,6 +749,135 @@ For some ecosystems we support passing additional CLI arguments to the underlyin
 |---------|---------------|
 |Maven    |TRUSTIFY_DA_MVN_ARGS|
 
+
+<h3>Remediation</h3>
+<p>
+The <code>remediate</code> command scans manifest files for known vulnerabilities and applies version upgrades to resolve them. By default, it modifies manifest files in place. Use <code>--dry-run</code> to preview changes without modifying any files.
+</p>
+
+<h4>Supported Manifest Formats</h4>
+<ul>
+<li><strong>Maven</strong> — <code>pom.xml</code> (single-module projects; updates dependency version elements and resolves property references)</li>
+<li><strong>Gradle Version Catalog</strong> — <code>libs.versions.toml</code> or any <code>*.versions.toml</code> file (updates centralized version references and inline version declarations)</li>
+</ul>
+
+<h4>CLI Flags</h4>
+<table>
+<tr>
+<th>Flag</th>
+<th>Alias</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>&lt;path&gt;</code></td>
+<td>—</td>
+<td>string (positional)</td>
+<td><em>required</em></td>
+<td>Path to a manifest file or directory to scan recursively</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td><code>-d</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Preview changes without modifying files</td>
+</tr>
+<tr>
+<td><code>--providers</code></td>
+<td>—</td>
+<td>string</td>
+<td>—</td>
+<td>Comma-separated list of vulnerability providers (env: <code>TRUSTIFY_DA_PROVIDERS</code>)</td>
+</tr>
+<tr>
+<td><code>--sources</code></td>
+<td>—</td>
+<td>string</td>
+<td>—</td>
+<td>Comma-separated list of vulnerability sources (env: <code>TRUSTIFY_DA_SOURCES</code>)</td>
+</tr>
+<tr>
+<td><code>--group-by</code></td>
+<td>—</td>
+<td>string</td>
+<td><code>dependency</code></td>
+<td>Report grouping strategy (<code>dependency</code> or <code>bundle</code>)</td>
+</tr>
+</table>
+
+<h4>Provider Priority Resolution</h4>
+<p>
+When multiple vulnerability providers suggest different remediation versions for the same dependency, the <code>--providers</code> flag determines priority. Providers listed first have the highest priority.
+</p>
+<ul>
+<li>The provider ordering in <code>--providers</code> determines rank (first = highest priority).</li>
+<li>Trustify vendor trusted packages always take precedence over non-trusted content at equal provider rank.</li>
+<li>Two version selection strategies are used internally:
+  <ul>
+  <li><strong>Closest coverage</strong> (default) — prefers the remediation version closest to the current version within the same major version.</li>
+  <li><strong>Highest</strong> — always selects the highest available remediation version.</li>
+  </ul>
+</li>
+</ul>
+
+<h4>Exit Codes</h4>
+<ul>
+<li><code>0</code> — no remediations needed, or remediations applied successfully</li>
+<li><code>1</code> — error during execution</li>
+<li><code>2</code> — remediations available (only returned in <code>--dry-run</code> mode when changes would be made; never returned when changes are applied)</li>
+</ul>
+
+<h4>Known Limitations</h4>
+<ul>
+<li>Gradle DSL files (<code>build.gradle</code>, <code>build.gradle.kts</code>) are not supported — only version catalog files (<code>*.versions.toml</code>).</li>
+<li>Multi-module Maven projects with inherited dependency versions from parent POMs are not supported — only versions declared directly in the scanned <code>pom.xml</code> are updated.</li>
+</ul>
+
+<h4>Example: GitHub Action Workflow</h4>
+<p>
+The following workflow runs a scheduled remediation scan using the container image and opens a pull request with any version updates. Save this as <code>.github/workflows/trustify-da-remediation.yml</code> in your repository:
+</p>
+
+```yaml
+name: Trustify DA Remediation Scan
+
+on:
+  schedule:
+    # Run weekly on Monday at 08:00 UTC
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run remediation scan
+        uses: docker://ghcr.io/guacsec/trustify-da-javascript-client:latest
+        env:
+          TRUSTIFY_DA_BACKEND_URL: ${{ secrets.TRUSTIFY_DA_BACKEND_URL }}
+        with:
+          entrypoint: trustify-da-javascript-client
+          args: remediate . --providers provider1,provider2
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: 'fix(deps): apply Trustify DA vulnerability remediations'
+          body: |
+            Automated dependency version updates from Trustify Dependency Analytics.
+
+            This PR was generated by a scheduled remediation scan.
+          branch: trustify-da-remediation
+          commit-message: 'fix(deps): apply Trustify DA vulnerability remediations'
+```
 
 <!-- Badge links -->
 [0]: https://img.shields.io/github/v/release/guacsec/trustify-da-javascript-client?color=green&label=latest
