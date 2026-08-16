@@ -158,11 +158,15 @@ export default class Java_maven extends Base_java {
 	/** @type {Object<string, string>} Packaging types that produce .jar files despite non-jar packaging names. */
 	static PACKAGING_TO_JAR = { 'bundle': 'jar', 'eclipse-plugin': 'jar' }
 
-	/** @type {string[]} */
-	static MAVEN_SCOPES = ['compile', 'provided', 'runtime', 'test', 'system', 'import']
-
 	/**
 	 * Build a Map of PURL string → CycloneDX hash entries by reading artifact files from the local Maven repository.
+	 *
+	 * Both the artifact file path and the hash-map key are derived from the
+	 * shared {@link Base_java#parseCoordinate} parser: the file path uses the
+	 * resolved version and raw classifier, while the key uses the same canonical
+	 * PURL builder as {@link Base_java#parseDep}. This guarantees the key always
+	 * matches the PURL that {@link Base_java#parseDependencyTree} looks up.
+	 *
 	 * @param {string} depTreeText Raw dependency tree text from mvn dependency:tree
 	 * @param {{}} [opts={}] Options bag (may contain TRUSTIFY_DA_MVN_REPO)
 	 * @returns {Map<string, Array<{alg: string, content: string}>>}
@@ -176,42 +180,23 @@ export default class Java_maven extends Base_java {
 			const trimmed = rawLine.trim()
 			if (!trimmed || trimmed.startsWith('(')) { continue }
 
-			const parts = trimmed.split(':').map(p => p ? p.match(this.DEP_REGEX)?.[0] ?? '' : '')
-			if (parts.length < 4) { continue }
+			const coord = this.parseCoordinate(rawLine)
+			if (!coord.groupId || !coord.artifactId || !coord.packaging) { continue }
+			if (coord.packaging === 'pom') { continue }
 
-			const groupId = parts[0]
-			const artifactId = parts[1]
-			const packaging = parts[2]
-
-			if (!groupId || !artifactId || !packaging) { continue }
-			if (packaging === 'pom') { continue }
-
-			let version, classifier
-			if (parts.length >= 6 && Java_maven.MAVEN_SCOPES.includes(parts[5])) {
-				classifier = parts[3]
-				version = parts[4]
-			} else {
-				version = parts[3]
-				classifier = null
-			}
-
-			// Handle conflict overrides the same way parseDep does
-			const override = rawLine.match(this.CONFLICT_REGEX)
-			if (override) { version = override[1] }
-
-			const ext = Java_maven.PACKAGING_TO_JAR[packaging] || packaging
-			const groupPath = groupId.replaceAll('.', path.sep)
-			const fileName = classifier
-				? `${artifactId}-${version}-${classifier}.${ext}`
-				: `${artifactId}-${version}.${ext}`
-			const artifactPath = path.join(m2Repo, groupPath, artifactId, version, fileName)
+			const ext = Java_maven.PACKAGING_TO_JAR[coord.packaging] || coord.packaging
+			const groupPath = coord.groupId.replaceAll('.', path.sep)
+			const fileName = coord.classifier
+				? `${coord.artifactId}-${coord.version}-${coord.classifier}.${ext}`
+				: `${coord.artifactId}-${coord.version}.${ext}`
+			const artifactPath = path.join(m2Repo, groupPath, coord.artifactId, coord.version, fileName)
 
 			try {
 				const fileContent = fs.readFileSync(artifactPath)
 				const digest = crypto.createHash('sha256').update(fileContent).digest('hex')
-				// Key by the PURL that parseDep() will produce for this line
-				const purlVersion = classifier ? `${version}-${classifier}` : version
-				const purl = this.toPurl(groupId, artifactId, purlVersion).toString()
+				// Key by the exact PURL parseDep() produces, so the lookup in
+				// parseDependencyTree (hashMap.get(to.toString())) always hits.
+				const purl = this._coordinateToPurl(coord).toString()
 				hashMap.set(purl, [{ alg: 'SHA-256', content: digest }])
 			} catch {
 				if (process.env['TRUSTIFY_DA_DEBUG'] === 'true') {

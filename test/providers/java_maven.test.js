@@ -343,4 +343,93 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 		// slf4j entry should not be in the hash map since it's a parenthesized duplicate
 		expect(hashMap.has('pkg:maven/org.slf4j/slf4j-api@1.7.36')).to.equal(false)
 	})
+
+	/**
+	 * Verifies that a classified dependency whose version is replaced by a conflict
+	 * override is keyed by the same PURL parseDep() produces — with the classifier
+	 * dropped — so the hash attaches to the SBOM component instead of being lost.
+	 */
+	test('verify classified dependency with conflict override attaches hash to SBOM component', () => {
+		// Given a classified jar stored under its resolved (override) version
+		const overrideDir = path.join(tmpM2Repo, 'io', 'netty', 'netty-transport', '4.2.0')
+		fs.mkdirSync(overrideDir, { recursive: true })
+		fs.writeFileSync(path.join(overrideDir, 'netty-transport-4.2.0-linux-x86_64.jar'), jarContent)
+
+		const provider = new Java_maven()
+		// A verbose-tree line where the classified dep loses a conflict to 4.2.0
+		const depTree = 'com.example:root:jar:1.0.0\n\\- (io.netty:netty-transport:jar:linux-x86_64:4.1.0:compile - omitted for conflict with 4.2.0)'
+
+		// When building the hash map and the SBOM from the same tree
+		const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
+
+		// Then the key drops the classifier and matches parseDep's override PURL
+		const purl = 'pkg:maven/io.netty/netty-transport@4.2.0'
+		expect(provider.parseDep(depTree.split('\n')[1]).toString()).to.equal(purl)
+		expect(hashMap.has(purl)).to.equal(true)
+		expect(hashMap.has('pkg:maven/io.netty/netty-transport@4.2.0-linux-x86_64')).to.equal(false)
+
+		// And the hash flows through to the netty-transport SBOM component
+		const clock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z'))
+		try {
+			const sbomJson = provider.createSbomFileFromTextFormat(
+				depTree, [], {},
+				'test/providers/tst_manifests/maven/pom_deps_with_no_ignore/pom.xml',
+				hashMap
+			)
+			const nettyComponent = JSON.parse(sbomJson).components.find(c => c.name === 'netty-transport')
+			expect(nettyComponent).to.exist
+			expect(nettyComponent.hashes).to.deep.equal([{ alg: 'SHA-256', content: expectedDigest }])
+		} finally {
+			clock.restore()
+		}
+	})
+
+	/**
+	 * Verifies that a classified dependency declared with a non-compile scope
+	 * (system) is detected as classified — the hash-map key and parseDep PURL
+	 * agree and the hash attaches. Guards against scope-list drift between the
+	 * two code paths.
+	 */
+	test('verify classified dependency with system scope produces matching keys and attaches hash', () => {
+		// Given a classified jar for a system-scoped dependency
+		const systemDir = path.join(tmpM2Repo, 'com', 'sun', 'tools', '1.8.0')
+		fs.mkdirSync(systemDir, { recursive: true })
+		fs.writeFileSync(path.join(systemDir, 'tools-1.8.0-jdk8.jar'), jarContent)
+
+		const provider = new Java_maven()
+		const depTree = 'com.example:root:jar:1.0.0\n\\- com.sun:tools:jar:jdk8:1.8.0:system'
+
+		// When building the hash map
+		const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
+
+		// Then the classifier is folded into the version and both paths agree
+		const purl = 'pkg:maven/com.sun/tools@1.8.0-jdk8'
+		expect(provider.parseDep(depTree.split('\n')[1]).toString()).to.equal(purl)
+		expect(hashMap.has(purl)).to.equal(true)
+		expect(hashMap.get(purl)[0].content).to.equal(expectedDigest)
+	})
+
+	/**
+	 * Drift guard: the hash-map key derivation must stay identical to the PURL
+	 * parseDep() emits for the same line, across plain, classified, override, and
+	 * scoped coordinate shapes. Both must route through the shared parseCoordinate
+	 * / _coordinateToPurl helpers, so this equality holds by construction.
+	 */
+	test('verify parseDep and hash-map key derivation agree for all coordinate shapes', () => {
+		const provider = new Java_maven()
+		const lines = [
+			'\\- log4j:log4j:jar:1.2.17:compile',
+			'\\- io.netty:netty-transport:jar:linux-x86_64:4.1.0:compile',
+			'\\- (io.netty:netty-transport:jar:linux-x86_64:4.1.0:compile - omitted for conflict with 4.2.0)',
+			'\\- com.sun:tools:jar:jdk8:1.8.0:system',
+			'\\- (org.foo:bar:jar:1.0.0:compile - omitted for conflict with 2.0.0)'
+		]
+
+		// For each shape, the key the hash map would store equals parseDep's PURL
+		for (const line of lines) {
+			const viaHashMap = provider._coordinateToPurl(provider.parseCoordinate(line)).toString()
+			const viaParseDep = provider.parseDep(line).toString()
+			expect(viaHashMap).to.equal(viaParseDep)
+		}
+	})
 });
