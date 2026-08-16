@@ -178,7 +178,12 @@ export default class Java_maven extends Base_java {
 
 		for (const rawLine of lines) {
 			const trimmed = rawLine.trim()
-			if (!trimmed || trimmed.startsWith('(')) { continue }
+			// Strip leading tree-drawing characters (e.g. "\-", "+-", "|") so the
+			// parenthesized-line check sees the coordinate itself. Omitted
+			// duplicate/conflict lines start with these characters after trim(),
+			// then an opening "(" — without stripping, the "(" check never fires.
+			const cleaned = trimmed.replace(/^[|+\\\- ]+/, '')
+			if (!cleaned || cleaned.startsWith('(')) { continue }
 
 			const coord = this.parseCoordinate(rawLine)
 			if (!coord.groupId || !coord.artifactId || !coord.packaging) { continue }

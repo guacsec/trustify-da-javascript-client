@@ -329,8 +329,20 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 		expect(hashMap.size).to.equal(0)
 	})
 
-	/** Verifies that parenthesized (omitted/duplicate) lines in the dependency tree are skipped. */
-	test('verify _buildMavenHashMap skips parenthesized duplicate entries', () => {
+	/**
+	 * Verifies that parenthesized (omitted/duplicate) lines are skipped by the
+	 * guard itself — before any file I/O — even when the referenced artifact IS
+	 * present in the mock .m2 repository. This proves the tree-character-stripping
+	 * guard is what filters the line, not an incidentally missing fixture jar.
+	 */
+	test('verify _buildMavenHashMap skips parenthesized duplicate entries via the guard', () => {
+		// Given the "omitted for duplicate" artifact's jar exists in the mock repo,
+		// so a missing file cannot be the reason the entry is skipped
+		const slf4jDir = path.join(tmpM2Repo, 'org', 'slf4j', 'slf4j-api', '1.7.36')
+		fs.mkdirSync(slf4jDir, { recursive: true })
+		fs.writeFileSync(path.join(slf4jDir, 'slf4j-api-1.7.36.jar'), jarContent)
+		expect(fs.existsSync(path.join(slf4jDir, 'slf4j-api-1.7.36.jar'))).to.equal(true)
+
 		const provider = new Java_maven()
 		const depTree = [
 			'com.example:root:jar:1.0.0',
@@ -338,50 +350,46 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 			'   \\- (org.slf4j:slf4j-api:jar:1.7.36:compile - omitted for duplicate)'
 		].join('\n')
 
+		// When building the hash map
 		const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
 
-		// slf4j entry should not be in the hash map since it's a parenthesized duplicate
+		// Then the parenthesized slf4j entry is absent (skipped by the guard) even
+		// though its jar exists, while the non-parenthesized log4j entry is hashed
 		expect(hashMap.has('pkg:maven/org.slf4j/slf4j-api@1.7.36')).to.equal(false)
+		expect(hashMap.has('pkg:maven/log4j/log4j@1.2.17')).to.equal(true)
 	})
 
 	/**
-	 * Verifies that a classified dependency whose version is replaced by a conflict
-	 * override is keyed by the same PURL parseDep() produces — with the classifier
-	 * dropped — so the hash attaches to the SBOM component instead of being lost.
+	 * Verifies that an "omitted for conflict" line — which carries a classifier and
+	 * a conflict override — is skipped by the guard before any file I/O, even when
+	 * the referenced jar is present in the mock .m2 repository. The resolved
+	 * version's hash comes from the real (non-parenthesized) winner node elsewhere
+	 * in the tree, never from the omitted loser line itself.
 	 */
-	test('verify classified dependency with conflict override attaches hash to SBOM component', () => {
-		// Given a classified jar stored under its resolved (override) version
+	test('verify _buildMavenHashMap skips omitted-for-conflict lines via the guard', () => {
+		// Given the omitted classified artifact's jar exists in the mock repo,
+		// so a missing file cannot be the reason the entry is skipped
 		const overrideDir = path.join(tmpM2Repo, 'io', 'netty', 'netty-transport', '4.2.0')
 		fs.mkdirSync(overrideDir, { recursive: true })
 		fs.writeFileSync(path.join(overrideDir, 'netty-transport-4.2.0-linux-x86_64.jar'), jarContent)
 
 		const provider = new Java_maven()
 		// A verbose-tree line where the classified dep loses a conflict to 4.2.0
-		const depTree = 'com.example:root:jar:1.0.0\n\\- (io.netty:netty-transport:jar:linux-x86_64:4.1.0:compile - omitted for conflict with 4.2.0)'
+		const depTree = [
+			'com.example:root:jar:1.0.0',
+			'\\- log4j:log4j:jar:1.2.17:compile',
+			'   \\- (io.netty:netty-transport:jar:linux-x86_64:4.1.0:compile - omitted for conflict with 4.2.0)'
+		].join('\n')
 
-		// When building the hash map and the SBOM from the same tree
+		// When building the hash map
 		const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
 
-		// Then the key drops the classifier and matches parseDep's override PURL
-		const purl = 'pkg:maven/io.netty/netty-transport@4.2.0'
-		expect(provider.parseDep(depTree.split('\n')[1]).toString()).to.equal(purl)
-		expect(hashMap.has(purl)).to.equal(true)
+		// Then the parenthesized conflict line yields no entry (guard-skipped before
+		// I/O) under either the override PURL or the classified PURL, while the
+		// non-parenthesized log4j entry is still hashed
+		expect(hashMap.has('pkg:maven/io.netty/netty-transport@4.2.0')).to.equal(false)
 		expect(hashMap.has('pkg:maven/io.netty/netty-transport@4.2.0-linux-x86_64')).to.equal(false)
-
-		// And the hash flows through to the netty-transport SBOM component
-		const clock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z'))
-		try {
-			const sbomJson = provider.createSbomFileFromTextFormat(
-				depTree, [], {},
-				'test/providers/tst_manifests/maven/pom_deps_with_no_ignore/pom.xml',
-				hashMap
-			)
-			const nettyComponent = JSON.parse(sbomJson).components.find(c => c.name === 'netty-transport')
-			expect(nettyComponent).to.exist
-			expect(nettyComponent.hashes).to.deep.equal([{ alg: 'SHA-256', content: expectedDigest }])
-		} finally {
-			clock.restore()
-		}
+		expect(hashMap.has('pkg:maven/log4j/log4j@1.2.17')).to.equal(true)
 	})
 
 	/**
