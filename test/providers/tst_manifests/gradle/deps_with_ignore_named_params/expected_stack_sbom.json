@@ -29,8 +29,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-hibernate-orm@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "79056c3042ee5c1bf05766340e4ae54fdde64f08036ec3e7eade6fb1c1d74375"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -38,8 +44,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-core@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-core@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-core@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e5d56e2e002acbfa172f6b3c363de6de6cd6866a2148692ed4b68fa1e3e2cb54"
+				}
+			]
 		},
 		{
 			"group": "jakarta.annotation",
@@ -47,8 +59,14 @@
 			"version": "1.3.5",
 			"purl": "pkg:maven/jakarta.annotation/jakarta.annotation-api@1.3.5",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.annotation/jakarta.annotation-api@1.3.5",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.annotation/jakarta.annotation-api@1.3.5"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d3b4e3e5413539c37eeb16d0590fad710ceafd09bf8a044e72e0d3b21e461fc3"
+				}
+			]
 		},
 		{
 			"group": "jakarta.enterprise",
@@ -56,8 +74,14 @@
 			"version": "2.0.2",
 			"purl": "pkg:maven/jakarta.enterprise/jakarta.enterprise.cdi-api@2.0.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.enterprise/jakarta.enterprise.cdi-api@2.0.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.enterprise/jakarta.enterprise.cdi-api@2.0.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c1f2010bdd10b561a178248098cff63cd0fba8772d8d1552b9732bc0ab09da1a"
+				}
+			]
 		},
 		{
 			"group": "jakarta.el",
@@ -65,8 +89,14 @@
 			"version": "3.0.3",
 			"purl": "pkg:maven/jakarta.el/jakarta.el-api@3.0.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.el/jakarta.el-api@3.0.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.el/jakarta.el-api@3.0.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "142a2bb7295c9f320601a22c1222fe29232663b0e154ceeffd4002b4101996d0"
+				}
+			]
 		},
 		{
 			"group": "jakarta.interceptor",
@@ -74,8 +104,14 @@
 			"version": "1.2.5",
 			"purl": "pkg:maven/jakarta.interceptor/jakarta.interceptor-api@1.2.5",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.interceptor/jakarta.interceptor-api@1.2.5",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.interceptor/jakarta.interceptor-api@1.2.5"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f5e24fb964cf09f358d61a3ccb79f4b5c1e5c9aa478cd61088aa64bb5b23b2a1"
+				}
+			]
 		},
 		{
 			"group": "jakarta.ejb",
@@ -83,8 +119,14 @@
 			"version": "3.2.6",
 			"purl": "pkg:maven/jakarta.ejb/jakarta.ejb-api@3.2.6",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.ejb/jakarta.ejb-api@3.2.6",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.ejb/jakarta.ejb-api@3.2.6"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b22e27d3035682fe2b0f4d319c09315ad09af845a5e529859dcc0f7f32448c6b"
+				}
+			]
 		},
 		{
 			"group": "jakarta.transaction",
@@ -92,8 +134,14 @@
 			"version": "1.3.3",
 			"purl": "pkg:maven/jakarta.transaction/jakarta.transaction-api@1.3.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.transaction/jakarta.transaction-api@1.3.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.transaction/jakarta.transaction-api@1.3.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2f345438752720e31257607bb2e2b77bc1ca39a539dc75ee3fceced9b77d39fb"
+				}
+			]
 		},
 		{
 			"group": "jakarta.inject",
@@ -101,8 +149,14 @@
 			"version": "1.0",
 			"purl": "pkg:maven/jakarta.inject/jakarta.inject-api@1.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.inject/jakarta.inject-api@1.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.inject/jakarta.inject-api@1.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b98d47614ffb494c7f35d301cdfa39a26ea53a83fc2bf94af9c634caf0b33bca"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -110,8 +164,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-ide-launcher@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-ide-launcher@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-ide-launcher@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "85560da8e6597dbaed3d72df52a55a924fd1ad268010a20de7887f4f7cf98b44"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -119,8 +179,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-development-mode-spi@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-development-mode-spi@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-development-mode-spi@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f0857d2e232938c0bed4eed79cb00d282c0a770f0df569f402c208e89074c771"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.config",
@@ -128,8 +194,14 @@
 			"version": "2.12.3",
 			"purl": "pkg:maven/io.smallrye.config/smallrye-config@2.12.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.config/smallrye-config@2.12.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.config/smallrye-config@2.12.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a233ee95ba07a81989382756330fdc5ea07923d02ffbace24fd541279c612123"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.config",
@@ -137,8 +209,14 @@
 			"version": "2.12.3",
 			"purl": "pkg:maven/io.smallrye.config/smallrye-config-core@2.12.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.config/smallrye-config-core@2.12.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.config/smallrye-config-core@2.12.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "ace5818b585aa679061053dbdecc382f0c64cf22f533e470adc5341cee067e96"
+				}
+			]
 		},
 		{
 			"group": "org.eclipse.microprofile.config",
@@ -146,8 +224,14 @@
 			"version": "2.0.1",
 			"purl": "pkg:maven/org.eclipse.microprofile.config/microprofile-config-api@2.0.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.eclipse.microprofile.config/microprofile-config-api@2.0.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.eclipse.microprofile.config/microprofile-config-api@2.0.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5ce209fecc8c1cca24721da1b49bfe9b7919d35821915a4c03b40719619a3f5f"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -155,8 +239,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-annotation@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-annotation@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-annotation@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2782202c634bf0ccd3c321c1c72b07f05bfc36eb72b102b3a43da7bfbacf0121"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -164,8 +254,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-expression@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-expression@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-expression@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e0407b8b7d035aa501807a02c806d450dbe72d58da9fd497f0ab274db34ae699"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -173,8 +269,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-function@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-function@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-function@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "93b16012e6a57df4f32f984a678dc3282adab53cf43205766237ff2c955faa6b"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -182,8 +284,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-constraint@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-constraint@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-constraint@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1c93cad19cc638b8471fa31fc1c8c6fc48f1d8096351676ce12712f246b54010"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.logging",
@@ -191,8 +299,14 @@
 			"version": "3.5.0.Final",
 			"purl": "pkg:maven/org.jboss.logging/jboss-logging@3.5.0.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.logging/jboss-logging@3.5.0.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.logging/jboss-logging@3.5.0.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "549e1e9180f0ac2d48f7bfca604da808cb1529000ac56e2028fb89d2a840f5ae"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -200,8 +314,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-classloader@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-classloader@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-classloader@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "305af32f28575800967816e5293c86759732c8e04714055eeda31de80d4d9e6c"
+				}
+			]
 		},
 		{
 			"group": "org.ow2.asm",
@@ -209,8 +329,14 @@
 			"version": "9.3",
 			"purl": "pkg:maven/org.ow2.asm/asm@9.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.ow2.asm/asm@9.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.ow2.asm/asm@9.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "18551e6bfcf4ff5235dab8c0fd7f37f08ab1c753326dbcbe01f104eb76ac28b9"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.config",
@@ -218,8 +344,14 @@
 			"version": "2.12.3",
 			"purl": "pkg:maven/io.smallrye.config/smallrye-config-common@2.12.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.config/smallrye-config-common@2.12.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.config/smallrye-config-common@2.12.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2aab40fa8bcd23b4f21f3c8de6dba646e2126519ff5b3d09131c50d33eaed086"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.logmanager",
@@ -227,8 +359,14 @@
 			"version": "1.0.10",
 			"purl": "pkg:maven/org.jboss.logmanager/jboss-logmanager-embedded@1.0.10",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.logmanager/jboss-logmanager-embedded@1.0.10",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.logmanager/jboss-logmanager-embedded@1.0.10"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "25b39888997956807ac167a762931d52b8d3cd07b4394a7b8a60f42de8aee855"
+				}
+			]
 		},
 		{
 			"group": "org.wildfly.common",
@@ -236,8 +374,14 @@
 			"version": "1.5.4.Final-format-001",
 			"purl": "pkg:maven/org.wildfly.common/wildfly-common@1.5.4.Final-format-001",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.wildfly.common/wildfly-common@1.5.4.Final-format-001",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.wildfly.common/wildfly-common@1.5.4.Final-format-001"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0c5989fadb7f0f9f2f7707fa10028ba7eac94e555a5b32f680a4d062c2bcfe9a"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.logging",
@@ -245,8 +389,14 @@
 			"version": "2.2.1.Final",
 			"purl": "pkg:maven/org.jboss.logging/jboss-logging-annotations@2.2.1.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.logging/jboss-logging-annotations@2.2.1.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.logging/jboss-logging-annotations@2.2.1.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f3d0fca0b72cf53fcab6fd6948a40f80eae5e28bda883ee29a055fd098e47dc8"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.threads",
@@ -254,8 +404,14 @@
 			"version": "3.4.3.Final",
 			"purl": "pkg:maven/org.jboss.threads/jboss-threads@3.4.3.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.threads/jboss-threads@3.4.3.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.threads/jboss-threads@3.4.3.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "ec8d6bbcc85fa84436055bf2809a97889c472ef77a055ed9636e70100f3c7439"
+				}
+			]
 		},
 		{
 			"group": "org.slf4j",
@@ -263,8 +419,14 @@
 			"version": "1.7.36",
 			"purl": "pkg:maven/org.slf4j/slf4j-api@1.7.36",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.slf4j/slf4j-api@1.7.36",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.slf4j/slf4j-api@1.7.36"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c0a772724ba038f0fcdeb34db4f3fb43693f6152101b1e7e7a1ac35a9cb4cec9"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.slf4j",
@@ -272,8 +434,14 @@
 			"version": "1.2.0.Final",
 			"purl": "pkg:maven/org.jboss.slf4j/slf4j-jboss-logmanager@1.2.0.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.slf4j/slf4j-jboss-logmanager@1.2.0.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.slf4j/slf4j-jboss-logmanager@1.2.0.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "8c5cc65839e939694ca1c9b27ff8978d9a79a8a667c3e1ba414db7a221277858"
+				}
+			]
 		},
 		{
 			"group": "org.graalvm.sdk",
@@ -281,8 +449,14 @@
 			"version": "22.3.0",
 			"purl": "pkg:maven/org.graalvm.sdk/graal-sdk@22.3.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.graalvm.sdk/graal-sdk@22.3.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.graalvm.sdk/graal-sdk@22.3.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b297b3cdc2bd9c55cc6ea3648230cf7c5b656be4f85c2291ea08404ffb7aeb0d"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -290,8 +464,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-bootstrap-runner@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-runner@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-runner@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "67c8d35e46b532caa58e1f6653d4f342ad21f397fd1924ca14f3d957f224ae36"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -299,8 +479,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-io@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-io@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-io@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fe329b6f953d309a1f9e0929d69c60e57e3be2120a60ca1790e6cb0e428d0001"
+				}
+			]
 		},
 		{
 			"group": "io.github.crac",
@@ -308,8 +494,14 @@
 			"version": "0.1.1",
 			"purl": "pkg:maven/io.github.crac/org-crac@0.1.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.github.crac/org-crac@0.1.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.github.crac/org-crac@0.1.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e3332dab2a0fafb59c8f9c3e97af2578c8543577e7c2a8131c98aeb4e9f6446a"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -317,8 +509,14 @@
 			"version": "0.0.9",
 			"purl": "pkg:maven/io.quarkus/quarkus-fs-util@0.0.9",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-fs-util@0.0.9",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-fs-util@0.0.9"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a6e06c973540641496c1e843bc32e0ac5a8a520ba64bc822144e34a48a63ac98"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -326,8 +524,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-agroal@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "373e7e3e0789069ac3b414658fdc8d2e78fa29ed649672443833fd61653e8239"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -335,8 +539,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-arc@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-arc@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-arc@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "38a15d0b22b6aae94eed3cae8da82b0b6260df68cad90fff31501701ad947aed"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus.arc",
@@ -344,8 +554,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus.arc/arc@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus.arc/arc@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus.arc/arc@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "999b6c98b4c2a0fd153e869cc72b210aa370bf82b0a0ce0a0a967dca2e95a043"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -353,8 +569,14 @@
 			"version": "1.7.0",
 			"purl": "pkg:maven/io.smallrye.reactive/mutiny@1.7.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/mutiny@1.7.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/mutiny@1.7.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "7b95809b54bfb315f22fc369a417377017f332217fbeed0d19616596ea58e99e"
+				}
+			]
 		},
 		{
 			"group": "org.reactivestreams",
@@ -362,8 +584,14 @@
 			"version": "1.0.3",
 			"purl": "pkg:maven/org.reactivestreams/reactive-streams@1.0.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.reactivestreams/reactive-streams@1.0.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.reactivestreams/reactive-streams@1.0.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "cc80acd6a1ad07a28990f997157d729c38f99efccd20158515bdb52d1c50f16c"
+				}
+			]
 		},
 		{
 			"group": "org.eclipse.microprofile.context-propagation",
@@ -371,8 +599,14 @@
 			"version": "1.3",
 			"purl": "pkg:maven/org.eclipse.microprofile.context-propagation/microprofile-context-propagation-api@1.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.eclipse.microprofile.context-propagation/microprofile-context-propagation-api@1.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.eclipse.microprofile.context-propagation/microprofile-context-propagation-api@1.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "039a0b83a06108636482d2f9bbbc894ea6c6c0750034be7c486e06bacc559d8c"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -380,8 +614,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-datasource@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "889993db8ee5d85cde8032b7dac65f73b38307d5bf5608a321b56be0f10664f2"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -389,8 +629,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-datasource-common@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource-common@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource-common@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "29771fd757c97a980e79826669d289393b08686e30ecaeb3d39bdd7c227984c6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -398,8 +644,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-credentials@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-credentials@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-credentials@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fecd259b0f869c6e82a5c9ef524d196a984678c70fa9b4caac04a0f6ba93a901"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -407,8 +659,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-narayana-jta@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-narayana-jta@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-narayana-jta@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1ef954c2c9c885ec215806871643215778c6daeb5a999a55d2ded512db72f881"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -416,8 +674,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-transaction-annotations@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-transaction-annotations@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-transaction-annotations@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c7a9ab990db0a2572e847141b7bb56f08172e974e5bae5d7ca102e4445dac0b4"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -425,8 +689,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-mutiny@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-mutiny@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-mutiny@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3f4d56e81c596c2d6cebe06f1d9e5ae9089ee1520aa17e579e18c55fe8df53b8"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -434,8 +704,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-smallrye-context-propagation@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-smallrye-context-propagation@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-smallrye-context-propagation@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "49df5b0db2e56171209b12baab05c1fe7bdd63370502811b7d23dc15b7eacc66"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye",
@@ -443,8 +719,14 @@
 			"version": "1.2.2",
 			"purl": "pkg:maven/io.smallrye/smallrye-context-propagation@1.2.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation@1.2.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation@1.2.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bc1ee770918d8d76b47bc6f47d312f3159e8c698f6673d6c712fe4ce0ec982e8"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye",
@@ -452,8 +734,14 @@
 			"version": "1.2.2",
 			"purl": "pkg:maven/io.smallrye/smallrye-context-propagation-api@1.2.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation-api@1.2.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation-api@1.2.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4d39df66447b05d938c9a6b8eb147d93680987dc1032a2d8c1dcb083710fb79a"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye",
@@ -461,8 +749,14 @@
 			"version": "1.2.2",
 			"purl": "pkg:maven/io.smallrye/smallrye-context-propagation-storage@1.2.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation-storage@1.2.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation-storage@1.2.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1bf3b19038fec5a110a82adb6c2bf8b8dc2234126281a36e423daf50a9e23a39"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -470,8 +764,14 @@
 			"version": "1.7.0",
 			"purl": "pkg:maven/io.smallrye.reactive/mutiny-smallrye-context-propagation@1.7.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/mutiny-smallrye-context-propagation@1.7.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/mutiny-smallrye-context-propagation@1.7.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "67ea7a1aa0d27ffc2d436ad05e745003ddc6d33f0c5dde4507018d6d03e12ed5"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye",
@@ -479,8 +779,14 @@
 			"version": "1.2.2",
 			"purl": "pkg:maven/io.smallrye/smallrye-context-propagation-jta@1.2.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation-jta@1.2.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye/smallrye-context-propagation-jta@1.2.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "6e32035875ad87b392709587a6faff6d8853b38d6a249082134f0822c3898e79"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -488,8 +794,14 @@
 			"version": "2.7.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-reactive-converter-api@2.7.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-reactive-converter-api@2.7.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-reactive-converter-api@2.7.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c604e090dc282423e9084b6339bf9d1cffde53d7d189bf6f50ae4640e162b611"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -497,8 +809,14 @@
 			"version": "2.7.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-reactive-converter-mutiny@2.7.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-reactive-converter-mutiny@2.7.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-reactive-converter-mutiny@2.7.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b01de8b2211277e4f7d03a232752b7dd9cd6d9db9270f0491e1b8e8deb24c16a"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.narayana.jta",
@@ -506,8 +824,14 @@
 			"version": "5.13.1.Alpha1",
 			"purl": "pkg:maven/org.jboss.narayana.jta/narayana-jta@5.13.1.Alpha1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.narayana.jta/narayana-jta@5.13.1.Alpha1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.narayana.jta/narayana-jta@5.13.1.Alpha1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3c601dda329f76088be0a0e67a64d3326409fc57ca801ccd129080b14bab6726"
+				}
+			]
 		},
 		{
 			"group": "org.jboss",
@@ -515,8 +839,14 @@
 			"version": "7.6.1.Final",
 			"purl": "pkg:maven/org.jboss/jboss-transaction-spi@7.6.1.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss/jboss-transaction-spi@7.6.1.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss/jboss-transaction-spi@7.6.1.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d92fee6cac2a06f468572fde42b64758d8ecb1fcef57825f0d9b8514ba098dd4"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.spec.javax.resource",
@@ -524,8 +854,14 @@
 			"version": "1.0.0.Final",
 			"purl": "pkg:maven/org.jboss.spec.javax.resource/jboss-connector-api_1.7_spec@1.0.0.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.spec.javax.resource/jboss-connector-api_1.7_spec@1.0.0.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.spec.javax.resource/jboss-connector-api_1.7_spec@1.0.0.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "80046bf02c6afd0cc7cb22ee6b7a322833c007f5fa4a953eb833308c7c807592"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.narayana.jts",
@@ -533,8 +869,14 @@
 			"version": "5.13.1.Alpha1",
 			"purl": "pkg:maven/org.jboss.narayana.jts/narayana-jts-integration@5.13.1.Alpha1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.narayana.jts/narayana-jts-integration@5.13.1.Alpha1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.narayana.jts/narayana-jts-integration@5.13.1.Alpha1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "92411cde8dff5026a9ef0cf26a46bcfd09bce1e208daee49b0d57fabd8352e33"
+				}
+			]
 		},
 		{
 			"group": "io.agroal",
@@ -542,8 +884,14 @@
 			"version": "1.16",
 			"purl": "pkg:maven/io.agroal/agroal-api@1.16",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.agroal/agroal-api@1.16",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.agroal/agroal-api@1.16"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "121caa97e838680277dc196354266a3697861238070a235366750f356e226073"
+				}
+			]
 		},
 		{
 			"group": "io.agroal",
@@ -551,8 +899,14 @@
 			"version": "1.16",
 			"purl": "pkg:maven/io.agroal/agroal-narayana@1.16",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.agroal/agroal-narayana@1.16",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.agroal/agroal-narayana@1.16"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "27685faad7aab4327103ddbbadf01528a034a67938afd316076a57340421511e"
+				}
+			]
 		},
 		{
 			"group": "io.agroal",
@@ -560,8 +914,14 @@
 			"version": "1.16",
 			"purl": "pkg:maven/io.agroal/agroal-pool@1.16",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.agroal/agroal-pool@1.16",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.agroal/agroal-pool@1.16"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "095b8d8424ae92298d3795f619c4a5210026befea210c721df2517cd8d8f8529"
+				}
+			]
 		},
 		{
 			"group": "org.hibernate",
@@ -569,8 +929,14 @@
 			"version": "5.6.14.Final",
 			"purl": "pkg:maven/org.hibernate/hibernate-core@5.6.14.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.hibernate/hibernate-core@5.6.14.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.hibernate/hibernate-core@5.6.14.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "147319ec25f86ba8f6263601c57cfd98badfea32e6312fee929e8c2207cda5cd"
+				}
+			]
 		},
 		{
 			"group": "net.bytebuddy",
@@ -578,8 +944,14 @@
 			"version": "1.12.18",
 			"purl": "pkg:maven/net.bytebuddy/byte-buddy@1.12.18",
 			"type": "library",
+			"bom-ref": "pkg:maven/net.bytebuddy/byte-buddy@1.12.18",
 			"scope": "required",
-			"bom-ref": "pkg:maven/net.bytebuddy/byte-buddy@1.12.18"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dfda1288566e62724c078947c6d6439e5c0150342b5177c8ac160019f1870237"
+				}
+			]
 		},
 		{
 			"group": "antlr",
@@ -587,8 +959,14 @@
 			"version": "2.7.7",
 			"purl": "pkg:maven/antlr/antlr@2.7.7",
 			"type": "library",
+			"bom-ref": "pkg:maven/antlr/antlr@2.7.7",
 			"scope": "required",
-			"bom-ref": "pkg:maven/antlr/antlr@2.7.7"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d0c1c8265545cb28554d2131d57a5b50bbba22d138f9610aef4b42bb68270b7e"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml",
@@ -596,8 +974,14 @@
 			"version": "1.5.1",
 			"purl": "pkg:maven/com.fasterxml/classmate@1.5.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml/classmate@1.5.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml/classmate@1.5.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "9b9186b8fd7ff56a09a1cb35c441d284d914dcda0697337ce600550c0bffad52"
+				}
+			]
 		},
 		{
 			"group": "org.hibernate.common",
@@ -605,8 +989,14 @@
 			"version": "5.1.2.Final",
 			"purl": "pkg:maven/org.hibernate.common/hibernate-commons-annotations@5.1.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.hibernate.common/hibernate-commons-annotations@5.1.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.hibernate.common/hibernate-commons-annotations@5.1.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1fbc8d27ab1039b06f965584d92883cdbfebe843b0f4bc922a45c527daf0a225"
+				}
+			]
 		},
 		{
 			"group": "org.hibernate",
@@ -614,8 +1004,14 @@
 			"version": "5.6.14.Final",
 			"purl": "pkg:maven/org.hibernate/hibernate-graalvm@5.6.14.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.hibernate/hibernate-graalvm@5.6.14.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.hibernate/hibernate-graalvm@5.6.14.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5bdd2641a33b6e03a155fced61df9f0f6f4b67cbd679077bdb2acae7cbd97b97"
+				}
+			]
 		},
 		{
 			"group": "org.glassfish.jaxb",
@@ -623,8 +1019,14 @@
 			"version": "2.3.3-b02",
 			"purl": "pkg:maven/org.glassfish.jaxb/jaxb-runtime@2.3.3-b02",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.glassfish.jaxb/jaxb-runtime@2.3.3-b02",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.glassfish.jaxb/jaxb-runtime@2.3.3-b02"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "526ad93ddebabbb64cbff4447adc32af34b3b38fcd5ce923d5c547febaa397e3"
+				}
+			]
 		},
 		{
 			"group": "org.glassfish.jaxb",
@@ -632,8 +1034,14 @@
 			"version": "2.3.3-b02",
 			"purl": "pkg:maven/org.glassfish.jaxb/txw2@2.3.3-b02",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.glassfish.jaxb/txw2@2.3.3-b02",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.glassfish.jaxb/txw2@2.3.3-b02"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a9608e9e0040fd437374fb263f44330c140ceea49c75e970a4ea7c1be6b75c22"
+				}
+			]
 		},
 		{
 			"group": "com.sun.istack",
@@ -641,8 +1049,14 @@
 			"version": "3.0.10",
 			"purl": "pkg:maven/com.sun.istack/istack-commons-runtime@3.0.10",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.sun.istack/istack-commons-runtime@3.0.10",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.sun.istack/istack-commons-runtime@3.0.10"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3a088e4af8f0656e8ad8e5dce8d122d7eb616cdec7cf3c6550c6308e97bec587"
+				}
+			]
 		},
 		{
 			"group": "com.sun.activation",
@@ -650,8 +1064,14 @@
 			"version": "1.2.1",
 			"purl": "pkg:maven/com.sun.activation/jakarta.activation@1.2.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.sun.activation/jakarta.activation@1.2.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.sun.activation/jakarta.activation@1.2.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b6895348b68b602bf4c272fc3054e7e1cc95a4c691ba11719e48c0f126b6c1e6"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.spec.javax.xml.bind",
@@ -659,8 +1079,14 @@
 			"version": "2.0.0.Final",
 			"purl": "pkg:maven/org.jboss.spec.javax.xml.bind/jboss-jaxb-api_2.3_spec@2.0.0.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.spec.javax.xml.bind/jboss-jaxb-api_2.3_spec@2.0.0.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.spec.javax.xml.bind/jboss-jaxb-api_2.3_spec@2.0.0.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "cee99591d58a9c9110ca9f3319df0c984ef0914b09a580efcb24f75715f7eb53"
+				}
+			]
 		},
 		{
 			"group": "jakarta.persistence",
@@ -668,8 +1094,14 @@
 			"version": "2.2.3",
 			"purl": "pkg:maven/jakarta.persistence/jakarta.persistence-api@2.2.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.persistence/jakarta.persistence-api@2.2.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.persistence/jakarta.persistence-api@2.2.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bb888f15b5493dc5dc89f80d005afcda077d5df61ba0bd34ffef18445840dd27"
+				}
+			]
 		},
 		{
 			"group": "org.hibernate",
@@ -677,8 +1109,14 @@
 			"version": "0.1.1",
 			"purl": "pkg:maven/org.hibernate/quarkus-local-cache@0.1.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.hibernate/quarkus-local-cache@0.1.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.hibernate/quarkus-local-cache@0.1.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b5047f9a20467ef05e80ee6a9c7abfd6ba2894e961e5467e24808aa234c26a24"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -686,8 +1124,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-caffeine@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-caffeine@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-caffeine@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "8ba118ea99bca84a43e856afdc3ed3ce163e9f67b1164c2244ded7d4b98f1d29"
+				}
+			]
 		},
 		{
 			"group": "com.github.ben-manes.caffeine",
@@ -695,8 +1139,14 @@
 			"version": "2.9.3",
 			"purl": "pkg:maven/com.github.ben-manes.caffeine/caffeine@2.9.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.github.ben-manes.caffeine/caffeine@2.9.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.github.ben-manes.caffeine/caffeine@2.9.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d6ddcd4a2a38ac492033978be5c08af5fe2edd2c3b2e73986175af0afa7bb378"
+				}
+			]
 		},
 		{
 			"group": "com.google.errorprone",
@@ -704,8 +1154,14 @@
 			"version": "2.10.0",
 			"purl": "pkg:maven/com.google.errorprone/error_prone_annotations@2.10.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.google.errorprone/error_prone_annotations@2.10.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.google.errorprone/error_prone_annotations@2.10.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "7536b424bdd8644db60e72bb3e0b05b4458c822b2d4136715233554dada62b69"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -713,8 +1169,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c66681b1e334d3e1b1d6b438044ac660b020371f65b9441bd195c1811ac6d651"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -722,8 +1184,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-vertx-http@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fe3e832b2816256f627f93810d609a1ff732b9ba5ef7109826a19af8b1ac7310"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -731,8 +1199,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-security-runtime-spi@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-security-runtime-spi@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-security-runtime-spi@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fd030bdd051d6bcebf1471b94c985b3f8059d8e6a34972c12a38ffee2baaa857"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus.security",
@@ -740,8 +1214,14 @@
 			"version": "1.1.4.Final",
 			"purl": "pkg:maven/io.quarkus.security/quarkus-security@1.1.4.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus.security/quarkus-security@1.1.4.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus.security/quarkus-security@1.1.4.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d2059c5479266f34cf32e736e2098afc061f29acd33bb43c736ac818ca76cb0f"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.common",
@@ -749,8 +1229,14 @@
 			"version": "1.13.1",
 			"purl": "pkg:maven/io.smallrye.common/smallrye-common-vertx-context@1.13.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-vertx-context@1.13.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.common/smallrye-common-vertx-context@1.13.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "edaf480fd82bc8d7ff2c9020b3d2e0478bfebfa6004b64e8651521201cb81778"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -758,8 +1244,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-core@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-core@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-core@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b165b53094fec196e9b60de567753e3d45e8c1bef834e7745fb206b9413750ba"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -767,8 +1259,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-common@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-common@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-common@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4725e55a972cee948a48137aedb0930091b10b387d726d44a824c10a15e4a2cb"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -776,8 +1274,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-buffer@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-buffer@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-buffer@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "9152c5f5e8287bf70278875141b317b6e61f111ff4089d104c676021be956b35"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -785,8 +1289,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-transport@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-transport@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-transport@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "9bc60e7933e7c115e114184961aca439ec4693a388bd6c111cfe6ffc1aed187f"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -794,8 +1304,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-resolver@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-resolver@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-resolver@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "02ac493ea66df9eed8fee059639e1893707b6eb37cdda172d32f85d06b6af7c8"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -803,8 +1319,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-handler@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-handler@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-handler@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b0be2c04eb65c9cdc8bd6871a971c5b277c2177ba240f14da23b06bab2572cce"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -812,8 +1334,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-transport-native-unix-common@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "19b01d40dc91df902d4f0d83431fdf10f6c183c545f0fda599a4929636e57f47"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -821,8 +1349,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-codec@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-codec@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-codec@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "6797c376aeac74b322ee8572fe1f5e0d087975426f4c7dffb9d0173307bd7da6"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -830,8 +1364,14 @@
 			"version": "4.1.82.Final",
 			"purl": "pkg:maven/io.netty/netty-handler-proxy@4.1.82.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-handler-proxy@4.1.82.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-handler-proxy@4.1.82.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "983abf79f64fe592a1c65fd3482302cd9b6d70e59229c16041463425bf88da1a"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -839,8 +1379,14 @@
 			"version": "4.1.82.Final",
 			"purl": "pkg:maven/io.netty/netty-codec-socks@4.1.82.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-codec-socks@4.1.82.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-codec-socks@4.1.82.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bf72fffd5dd7ae9af89ed91e6540410103c8325e77998e48b497b879952fb6df"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -848,8 +1394,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-codec-http@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-codec-http@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-codec-http@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "016e3a64dfe42619ebbce8679ebd01759f22b7e296c651308e1528ae1e66723e"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -857,8 +1409,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-codec-http2@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-codec-http2@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-codec-http2@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "aa76a35fe8368d49d8a5dd4bb7c8d5f94b7fd9e0eedf25dcb07b9f458916f868"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -866,8 +1424,14 @@
 			"version": "4.1.82.Final",
 			"purl": "pkg:maven/io.netty/netty-resolver-dns@4.1.82.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-resolver-dns@4.1.82.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-resolver-dns@4.1.82.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bd2bd64e102733fa0d44c9296fafe6719d159b46e195a69d771edbb12670f2ac"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -875,8 +1439,14 @@
 			"version": "4.1.82.Final",
 			"purl": "pkg:maven/io.netty/netty-codec-dns@4.1.82.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-codec-dns@4.1.82.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-codec-dns@4.1.82.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0777df897344799d318ed8fcff996150eac542b1a2a9149e421e28df2f36cab2"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.core",
@@ -884,8 +1454,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a7a57b699e9a41b86efc120f28d7b4f2ae3240535741e03e397dec6fc0a78a2f"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson",
@@ -893,8 +1469,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson/jackson-bom@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson/jackson-bom@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson/jackson-bom@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d512a5356d0f0316ea042dc8eef793bb0c6e5834668c1e90cf8a9c9dd6b0da52"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.core",
@@ -902,8 +1484,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-annotations@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-annotations@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-annotations@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "9716a4ce686df5e735198309be0501d033ffc2ed0c163c70d48cbe1ef4e89387"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.core",
@@ -911,8 +1499,14 @@
 			"version": "2.13.4.2",
 			"purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.4.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.4.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.4.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "374081eccd90e07fd882528c60bcf3599ba315cef65d6af2a57f1d02197a76dc"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.datatype",
@@ -920,8 +1514,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.datatype/jackson-datatype-jdk8@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.datatype/jackson-datatype-jdk8@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.datatype/jackson-datatype-jdk8@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "77fca4491d56907277d7a7df21e9d12d4843698cac7cf2a6a7b510a2f29afbad"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.datatype",
@@ -929,8 +1529,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.datatype/jackson-datatype-jsr310@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.datatype/jackson-datatype-jsr310@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.datatype/jackson-datatype-jsr310@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "961af7afc842537fc3163a7f287321fe4af465ac3c932151a04734d9b0c91e7a"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.jaxrs",
@@ -938,8 +1544,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.jaxrs/jackson-jaxrs-json-provider@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c3a4eb3ab84d506defe92fc794dc459ba3d8aae5a5cd59c10f6b153ad84f71f0"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.module",
@@ -947,8 +1559,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.module/jackson-module-parameter-names@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.module/jackson-module-parameter-names@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.module/jackson-module-parameter-names@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0131ec78c25d8381c950b32aa03c01c722cb5cbfe0247e2db7f6a88ec7729bd0"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.jaxrs",
@@ -956,8 +1574,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.jaxrs/jackson-jaxrs-base@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.jaxrs/jackson-jaxrs-base@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.jaxrs/jackson-jaxrs-base@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "483e706093b6b7246cf156b71c12522d9dd97e87263aff142f45c62128b6d392"
+				}
+			]
 		},
 		{
 			"group": "com.fasterxml.jackson.module",
@@ -965,8 +1589,14 @@
 			"version": "2.13.4",
 			"purl": "pkg:maven/com.fasterxml.jackson.module/jackson-module-jaxb-annotations@2.13.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.fasterxml.jackson.module/jackson-module-jaxb-annotations@2.13.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.fasterxml.jackson.module/jackson-module-jaxb-annotations@2.13.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dcd8704d2fe8f42c93b1c76c0ccc4955d99fe601893945b1a5ea751d64a79c97"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -974,8 +1604,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-vertx-http-dev-console-runtime-spi@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http-dev-console-runtime-spi@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http-dev-console-runtime-spi@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5d6cec615d81c4ce0cd462df852bc9b063610fde698892f357df9edcb49098d7"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -983,8 +1619,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-web@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-web@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-web@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "60b44da6840972cf6d730279ba5d2b699465a72dad63695787fc4d4bb967a2c1"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -992,8 +1634,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-web-common@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-web-common@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-web-common@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4c4e90a0751703830a98b747439e23603ae18eeb8b5f523db612ef98030fca07"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -1001,8 +1649,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-auth-common@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-auth-common@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-auth-common@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "335c5d772c5db152b64a41891cd15d547baac692d540e93eadc0742cea41c80f"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -1010,8 +1664,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-bridge-common@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-bridge-common@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-bridge-common@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "70aa713402bfb59e5a4f90785a699c6e91a311a78e2772af32c00321f7c53f6d"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1019,8 +1679,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-vertx@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "05c8aaccd8d88a4f4b5800ccc3c601e659371d2bdd2fabc7c31353689f345491"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1028,8 +1694,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-netty@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-netty@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-netty@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5f756bdcf39e4fba7609a1e7126ce3f655d3b730346e1428f8e68af6df5bfea9"
+				}
+			]
 		},
 		{
 			"group": "com.aayushatharva.brotli4j",
@@ -1037,8 +1709,14 @@
 			"version": "1.7.1",
 			"purl": "pkg:maven/com.aayushatharva.brotli4j/brotli4j@1.7.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.aayushatharva.brotli4j/brotli4j@1.7.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.aayushatharva.brotli4j/brotli4j@1.7.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "97b9c394fc377ba14640e4dc0c08ebcc7f05ca514f533b944a0509479c8a5ede"
+				}
+			]
 		},
 		{
 			"group": "io.netty",
@@ -1046,8 +1724,14 @@
 			"version": "4.1.86.Final",
 			"purl": "pkg:maven/io.netty/netty-codec-haproxy@4.1.86.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.netty/netty-codec-haproxy@4.1.86.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.netty/netty-codec-haproxy@4.1.86.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c87c380e3c213efa0c1b7533ca22c3b7ea8efdd646a26ed80ae20273c189ad5d"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1055,8 +1739,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-vertx-latebound-mdc-provider@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-latebound-mdc-provider@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-latebound-mdc-provider@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "59fdf94ede83cae3b7bb60f8ecbdf46434939e7533aff810b04d5141cc0e418c"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1064,8 +1754,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-core@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-core@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-core@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "de60bc30dcb6164d8de0301bafd3ddfdc7cc3ce2f424e8ef31345226972c6e73"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1073,8 +1769,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-runtime@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-runtime@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-runtime@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "8009b258e3518f5d222db0870ef6454687addd7b09328bfd186f7987090db614"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1082,8 +1784,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/vertx-mutiny-generator@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/vertx-mutiny-generator@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/vertx-mutiny-generator@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "afd708bf8cfd65acb76e264bdf9f23435df732fecda078ea7097291c93b3052f"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -1091,8 +1799,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-codegen@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-codegen@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-codegen@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "9d53e2b393abb33c1cbc724e605f234c0ae29a95f1a2886b142a2f176063512b"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye",
@@ -1100,8 +1814,14 @@
 			"version": "5.5.0",
 			"purl": "pkg:maven/io.smallrye/smallrye-fault-tolerance-vertx@5.5.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye/smallrye-fault-tolerance-vertx@5.5.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye/smallrye-fault-tolerance-vertx@5.5.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "ab3eb26389d9a769627621f0467a6f8d28366adec97342a10b83836bc10f6b8e"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1109,8 +1829,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-web@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-web@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-web@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5bcd310b30d73903631adf505ee85a5c6fba249bebe9e80a0f116d8644bcc02d"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1118,8 +1844,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-web-common@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-web-common@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-web-common@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5557378d88617205234d74cf77abb30e3364299ca9055c6346c247cdf18a83b9"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1127,8 +1859,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-auth-common@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-auth-common@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-auth-common@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "451fdc0bc5e4287f1bcf641cc15e4a31c6aca7d97403e16f9bc2105a55d8032a"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1136,8 +1874,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-bridge-common@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-bridge-common@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-bridge-common@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "338d3c77a5a75115c5cf557c43866244b73cdd59620602dc7f0941d71a74fa76"
+				}
+			]
 		},
 		{
 			"group": "io.smallrye.reactive",
@@ -1145,8 +1889,14 @@
 			"version": "2.27.0",
 			"purl": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-uri-template@2.27.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-uri-template@2.27.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.smallrye.reactive/smallrye-mutiny-vertx-uri-template@2.27.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2281c385d91c8c6531ad1a91a3a30064592ec7b713391adc9a1d47859d02ad02"
+				}
+			]
 		},
 		{
 			"group": "io.vertx",
@@ -1154,8 +1904,14 @@
 			"version": "4.3.4",
 			"purl": "pkg:maven/io.vertx/vertx-uri-template@4.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.vertx/vertx-uri-template@4.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.vertx/vertx-uri-template@4.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "694b9f0c2c0f831a6bf2924e4708fa4b3b23c6545b7ec89d47b3dde515c07c4e"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1163,8 +1919,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy-server-common@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-server-common@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-server-common@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "66967939a38c7c74014a48959f040798e86fb539ff6e9c93800a276d61a0551d"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1172,8 +1934,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy-common@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-common@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-common@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5336c11c354e63f7fed13130411535d91b2b93489f65ac8f480f6ce563f4f4b8"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.resteasy",
@@ -1181,8 +1949,14 @@
 			"version": "4.7.7.Final",
 			"purl": "pkg:maven/org.jboss.resteasy/resteasy-core@4.7.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-core@4.7.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-core@4.7.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c7c39a1fa4794fe91f07a10f69f2d14244efb76f7360070beaba658b94222b57"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.spec.javax.annotation",
@@ -1190,8 +1964,14 @@
 			"version": "2.0.1.Final",
 			"purl": "pkg:maven/org.jboss.spec.javax.annotation/jboss-annotations-api_1.3_spec@2.0.1.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.spec.javax.annotation/jboss-annotations-api_1.3_spec@2.0.1.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.spec.javax.annotation/jboss-annotations-api_1.3_spec@2.0.1.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3e8a73afd02919e1b2a6bace5ed5d9af666eb47a79c6015c5fe6b72ba0787dc7"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.spec.javax.ws.rs",
@@ -1199,8 +1979,14 @@
 			"version": "2.0.1.Final",
 			"purl": "pkg:maven/org.jboss.spec.javax.ws.rs/jboss-jaxrs-api_2.1_spec@2.0.1.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.spec.javax.ws.rs/jboss-jaxrs-api_2.1_spec@2.0.1.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.spec.javax.ws.rs/jboss-jaxrs-api_2.1_spec@2.0.1.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2d490bccbe4ac31117a2194f3345cf43152867b9f51311746b6ac0dca174a4d7"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.resteasy",
@@ -1208,8 +1994,14 @@
 			"version": "4.7.7.Final",
 			"purl": "pkg:maven/org.jboss.resteasy/resteasy-core-spi@4.7.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-core-spi@4.7.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-core-spi@4.7.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a398d037a931161213320c89c94f643127e88c6c68d2876ad9e58392cb6de60d"
+				}
+			]
 		},
 		{
 			"group": "jakarta.validation",
@@ -1217,8 +2009,14 @@
 			"version": "2.0.2",
 			"purl": "pkg:maven/jakarta.validation/jakarta.validation-api@2.0.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.validation/jakarta.validation-api@2.0.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.validation/jakarta.validation-api@2.0.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a8c2b114508ccd20562239505b9732776d3371aaea137b265a0548f456475d06"
+				}
+			]
 		},
 		{
 			"group": "com.ibm.async",
@@ -1226,8 +2024,14 @@
 			"version": "0.1.0",
 			"purl": "pkg:maven/com.ibm.async/asyncutil@0.1.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.ibm.async/asyncutil@0.1.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.ibm.async/asyncutil@0.1.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c565fd5ffe7c8d386d0453723c088cdd572d8351dd2ade703fcc44c45ccd9de7"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1235,8 +2039,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy-jackson@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-jackson@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-jackson@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dd61825bd9a8c2f962121098870239a0200b2d71fe004b00fb572414b40d422f"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1244,8 +2054,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-jackson@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-jackson@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-jackson@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "da11fba8adceb5f3574a5021a439e382d77ef36ce9196bf926f74f8c27169de5"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.resteasy",
@@ -1253,8 +2069,14 @@
 			"version": "4.7.7.Final",
 			"purl": "pkg:maven/org.jboss.resteasy/resteasy-jackson2-provider@4.7.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-jackson2-provider@4.7.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-jackson2-provider@4.7.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f44560025fb9e1e28d13a3918d54c8d3c033342d2d5ae50709d7916066f44ff3"
+				}
+			]
 		},
 		{
 			"group": "com.github.java-json-tools",
@@ -1262,8 +2084,14 @@
 			"version": "1.13",
 			"purl": "pkg:maven/com.github.java-json-tools/json-patch@1.13",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.github.java-json-tools/json-patch@1.13",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.github.java-json-tools/json-patch@1.13"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3ff3baf1ba186fdcf33233cb30fc9930c5c77e86cb44c6791865ab377e447bfe"
+				}
+			]
 		},
 		{
 			"group": "com.github.java-json-tools",
@@ -1271,8 +2099,14 @@
 			"version": "1.2",
 			"purl": "pkg:maven/com.github.java-json-tools/msg-simple@1.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.github.java-json-tools/msg-simple@1.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.github.java-json-tools/msg-simple@1.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e6e80ab37a2566fe7847b7090b9e44f436f615b322c97d204ac71f727e119487"
+				}
+			]
 		},
 		{
 			"group": "com.github.java-json-tools",
@@ -1280,8 +2114,14 @@
 			"version": "1.3",
 			"purl": "pkg:maven/com.github.java-json-tools/btf@1.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.github.java-json-tools/btf@1.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.github.java-json-tools/btf@1.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f441a5d0aecc2027bd5b9e4bce9a60b8b56a79e5eac2eff8df0e03182e44cac2"
+				}
+			]
 		},
 		{
 			"group": "com.github.java-json-tools",
@@ -1289,8 +2129,14 @@
 			"version": "2.0",
 			"purl": "pkg:maven/com.github.java-json-tools/jackson-coreutils@2.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.github.java-json-tools/jackson-coreutils@2.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.github.java-json-tools/jackson-coreutils@2.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4d19c88dc43613b28ed18392cff7a0c9c2f6a59473ffba5e486c2f403a8c2f6f"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1298,8 +2144,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-jdbc-postgresql@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-jdbc-postgresql@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-jdbc-postgresql@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a1af9f5bef767f20b966430723412779f71275106e66c4e80dad67d0874881d6"
+				}
+			]
 		},
 		{
 			"group": "org.postgresql",
@@ -1307,8 +2159,14 @@
 			"version": "42.5.0",
 			"purl": "pkg:maven/org.postgresql/postgresql@42.5.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.postgresql/postgresql@42.5.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.postgresql/postgresql@42.5.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "de729a946b7210ee58cee16a0db68018b1b619ec66f4802ecb41a54d56640b2b"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1316,8 +2174,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-kubernetes-service-binding@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-kubernetes-service-binding@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-kubernetes-service-binding@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "33fe80f8a1666b04c4ffa621d46f3b7fbb6af343194db24e81d1ffb9065bb0b6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1325,8 +2189,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-container-image-docker@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-container-image-docker@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-container-image-docker@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "340cc17319511435110f74a594c065fb8e09b4cd054054df810bbe0ff7754e16"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1334,8 +2204,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-container-image@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-container-image@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-container-image@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2283aaad3ea757907383a693d9981e49f167021a6655b41a6761b7f39f6d848c"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1343,8 +2219,14 @@
 			"version": "2.13.7.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy-multipart@2.13.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-multipart@2.13.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-multipart@2.13.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1dba08c004cdf3d1137882fb0c55b2c251d9d4c3c8597d9cdcec5e8488a6bb4c"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.resteasy",
@@ -1352,8 +2234,14 @@
 			"version": "4.7.7.Final",
 			"purl": "pkg:maven/org.jboss.resteasy/resteasy-multipart-provider@4.7.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-multipart-provider@4.7.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-multipart-provider@4.7.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dc367d8beee02e0c638bae5e919104fd64db2c93231eed3b4f992a93f866fa78"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.resteasy",
@@ -1361,8 +2249,14 @@
 			"version": "4.7.7.Final",
 			"purl": "pkg:maven/org.jboss.resteasy/resteasy-jaxb-provider@4.7.7.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-jaxb-provider@4.7.7.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.resteasy/resteasy-jaxb-provider@4.7.7.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "7cfad418700b1b4095935189e8bec12f542c19b2bd8620bd406d2ba73022dfa7"
+				}
+			]
 		},
 		{
 			"group": "com.sun.mail",
@@ -1370,8 +2264,14 @@
 			"version": "1.6.5",
 			"purl": "pkg:maven/com.sun.mail/jakarta.mail@1.6.5",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.sun.mail/jakarta.mail@1.6.5",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.sun.mail/jakarta.mail@1.6.5"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "da5479fdbc808b70b72255908e3ee3ae1e9947b46de8b4fee647b36e1f76988f"
+				}
+			]
 		},
 		{
 			"group": "org.apache.james",
@@ -1379,8 +2279,14 @@
 			"version": "0.8.3",
 			"purl": "pkg:maven/org.apache.james/apache-mime4j-dom@0.8.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.james/apache-mime4j-dom@0.8.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.james/apache-mime4j-dom@0.8.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "76cc2f6fc46ae00d45f7d11a558f4b8bcd5aebe6d19848f86c52b24b71cd8695"
+				}
+			]
 		},
 		{
 			"group": "org.apache.james",
@@ -1388,8 +2294,14 @@
 			"version": "0.8.3",
 			"purl": "pkg:maven/org.apache.james/apache-mime4j-core@0.8.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.james/apache-mime4j-core@0.8.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.james/apache-mime4j-core@0.8.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0aee5769cb96580e5e43febee718493f50e7c40eea65d34c3587c076f6fc7d2e"
+				}
+			]
 		},
 		{
 			"group": "org.apache.james",
@@ -1397,8 +2309,14 @@
 			"version": "0.8.3",
 			"purl": "pkg:maven/org.apache.james/apache-mime4j-storage@0.8.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.james/apache-mime4j-storage@0.8.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.james/apache-mime4j-storage@0.8.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c8b2004a2cc30515dd125746091a58b3b0f0cd6bd1a704c418e53e1b4a27aa99"
+				}
+			]
 		},
 		{
 			"group": "commons-io",
@@ -1406,8 +2324,14 @@
 			"version": "2.6",
 			"purl": "pkg:maven/commons-io/commons-io@2.6",
 			"type": "library",
+			"bom-ref": "pkg:maven/commons-io/commons-io@2.6",
 			"scope": "required",
-			"bom-ref": "pkg:maven/commons-io/commons-io@2.6"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "10c450477b5fc3ea7baac9445b7de8d16048ce260b5514dbcef68f9f20d4f448"
+				}
+			]
 		},
 		{
 			"group": "org.jboss.logging",
@@ -1415,8 +2339,14 @@
 			"version": "1.0.0.Final",
 			"purl": "pkg:maven/org.jboss.logging/commons-logging-jboss-logging@1.0.0.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss.logging/commons-logging-jboss-logging@1.0.0.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss.logging/commons-logging-jboss-logging@1.0.0.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fe37c37aa4f39e5a80bcf00808c4a11046831fcf51ebcf947daf7d45f2ab1a40"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1424,8 +2354,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-hibernate-orm-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dcdd842c6024cbc027f0e9a5374a84461243343a83c295192e6dc93d10d873d9"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1433,8 +2369,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-core-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-core-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-core-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "8cda4e5ee59a41566f9c5ebafdece3c9771ae0f2b115247bcdd0256e6140d7be"
+				}
+			]
 		},
 		{
 			"group": "org.aesh",
@@ -1442,8 +2384,14 @@
 			"version": "2.1",
 			"purl": "pkg:maven/org.aesh/readline@2.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.aesh/readline@2.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.aesh/readline@2.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2cd72dc7c8327dde309770d348c53b9eb961f685d201074d936d83e5bb9461da"
+				}
+			]
 		},
 		{
 			"group": "org.fusesource.jansi",
@@ -1451,8 +2399,14 @@
 			"version": "1.18",
 			"purl": "pkg:maven/org.fusesource.jansi/jansi@1.18",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.fusesource.jansi/jansi@1.18",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.fusesource.jansi/jansi@1.18"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0dc7dd24f8c8e361f1d839fd930a13b384376d45aa66766927070f0d0d9ca42e"
+				}
+			]
 		},
 		{
 			"group": "org.apache.commons",
@@ -1460,8 +2414,14 @@
 			"version": "3.12.0",
 			"purl": "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.commons/commons-lang3@3.12.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "75d06cb0f9b85ba1fad7f3da0f3c35306a102d6cbfce3f998d8315ccacfc3012"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus.gizmo",
@@ -1469,8 +2429,14 @@
 			"version": "1.0.9.Final",
 			"purl": "pkg:maven/io.quarkus.gizmo/gizmo@1.0.9.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus.gizmo/gizmo@1.0.9.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus.gizmo/gizmo@1.0.9.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "aaf4ed4d511db297fffb49d292f6927d79d6dc35ce6ee48d45178c487f5030d0"
+				}
+			]
 		},
 		{
 			"group": "org.ow2.asm",
@@ -1478,8 +2444,14 @@
 			"version": "9.1",
 			"purl": "pkg:maven/org.ow2.asm/asm-util@9.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.ow2.asm/asm-util@9.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.ow2.asm/asm-util@9.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "537baffb3a79453e148081685f9915de7be1fd239e221db6dd91cf2001671310"
+				}
+			]
 		},
 		{
 			"group": "org.ow2.asm",
@@ -1487,8 +2459,14 @@
 			"version": "9.1",
 			"purl": "pkg:maven/org.ow2.asm/asm-tree@9.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.ow2.asm/asm-tree@9.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.ow2.asm/asm-tree@9.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a09d7a940c53c26c0067b33ca0358d330cfa9da3c426d04e86c07f35d406241c"
+				}
+			]
 		},
 		{
 			"group": "org.ow2.asm",
@@ -1496,8 +2474,14 @@
 			"version": "9.1",
 			"purl": "pkg:maven/org.ow2.asm/asm-analysis@9.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.ow2.asm/asm-analysis@9.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.ow2.asm/asm-analysis@9.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f45548ccb5a04167749d372c3faf2caa97a5c42b6e8d204705d5342a0b68d672"
+				}
+			]
 		},
 		{
 			"group": "org.jboss",
@@ -1505,8 +2489,14 @@
 			"version": "2.3.0.Final",
 			"purl": "pkg:maven/org.jboss/jandex@2.3.0.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jboss/jandex@2.3.0.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jboss/jandex@2.3.0.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "6f800e144c7786e8d981cc7d2797981007482215d91deb52a21979d5aa9252a1"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1514,8 +2504,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-class-change-agent@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-class-change-agent@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-class-change-agent@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5156efa455261c2479c6e4b11cb6227763a2366d517d1bdf1bc297216984a958"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1523,8 +2519,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-bootstrap-core@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-core@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-core@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "52ec7ee32ee3ba500822cebdcb10c4bfdabe021fd2af35e9b0db75ad07ee6a90"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1532,8 +2534,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-bootstrap-app-model@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-app-model@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-app-model@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a644bad59e34e107e9e2a834a93bfa43ce24224fc76f4170f30167e814c8dfff"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1541,8 +2549,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-bootstrap-maven-resolver@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-maven-resolver@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-maven-resolver@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e57278f946f685bd6ca9707b9f63df5de72e27912591107b1f4a01ffe7190e58"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1550,8 +2564,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-embedder@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-embedder@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-embedder@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c68d9d9e6724a83f00f359c7095cba127cc46ed0b7b0534379aa7363c290d26c"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1559,8 +2579,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-settings@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-settings@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-settings@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0803ee5e8c795d39ec5f80f438fca25333d36a03899802e6dacce22fe8158a1b"
+				}
+			]
 		},
 		{
 			"group": "org.codehaus.plexus",
@@ -1568,8 +2594,14 @@
 			"version": "3.3.0",
 			"purl": "pkg:maven/org.codehaus.plexus/plexus-utils@3.3.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-utils@3.3.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-utils@3.3.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "cfebf23a44d7bb8e5947c9f362f8538fc363da422afa6649596732e134c338ab"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1577,8 +2609,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-settings-builder@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-settings-builder@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-settings-builder@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4a5d417cec132243dfdb9572742c001cbf265da44e794e912b4578500439fd0c"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1586,8 +2624,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-builder-support@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-builder-support@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-builder-support@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1af4ec512b2675952af66164a610bca043a62ddfceea10d082a38dc4b4974e38"
+				}
+			]
 		},
 		{
 			"group": "org.codehaus.plexus",
@@ -1595,8 +2639,14 @@
 			"version": "1.25",
 			"purl": "pkg:maven/org.codehaus.plexus/plexus-interpolation@1.25",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-interpolation@1.25",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-interpolation@1.25"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e80ac909af53b689563a2431af9d53e6ec5c82caf5b32a11c029fca18884fc82"
+				}
+			]
 		},
 		{
 			"group": "org.sonatype.plexus",
@@ -1604,8 +2654,14 @@
 			"version": "1.4",
 			"purl": "pkg:maven/org.sonatype.plexus/plexus-sec-dispatcher@1.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.sonatype.plexus/plexus-sec-dispatcher@1.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.sonatype.plexus/plexus-sec-dispatcher@1.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a652bc8bc584d8de8ae6a2b50f00f248a0230e048062abb6e73bac4d07ad84af"
+				}
+			]
 		},
 		{
 			"group": "org.sonatype.plexus",
@@ -1613,8 +2669,14 @@
 			"version": "1.4",
 			"purl": "pkg:maven/org.sonatype.plexus/plexus-cipher@1.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.sonatype.plexus/plexus-cipher@1.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.sonatype.plexus/plexus-cipher@1.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "633d1db3235958cf69a4db38c7a279dced8714666bf0d28073c32229a2718837"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1622,8 +2684,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-core@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-core@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-core@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "635918aa4738430f81c4dec7c56998f6bd20696aad81148410dd6a823b74b7a3"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1631,8 +2699,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-model@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-model@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-model@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "23dc00a1ebfd1bd1dbb9ebb4446572a6ba804b5252d7cba3e99a5c2fe9cd494b"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1640,8 +2714,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-repository-metadata@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-repository-metadata@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-repository-metadata@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0d92468de4cff3464f956cdd6044c717d1ccddf7b5fd53d90184dfa2eb86b381"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1649,8 +2729,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-artifact@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-artifact@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-artifact@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fd6855903809b4e77002a7a9e60aa6975bd9046e07af215a6d2d15c60ec3f427"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1658,8 +2744,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-plugin-api@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-plugin-api@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-plugin-api@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fb89f33cc2154de9cafae1bc2bce23f2784ff1f88ec0f654bf3efb09d6a63928"
+				}
+			]
 		},
 		{
 			"group": "org.eclipse.sisu",
@@ -1667,8 +2759,14 @@
 			"version": "0.3.4",
 			"purl": "pkg:maven/org.eclipse.sisu/org.eclipse.sisu.plexus@0.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.eclipse.sisu/org.eclipse.sisu.plexus@0.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.eclipse.sisu/org.eclipse.sisu.plexus@0.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "892dfcf9c0ab795cad559b5ff081f005a7cc13834bece92e4e6fe1bc619d83a0"
+				}
+			]
 		},
 		{
 			"group": "org.codehaus.plexus",
@@ -1676,8 +2774,14 @@
 			"version": "2.1.0",
 			"purl": "pkg:maven/org.codehaus.plexus/plexus-component-annotations@2.1.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-component-annotations@2.1.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-component-annotations@2.1.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0221fa6eecf3f22f70bc4789a437e8971a37285d40af43ab0be0a69dc2fecba8"
+				}
+			]
 		},
 		{
 			"group": "org.codehaus.plexus",
@@ -1685,8 +2789,14 @@
 			"version": "2.6.0",
 			"purl": "pkg:maven/org.codehaus.plexus/plexus-classworlds@2.6.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-classworlds@2.6.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.codehaus.plexus/plexus-classworlds@2.6.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0d458f6ef51992b68f3f67bcd2867f6231135e0ed885a94bd48e5c36d480a9b7"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1694,8 +2804,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-model-builder@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-model-builder@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-model-builder@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "753ae05791ea0517c042fd233c1af2db124db7b48239925b56cab73f2ac56d5d"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven",
@@ -1703,8 +2819,14 @@
 			"version": "3.8.1",
 			"purl": "pkg:maven/org.apache.maven/maven-resolver-provider@3.8.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven/maven-resolver-provider@3.8.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven/maven-resolver-provider@3.8.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bd7822b5883e0cea9fca95b6c7f75ceac2cd9d5051fb93d402c9836e58360cf2"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.resolver",
@@ -1712,8 +2834,14 @@
 			"version": "1.6.2",
 			"purl": "pkg:maven/org.apache.maven.resolver/maven-resolver-api@1.6.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-api@1.6.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-api@1.6.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "167872c8192069cd33d95a19695c1db9f792294254a7c1007e5c81b9b9e09d6a"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.resolver",
@@ -1721,8 +2849,14 @@
 			"version": "1.6.2",
 			"purl": "pkg:maven/org.apache.maven.resolver/maven-resolver-spi@1.6.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-spi@1.6.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-spi@1.6.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d349392330b7735f9cce688ddedfdd8d96ce74897e3b996c61a09eeb0b599fca"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.resolver",
@@ -1730,8 +2864,14 @@
 			"version": "1.6.2",
 			"purl": "pkg:maven/org.apache.maven.resolver/maven-resolver-util@1.6.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-util@1.6.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-util@1.6.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a7b85498cf9da664e9a0f8a6cd0b99532cacdd2b41a50d8e1de514ac5c64496a"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.resolver",
@@ -1739,8 +2879,14 @@
 			"version": "1.6.2",
 			"purl": "pkg:maven/org.apache.maven.resolver/maven-resolver-impl@1.6.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-impl@1.6.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-impl@1.6.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e531a9dc8c35f55d444bff04751c75848c3fd3d7fe93d62730410e30667961c8"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.shared",
@@ -1748,8 +2894,14 @@
 			"version": "3.2.1",
 			"purl": "pkg:maven/org.apache.maven.shared/maven-shared-utils@3.2.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.shared/maven-shared-utils@3.2.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.shared/maven-shared-utils@3.2.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "8b960b4297a3225d5610e7a7b4fd0b3cc47df2bf36db3dc2f7121b9c0bada051"
+				}
+			]
 		},
 		{
 			"group": "com.google.inject",
@@ -1757,8 +2909,14 @@
 			"version": "4.2.1",
 			"purl": "pkg:maven/com.google.inject/guice@4.2.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.google.inject/guice@4.2.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.google.inject/guice@4.2.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "92277e95f88594dae4534ca9f3b6e9290f1ea29cb0577ef43e8b6c0b4beeb53e"
+				}
+			]
 		},
 		{
 			"group": "aopalliance",
@@ -1766,8 +2924,14 @@
 			"version": "1.0",
 			"purl": "pkg:maven/aopalliance/aopalliance@1.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/aopalliance/aopalliance@1.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/aopalliance/aopalliance@1.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0e26e161ee03141cfadfd4eec6285eccc621a4877722bfb09a4ec2958e4dcf57"
+				}
+			]
 		},
 		{
 			"group": "com.google.guava",
@@ -1775,8 +2939,14 @@
 			"version": "25.1-android",
 			"purl": "pkg:maven/com.google.guava/guava@25.1-android",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.google.guava/guava@25.1-android",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.google.guava/guava@25.1-android"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b6eeecdbad9a9be217583a8f6d5bb447426d62f63fe9b114beeb6b499efb2560"
+				}
+			]
 		},
 		{
 			"group": "com.google.code.findbugs",
@@ -1784,8 +2954,14 @@
 			"version": "3.0.2",
 			"purl": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.google.code.findbugs/jsr305@3.0.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b9748bf56c300be0f44a20ba5b99676565bb215d693ce4067097d4b14e4185d5"
+				}
+			]
 		},
 		{
 			"group": "org.checkerframework",
@@ -1793,8 +2969,14 @@
 			"version": "2.0.0",
 			"purl": "pkg:maven/org.checkerframework/checker-compat-qual@2.0.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.checkerframework/checker-compat-qual@2.0.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.checkerframework/checker-compat-qual@2.0.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1e5bb65bf0acbcf01e87f77aa9281738846be042ee776e0b05f06f95ed94d4c9"
+				}
+			]
 		},
 		{
 			"group": "com.google.j2objc",
@@ -1802,8 +2984,14 @@
 			"version": "1.1",
 			"purl": "pkg:maven/com.google.j2objc/j2objc-annotations@1.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/com.google.j2objc/j2objc-annotations@1.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/com.google.j2objc/j2objc-annotations@1.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "f41a81c6cadc39388d14b4c8c56aeda722511c02507f9ac5f3479db3174f2406"
+				}
+			]
 		},
 		{
 			"group": "org.codehaus.mojo",
@@ -1811,8 +2999,14 @@
 			"version": "1.14",
 			"purl": "pkg:maven/org.codehaus.mojo/animal-sniffer-annotations@1.14",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.codehaus.mojo/animal-sniffer-annotations@1.14",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.codehaus.mojo/animal-sniffer-annotations@1.14"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "982a7061046068098a95334dc007d11d31462628ac1bf904b7bd1b28aef00ebc"
+				}
+			]
 		},
 		{
 			"group": "commons-cli",
@@ -1820,8 +3014,14 @@
 			"version": "1.4",
 			"purl": "pkg:maven/commons-cli/commons-cli@1.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/commons-cli/commons-cli@1.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/commons-cli/commons-cli@1.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4d5698c601e30825d885d7f2aee8a1a23ddf07eff5d9468dbb1c68f33739c15b"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.resolver",
@@ -1829,8 +3029,14 @@
 			"version": "1.6.2",
 			"purl": "pkg:maven/org.apache.maven.resolver/maven-resolver-connector-basic@1.6.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-connector-basic@1.6.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-connector-basic@1.6.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "93a7d6623696b7542f7a778999a7591c787400d2b1cfb9ed702847ae74fe04f6"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.resolver",
@@ -1838,8 +3044,14 @@
 			"version": "1.6.2",
 			"purl": "pkg:maven/org.apache.maven.resolver/maven-resolver-transport-wagon@1.6.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-transport-wagon@1.6.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.resolver/maven-resolver-transport-wagon@1.6.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "69ac64f7a61830d1b609b75f061c5f37bd841d204494d91107a4976d65ba74dc"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.wagon",
@@ -1847,8 +3059,14 @@
 			"version": "3.4.3",
 			"purl": "pkg:maven/org.apache.maven.wagon/wagon-http@3.4.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-http@3.4.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-http@3.4.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dc73d554018c277bb34f2d8c0f22c48b989f4c1ebfc72acccceb1a5596f9ca66"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.wagon",
@@ -1856,8 +3074,14 @@
 			"version": "3.4.3",
 			"purl": "pkg:maven/org.apache.maven.wagon/wagon-http-shared@3.4.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-http-shared@3.4.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-http-shared@3.4.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "bb98ed8606e6fc4aeb551149d5699f33c67f940eb96daca3a6cdafd899324118"
+				}
+			]
 		},
 		{
 			"group": "org.jsoup",
@@ -1865,8 +3089,14 @@
 			"version": "1.12.1",
 			"purl": "pkg:maven/org.jsoup/jsoup@1.12.1",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.jsoup/jsoup@1.12.1",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.jsoup/jsoup@1.12.1"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d18bc1810d6619608bf6eeb373d533bbbb331a419c05f5088e88dd6e9c5a68cf"
+				}
+			]
 		},
 		{
 			"group": "org.apache.httpcomponents",
@@ -1874,8 +3104,14 @@
 			"version": "4.5.13",
 			"purl": "pkg:maven/org.apache.httpcomponents/httpclient@4.5.13",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.httpcomponents/httpclient@4.5.13",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.httpcomponents/httpclient@4.5.13"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "aa8533703665c45b418af29b71d92f56ddba39a83daf856072c947685d37a780"
+				}
+			]
 		},
 		{
 			"group": "org.apache.httpcomponents",
@@ -1883,8 +3119,14 @@
 			"version": "4.4.14",
 			"purl": "pkg:maven/org.apache.httpcomponents/httpcore@4.4.14",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.httpcomponents/httpcore@4.4.14",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.httpcomponents/httpcore@4.4.14"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1f782fc7fa0aa6db8929e7e59c0c88b597c9fbb6bf1136f8adc609945c83282e"
+				}
+			]
 		},
 		{
 			"group": "commons-codec",
@@ -1892,8 +3134,14 @@
 			"version": "1.11",
 			"purl": "pkg:maven/commons-codec/commons-codec@1.11",
 			"type": "library",
+			"bom-ref": "pkg:maven/commons-codec/commons-codec@1.11",
 			"scope": "required",
-			"bom-ref": "pkg:maven/commons-codec/commons-codec@1.11"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "d885eea5759a9df7787fdb132d42e443705fc925df49cb14ef00dc85eeabed82"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.wagon",
@@ -1901,8 +3149,14 @@
 			"version": "3.4.3",
 			"purl": "pkg:maven/org.apache.maven.wagon/wagon-provider-api@3.4.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-provider-api@3.4.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-provider-api@3.4.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "29232ca8f8e443f952d4d6c1829aafb49b3dabc23c308d70a329698cdef3d4bd"
+				}
+			]
 		},
 		{
 			"group": "org.apache.maven.wagon",
@@ -1910,8 +3164,14 @@
 			"version": "3.4.3",
 			"purl": "pkg:maven/org.apache.maven.wagon/wagon-file@3.4.3",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-file@3.4.3",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apache.maven.wagon/wagon-file@3.4.3"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "921a96e3e6e7860a984b9153ecee636c67f7933b16e76ec62e9ae50fd0d991ba"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1919,8 +3179,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-bootstrap-gradle-resolver@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-gradle-resolver@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-bootstrap-gradle-resolver@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2e74280c166cb42551498f707ccfee61ad33a6ef1f43aba928134990153bd4ee"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1928,8 +3194,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-devtools-utilities@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-devtools-utilities@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-devtools-utilities@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "ce8a21bfa9bca0248be35a37e209b6b183dc4b34689cf6feef2b2e01b8f3db24"
+				}
+			]
 		},
 		{
 			"group": "org.eclipse.sisu",
@@ -1937,8 +3209,14 @@
 			"version": "0.3.4",
 			"purl": "pkg:maven/org.eclipse.sisu/org.eclipse.sisu.inject@0.3.4",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.eclipse.sisu/org.eclipse.sisu.inject@0.3.4",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.eclipse.sisu/org.eclipse.sisu.inject@0.3.4"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "03f86159b252bd4b293683e4a8f0dc57ea33bf46dca5df1acfc1b0b4c7476398"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -1946,8 +3224,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-builder@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-builder@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-builder@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0cea3c6b3c8fb29c4b5e627623908164a802691261a4a17c10bb53c816bb4a6b"
+				}
+			]
 		},
 		{
 			"group": "org.junit.platform",
@@ -1955,8 +3239,14 @@
 			"version": "1.7.2",
 			"purl": "pkg:maven/org.junit.platform/junit-platform-launcher@1.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.platform/junit-platform-launcher@1.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.platform/junit-platform-launcher@1.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e6277701ce25d3aa3b0944d429fa068687004e560b7cb00691d6bc8b26e435e9"
+				}
+			]
 		},
 		{
 			"group": "org.junit",
@@ -1964,8 +3254,14 @@
 			"version": "5.7.2",
 			"purl": "pkg:maven/org.junit/junit-bom@5.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit/junit-bom@5.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit/junit-bom@5.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "36067e7ca222d8f77f7ab2022c57b10637f9a35c2b4343d09bc67311def7b7dc"
+				}
+			]
 		},
 		{
 			"group": "org.junit.jupiter",
@@ -1973,8 +3269,14 @@
 			"version": "5.7.2",
 			"purl": "pkg:maven/org.junit.jupiter/junit-jupiter@5.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter@5.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter@5.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "0553c80cc0fbddc1114db5bb4816cc24cc0c876891d0a238a7bd35e1059723d3"
+				}
+			]
 		},
 		{
 			"group": "org.junit.jupiter",
@@ -1982,8 +3284,14 @@
 			"version": "5.7.2",
 			"purl": "pkg:maven/org.junit.jupiter/junit-jupiter-api@5.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter-api@5.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter-api@5.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "5e167a2fc374270965aaa4e1c2efa4951a9d60268da0a80fbf7898dbf9a3a2c8"
+				}
+			]
 		},
 		{
 			"group": "org.junit.jupiter",
@@ -1991,8 +3299,14 @@
 			"version": "5.7.2",
 			"purl": "pkg:maven/org.junit.jupiter/junit-jupiter-engine@5.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter-engine@5.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter-engine@5.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e726eee7cc36a0d5104fe1bd234fd61a8bec6dabca56299f86263a265c07a5c8"
+				}
+			]
 		},
 		{
 			"group": "org.junit.jupiter",
@@ -2000,8 +3314,14 @@
 			"version": "5.7.2",
 			"purl": "pkg:maven/org.junit.jupiter/junit-jupiter-params@5.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter-params@5.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.jupiter/junit-jupiter-params@5.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "7d4732347008f6eef3428078582203423c0be01aad09256d5e5023da0fd76e4d"
+				}
+			]
 		},
 		{
 			"group": "org.junit.platform",
@@ -2009,8 +3329,14 @@
 			"version": "1.7.2",
 			"purl": "pkg:maven/org.junit.platform/junit-platform-engine@1.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.platform/junit-platform-engine@1.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.platform/junit-platform-engine@1.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "efc3f3220e47989db48d427b6fbf1361f7ed1c192937c80d22ee5258f1ec641d"
+				}
+			]
 		},
 		{
 			"group": "org.junit.platform",
@@ -2018,8 +3344,14 @@
 			"version": "1.7.2",
 			"purl": "pkg:maven/org.junit.platform/junit-platform-commons@1.7.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.junit.platform/junit-platform-commons@1.7.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.junit.platform/junit-platform-commons@1.7.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c8bf2c027bb1f8284bec7c821d36df26f579ad3e5d7629fad193953639e2963a"
+				}
+			]
 		},
 		{
 			"group": "org.apiguardian",
@@ -2027,8 +3359,14 @@
 			"version": "1.1.0",
 			"purl": "pkg:maven/org.apiguardian/apiguardian-api@1.1.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.apiguardian/apiguardian-api@1.1.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.apiguardian/apiguardian-api@1.1.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "20449bb8023ab658018bfd91b5943ea198d34fe46b3c905338701092e0f5fc80"
+				}
+			]
 		},
 		{
 			"group": "org.opentest4j",
@@ -2036,8 +3374,14 @@
 			"version": "1.2.0",
 			"purl": "pkg:maven/org.opentest4j/opentest4j@1.2.0",
 			"type": "library",
+			"bom-ref": "pkg:maven/org.opentest4j/opentest4j@1.2.0",
 			"scope": "required",
-			"bom-ref": "pkg:maven/org.opentest4j/opentest4j@1.2.0"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "6d86f077185a962c9500d35a50e32dbaaf5364a1eb9ccf4eea4437ca126f754f"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2045,8 +3389,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-narayana-jta-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-narayana-jta-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-narayana-jta-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "72b740382bc19bb7f991e8ea9113a59ecae0fa9d02267fda13a2695584911a37"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2054,8 +3404,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-arc-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-arc-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-arc-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "2842063ad9da4ec68dca08769c36121695bef39207e79a7feb345ece73c3edc6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2063,8 +3419,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-vertx-http-dev-console-spi@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http-dev-console-spi@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http-dev-console-spi@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4d3a59117e3beb43d5643a6314e9bb482b529ae2b219ee4dfc2be5108d49e09a"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus.arc",
@@ -2072,8 +3434,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus.arc/arc-processor@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus.arc/arc-processor@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus.arc/arc-processor@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "7956865dcd107ed97018c5ccca052f895a5e22ee5bd9459371edda952478cfd6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2081,8 +3449,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-mutiny-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-mutiny-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-mutiny-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "4ef40118bd1d35409f1b44d4d0040532e496fe1ad1313b4bbf32b9bbfa6869a5"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2090,8 +3464,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-smallrye-context-propagation-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-smallrye-context-propagation-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-smallrye-context-propagation-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "fe29c8de492b4aaa727bfe971e6cb38680f1a190cc48e0084f8cea7a11a3f077"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2099,8 +3479,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-agroal-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "30c6f0310e3d205be81858303e26e5f5dfd00a1de0645c57ab234619bfec0126"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2108,8 +3494,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-datasource-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b3c9d72ccd890189e7b2a399628d8f25cc39fa9a1f942d4f9eb050296ae8cf53"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2117,8 +3509,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-datasource-deployment-spi@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource-deployment-spi@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-datasource-deployment-spi@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "9e251f8b44174660c3d6db81d09567b5cdacbd3bd3d86a7a9585472b0311bfb6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2126,8 +3524,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-agroal-spi@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal-spi@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal-spi@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "866519601a62fef570340577923e890475bd9d17defe16d596a0f9beb7f18bc5"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2135,8 +3539,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-credentials-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-credentials-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-credentials-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "c794d1b4f732bda972a20d0afd7f88e2b09772d39986fe66198be0024ff2f4eb"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2144,8 +3554,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-smallrye-health-spi@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-smallrye-health-spi@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-smallrye-health-spi@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "6e06f30a2ddf5c449af7ac341b0637ca5af58b24e7317b54392fbbbe3282f9b3"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2153,8 +3569,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-caffeine-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-caffeine-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-caffeine-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "b5ec996f16d4555f7a84287eb4adaf5b2d191696bc22ac3b9e6bd6aad0de27ba"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2162,8 +3584,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-panache-hibernate-common-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-hibernate-common-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-hibernate-common-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "568067174ce357bf3e0c18d453679663e9d6b73eea3803895032929e6feeddaa"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2171,8 +3599,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-panache-hibernate-common@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-hibernate-common@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-hibernate-common@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "497b0a7aee81a41e671cdb80017165f78d6fa817c6ab690458145178a3214a9c"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2180,8 +3614,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-panache-common@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-common@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-common@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3d0df22ee49ef52d77df941dd97483cbcc16857f2ded6e74e43083f796b0c78c"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -2189,8 +3629,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-panache-common-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-common-deployment@2.0.2.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-panache-common-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "3e045616c2f54d71f25b1facb081024d5b70c02689fffd2bad5c5a7ce050177b"
+				}
+			]
 		}
 	],
 	"dependencies": [

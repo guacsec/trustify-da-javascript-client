@@ -29,8 +29,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-hibernate-orm@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "79056c3042ee5c1bf05766340e4ae54fdde64f08036ec3e7eade6fb1c1d74375"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -38,8 +44,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-agroal@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-agroal@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "373e7e3e0789069ac3b414658fdc8d2e78fa29ed649672443833fd61653e8239"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -47,8 +59,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "e4569c385c1200dfd4144f52f8be1cd3c608d1438425aa596c13268d88a01243"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -56,8 +74,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-resteasy-jackson@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-jackson@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-resteasy-jackson@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dd61825bd9a8c2f962121098870239a0200b2d71fe004b00fb572414b40d422f"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -65,8 +89,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-jdbc-postgresql@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-jdbc-postgresql@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-jdbc-postgresql@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a1af9f5bef767f20b966430723412779f71275106e66c4e80dad67d0874881d6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -74,8 +104,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-kubernetes-service-binding@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-kubernetes-service-binding@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-kubernetes-service-binding@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "33fe80f8a1666b04c4ffa621d46f3b7fbb6af343194db24e81d1ffb9065bb0b6"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -83,8 +119,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-container-image-docker@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-container-image-docker@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-container-image-docker@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "340cc17319511435110f74a594c065fb8e09b4cd054054df810bbe0ff7754e16"
+				}
+			]
 		},
 		{
 			"group": "jakarta.validation",
@@ -92,8 +134,14 @@
 			"version": "2.0.2",
 			"purl": "pkg:maven/jakarta.validation/jakarta.validation-api@2.0.2",
 			"type": "library",
+			"bom-ref": "pkg:maven/jakarta.validation/jakarta.validation-api@2.0.2",
 			"scope": "required",
-			"bom-ref": "pkg:maven/jakarta.validation/jakarta.validation-api@2.0.2"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "a8c2b114508ccd20562239505b9732776d3371aaea137b265a0548f456475d06"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -101,8 +149,14 @@
 			"version": "2.13.5.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-vertx-http@2.13.5.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http@2.13.5.Final",
 			"scope": "required",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-vertx-http@2.13.5.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "25fe6553700806fa0e9b2cda1946670da6b56a2f76b838b304f87014b686a1ac"
+				}
+			]
 		},
 		{
 			"group": "io.quarkus",
@@ -110,8 +164,14 @@
 			"version": "2.0.2.Final",
 			"purl": "pkg:maven/io.quarkus/quarkus-hibernate-orm-deployment@2.0.2.Final",
 			"type": "library",
+			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm-deployment@2.0.2.Final",
 			"scope": "optional",
-			"bom-ref": "pkg:maven/io.quarkus/quarkus-hibernate-orm-deployment@2.0.2.Final"
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "dcdd842c6024cbc027f0e9a5374a84461243343a83c295192e6dc93d10d873d9"
+				}
+			]
 		}
 	],
 	"dependencies": [
