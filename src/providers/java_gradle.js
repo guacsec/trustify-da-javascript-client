@@ -330,12 +330,16 @@ export default class Java_gradle extends Base_java {
 	 */
 	parseGradleHashes(manifest, opts = {}) {
 		const hashMap = new Map()
+		const debug = process.env["TRUSTIFY_DA_DEBUG"] === "true"
 
 		let gradle
 		try {
 			gradle = this.selectToolBinary(manifest, opts)
-		} catch {
+		} catch (error) {
 			console.warn('Gradle could not be invoked to compute artifact hashes, SBOM will be generated without hashes')
+			if (debug) {
+				console.error(`Gradle hash: selectToolBinary failed => ${error.stack || error.message}`)
+			}
 			return hashMap
 		}
 
@@ -349,8 +353,11 @@ export default class Java_gradle extends Base_java {
 					'--init-script', initScriptPath,
 					'daListHashes',
 				], { cwd: path.dirname(manifest) })
-			} catch {
+			} catch (error) {
 				console.warn('Gradle hash init script failed, SBOM will be generated without hashes')
+				if (debug) {
+					console.error(`Gradle hash: init script invocation failed => ${error.stack || error.message}`)
+				}
 				return hashMap
 			}
 
@@ -371,16 +378,25 @@ export default class Java_gradle extends Base_java {
 				try {
 					const digest = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 					hashMap.set(key, [{ alg: 'SHA-256', content: digest }])
-				} catch {
+				} catch (error) {
 					// artifact file missing/unreadable — omit the hash for this component
 					missed++
+					if (debug) {
+						console.error(`Gradle hash: could not read artifact ${file} => ${error.message}`)
+					}
 				}
 			}
 			if (missed > 0) {
 				console.warn(`Gradle hash: ${missed} of ${attempted} resolved artifacts could not be read, SBOM will be generated without hashes for those components`)
 			}
-		} catch {
+		} catch (error) {
+			// Unexpected failure (e.g. a programming error) is degraded to keep SBOM
+			// generation working, but surfaced under debug so it is not mistaken for
+			// ordinary graceful degradation.
 			console.warn('Gradle artifact hashing failed, SBOM will be generated without hashes')
+			if (debug) {
+				console.error(`Gradle hash: unexpected failure => ${error.stack || error.message}`)
+			}
 			return hashMap
 		} finally {
 			try { fs.unlinkSync(initScriptPath) } catch { /* ignore */ }
