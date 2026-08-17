@@ -57,6 +57,17 @@ export default class Sbom {
 	}
 
 	/**
+	 * Attach hashes to existing components by matching their PURL. Post-processing
+	 * step used by ecosystem-specific providers (e.g. Maven) to enrich the SBOM
+	 * with artifact hashes without leaking their concern into the shared parser.
+	 * @param {Map<string, Array<{alg: string, content: string}>>} hashMap - PURL→hashes map
+	 * @return {Sbom}
+	 */
+	attachHashes(hashMap){
+		return this.sbomModel.attachHashes(hashMap)
+	}
+
+	/**
 	 * @return String sbom json in a string format
 	 */
 	getAsJsonString(opts = {}){

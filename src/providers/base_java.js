@@ -57,9 +57,8 @@ export default class Base_Java {
 	 * @param {number} srcDepth - Current depth in the graph for the given source
 	 * @param {Array} lines - Array containing the text files being parsed
 	 * @param {Sbom} sbom - The SBOM where the dependencies are being added
-	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] - Optional PURL→hashes map
 	 */
-	parseDependencyTree(src, srcDepth, lines, sbom, hashMap) {
+	parseDependencyTree(src, srcDepth, lines, sbom) {
 		if (lines.length === 0) {
 			return;
 		}
@@ -77,11 +76,10 @@ export default class Base_Java {
 				let matchedScopeSrc = src.match(/:compile|:provided|:runtime|:test|:system|:import/g)
 				// only add dependency to sbom if it's not with test scope or if it's root
 				if ((matchedScope && matchedScope[0] !== ":test" && (matchedScopeSrc && matchedScopeSrc[0] !== ":test")) || (srcDepth === 0 && matchedScope && matchedScope[0] !== ":test")) {
-					const hashes = hashMap?.get(to.toString())
-					sbom.addDependency(from, to, undefined, hashes)
+					sbom.addDependency(from, to)
 				}
 			} else {
-				this.parseDependencyTree(lines[index - 1], this._getDepth(lines[index - 1]), lines.slice(index), sbom, hashMap)
+				this.parseDependencyTree(lines[index - 1], this._getDepth(lines[index - 1]), lines.slice(index), sbom)
 			}
 			target = lines[++index];
 			targetDepth = this._getDepth(target);

@@ -247,7 +247,10 @@ export default class Java_maven extends Base_java {
 		const license = this.readLicenseFromManifest(manifestPath);
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
-		this.parseDependencyTree(root, 0, lines.slice(1), sbom, hashMap);
+		this.parseDependencyTree(root, 0, lines.slice(1), sbom);
+		// Attach Maven artifact hashes as a post-processing step, keeping this
+		// Maven-specific concern out of the shared dependency-tree parser.
+		sbom.attachHashes(hashMap);
 		return sbom.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts);
 	}
 

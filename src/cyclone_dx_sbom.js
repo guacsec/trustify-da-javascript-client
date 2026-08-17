@@ -164,6 +164,31 @@ export default class CycloneDxSbom {
 		return this;
 	}
 
+	/**
+	 * Attach hashes to already-added components by matching their PURL. This is a
+	 * post-processing step so ecosystem-specific hash sources (e.g. Maven reading
+	 * the local .m2 cache) can enrich the SBOM without threading their concern
+	 * through the shared dependency-tree parser. Components without a matching
+	 * entry, or whose hashes are already set, are left untouched.
+	 * @param {Map<string, Array<{alg: string, content: string}>>} hashMap - PURL→hashes map
+	 * @return {CycloneDxSbom} the updated SBOM
+	 */
+	attachHashes(hashMap) {
+		if (!hashMap || hashMap.size === 0) {
+			return this
+		}
+		for (const component of this.components) {
+			if (component.hashes) {
+				continue
+			}
+			const hashes = hashMap.get(component.purl)
+			if (hashes && hashes.length > 0) {
+				component.hashes = hashes
+			}
+		}
+		return this
+	}
+
 	/** @param {{}} opts - various options, settings and configuration of application.
  	 * @return String CycloneDx Sbom json object in a string format
 	 */
