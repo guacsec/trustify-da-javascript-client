@@ -364,6 +364,57 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 	})
 
 	/**
+	 * Verifies that an incomplete .m2 cache surfaces a summary warning (even
+	 * without TRUSTIFY_DA_DEBUG) reporting how many of the attempted artifacts
+	 * could not be read, so degraded hash coverage is visible rather than silent.
+	 */
+	test('verify _buildMavenHashMap warns with a coverage summary when artifacts are missing', () => {
+		// Given a tree with one cached artifact (log4j) and one absent from the mock repo
+		const warnSpy = spy(console, 'warn')
+		try {
+			const provider = new Java_maven()
+			const depTree = [
+				'com.example:root:pom:1.0.0',
+				'+- log4j:log4j:jar:1.2.17:compile',
+				'\\- com.example:missing-lib:jar:9.9.9:compile'
+			].join('\n')
+
+			// When building the hash map
+			const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
+
+			// Then the cached artifact is still hashed, and exactly one summary
+			// warning reports the single miss out of the two attempted reads
+			expect(hashMap.has('pkg:maven/log4j/log4j@1.2.17')).to.equal(true)
+			expect(hashMap.has('pkg:maven/com.example/missing-lib@9.9.9')).to.equal(false)
+			expect(warnSpy.callCount).to.equal(1)
+			expect(warnSpy.firstCall.args[0]).to.equal(
+				'Maven hash: 1 of 2 artifacts could not be read from the local .m2 cache; SBOM will be generated without hashes for those components.'
+			)
+		} finally {
+			warnSpy.restore()
+		}
+	})
+
+	/** Verifies that no coverage warning is emitted when every attempted artifact is hashed. */
+	test('verify _buildMavenHashMap stays silent when all artifacts are hashed', () => {
+		// Given a tree whose only artifact (log4j) exists in the mock repo
+		const warnSpy = spy(console, 'warn')
+		try {
+			const provider = new Java_maven()
+			const depTree = 'com.example:root:pom:1.0.0\n\\- log4j:log4j:jar:1.2.17:compile'
+
+			// When building the hash map
+			const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
+
+			// Then the artifact is hashed and no coverage warning is emitted
+			expect(hashMap.has('pkg:maven/log4j/log4j@1.2.17')).to.equal(true)
+			expect(warnSpy.called).to.equal(false)
+		} finally {
+			warnSpy.restore()
+		}
+	})
+
+	/**
 	 * Verifies that parenthesized (omitted/duplicate) lines are skipped by the
 	 * guard itself — before any file I/O — even when the referenced artifact IS
 	 * present in the mock .m2 repository. This proves the tree-character-stripping

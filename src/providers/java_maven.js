@@ -175,6 +175,11 @@ export default class Java_maven extends Base_java {
 		const m2Repo = getCustom('TRUSTIFY_DA_MVN_REPO', path.join(os.homedir(), '.m2', 'repository'), opts)
 		const hashMap = new Map()
 		const lines = depTreeText.split(EOL)
+		// Track hash coverage so an incomplete .m2 cache (e.g. ephemeral CI
+		// containers or resolve-only phases) surfaces a summary warning instead
+		// of silently producing an SBOM with missing hashes.
+		let attempted = 0
+		let missed = 0
 
 		for (const rawLine of lines) {
 			const trimmed = rawLine.trim()
@@ -205,15 +210,23 @@ export default class Java_maven extends Base_java {
 				: `${coord.artifactId}-${coord.version}.${ext}`
 			const artifactPath = path.join(m2Repo, groupPath, coord.artifactId, coord.version, fileName)
 
+			attempted++
 			try {
 				const fileContent = fs.readFileSync(artifactPath)
 				const digest = crypto.createHash('sha256').update(fileContent).digest('hex')
 				hashMap.set(purl, [{ alg: 'SHA-256', content: digest }])
 			} catch {
+				missed++
 				if (process.env['TRUSTIFY_DA_DEBUG'] === 'true') {
 					console.error(`Maven hash: artifact not found at ${artifactPath}, omitting hash`)
 				}
 			}
+		}
+		// Mirror the pip provider's convention (python_controller.js): surface an
+		// unconditional warning when hashes could not be computed, so incomplete
+		// hash coverage is visible even without TRUSTIFY_DA_DEBUG.
+		if (missed > 0) {
+			console.warn(`Maven hash: ${missed} of ${attempted} artifacts could not be read from the local .m2 cache; SBOM will be generated without hashes for those components.`)
 		}
 		return hashMap
 	}
