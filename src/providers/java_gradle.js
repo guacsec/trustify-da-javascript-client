@@ -314,16 +314,19 @@ export default class Java_gradle extends Base_java {
 	 * Rather than scanning the local Gradle cache, this asks Gradle itself for
 	 * the resolved artifact files via an init script (mirroring the pattern used
 	 * by {@link discoverGradleSubprojects}), then hashes each file with the
-	 * Node.js `crypto` module. The result is keyed to match the coordinates
-	 * produced by {@link parseDep} so it can be looked up per dependency.
+	 * Node.js `crypto` module. The result is keyed by the canonical PURL string
+	 * built via {@link Base_java#toPurl} — the same builder {@link parseDep} uses
+	 * for the lookup — so the stored key and the lookup key cannot drift.
 	 *
 	 * Degrades gracefully: if Gradle cannot be invoked, the init script fails, or
 	 * an artifact has no readable file (e.g. BOM/`platform()` dependencies), the
-	 * hash for that component is omitted rather than throwing.
+	 * hash for that component is omitted rather than throwing. A warning is emitted
+	 * on every degradation path so incomplete hash coverage is visible even without
+	 * `TRUSTIFY_DA_DEBUG` (mirroring the pip/cargo providers).
 	 *
 	 * @param {string} manifest - path to build.gradle[.kts]
 	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {Map<string, Array<{alg: string, content: string}>>} map of "group:name@version" to CycloneDX hashes
+	 * @returns {Map<string, Array<{alg: string, content: string}>>} map of canonical PURL string to CycloneDX hashes
 	 */
 	parseGradleHashes(manifest, opts = {}) {
 		const hashMap = new Map()
@@ -332,6 +335,7 @@ export default class Java_gradle extends Base_java {
 		try {
 			gradle = this.selectToolBinary(manifest, opts)
 		} catch {
+			console.warn('Gradle could not be invoked to compute artifact hashes, SBOM will be generated without hashes')
 			return hashMap
 		}
 
@@ -346,22 +350,37 @@ export default class Java_gradle extends Base_java {
 					'daListHashes',
 				], { cwd: path.dirname(manifest) })
 			} catch {
+				console.warn('Gradle hash init script failed, SBOM will be generated without hashes')
 				return hashMap
 			}
 
+			let attempted = 0
+			let missed = 0
 			for (const { id, file } of parseGradleHashScriptOutput(output.toString())) {
-				const key = hashKeyFromComponentId(id)
-				if (!key || hashMap.has(key)) {
+				const coord = parseComponentId(id)
+				if (!coord) {
 					continue
 				}
+				// Build the key with the same canonical PURL builder parseDep uses for
+				// the lookup, so the stored key and the #lookupHashes key cannot drift.
+				const key = this.toPurl(coord.group, coord.name, coord.version).toString()
+				if (hashMap.has(key)) {
+					continue
+				}
+				attempted++
 				try {
 					const digest = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 					hashMap.set(key, [{ alg: 'SHA-256', content: digest }])
 				} catch {
 					// artifact file missing/unreadable — omit the hash for this component
+					missed++
 				}
 			}
+			if (missed > 0) {
+				console.warn(`Gradle hash: ${missed} of ${attempted} resolved artifacts could not be read, SBOM will be generated without hashes for those components`)
+			}
 		} catch {
+			console.warn('Gradle artifact hashing failed, SBOM will be generated without hashes')
 			return hashMap
 		} finally {
 			try { fs.unlinkSync(initScriptPath) } catch { /* ignore */ }
@@ -372,8 +391,10 @@ export default class Java_gradle extends Base_java {
 
 	/**
 	 * Look up the CycloneDX hashes for a dependency purl in the hash map.
+	 * Keys off the canonical PURL string so it matches the key stored by
+	 * {@link parseGradleHashes}.
 	 * @param {PackageURL} purl - the dependency package URL
-	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] - map of "group:name@version" to hashes
+	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] - map of canonical PURL string to hashes
 	 * @returns {Array<{alg: string, content: string}>|undefined} the hashes, or undefined when absent
 	 * @private
 	 */
@@ -381,7 +402,7 @@ export default class Java_gradle extends Base_java {
 		if (!hashMap) {
 			return undefined
 		}
-		return hashMap.get(`${purl.namespace}:${purl.name}@${purl.version}`)
+		return hashMap.get(purl.toString())
 	}
 
 	/**
@@ -718,13 +739,14 @@ export function parseGradleHashScriptOutput(raw) {
 }
 
 /**
- * Convert a Gradle module component id (`group:name:version`) into the hash-map
- * key format (`group:name@version`) used to look up hashes per dependency.
+ * Parse a Gradle module component id (`group:name:version`) into its coordinate
+ * parts. The caller builds the canonical PURL key from these parts using the same
+ * builder {@link parseDep} uses, so the stored key and the lookup key cannot drift.
  *
  * @param {string} id - the Gradle component id
- * @returns {string|null} the hash-map key, or null when the id is malformed
+ * @returns {{group: string, name: string, version: string}|null} the parsed coordinate, or null when the id is malformed
  */
-export function hashKeyFromComponentId(id) {
+export function parseComponentId(id) {
 	const parts = id.split(':')
 	if (parts.length < 3) {
 		return null
@@ -733,5 +755,5 @@ export function hashKeyFromComponentId(id) {
 	if (!group || !name || !version) {
 		return null
 	}
-	return `${group}:${name}@${version}`
+	return { group, name, version }
 }

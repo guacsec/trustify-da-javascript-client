@@ -5,7 +5,7 @@ import os from 'os'
 import path from 'path'
 
 import { expect } from 'chai'
-import { useFakeTimers } from "sinon";
+import { spy, useFakeTimers } from "sinon";
 
 import Java_gradle_groovy from '../../src/providers/java_gradle_groovy.js'
 
@@ -219,6 +219,74 @@ suite('testing the java-gradle-groovy data provider', () => {
 			expect(build).to.not.throw()
 			let sbom = JSON.parse(build().content)
 			expect(sbom.components.filter(c => c.hashes)).to.have.lengthOf(0)
+		}).timeout(10000)
+
+		/**
+		 * Key drift (Maven lesson #1): both the stored key and the lookup key are built
+		 * from the canonical PURL, so the map is keyed by `pkg:maven/...` strings and a
+		 * conflict-resolved (`->`) transitive dependency still matches at its resolved version.
+		 */
+		test('verify the hash map is keyed by canonical PURL and conflict-resolved deps still match', () => {
+			// Given a tree containing "jboss-logging:3.4.3.Final -> 3.5.0.Final"
+			let depTree = fs.readFileSync(`${dir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${dir}/gradle.properties`).toString()
+			let provider = new Java_gradle_groovy()
+			mockInvokeCommand(provider, depTree, props)
+
+			// Then the hash map is keyed by canonical PURL strings, keyed at the resolved version
+			let hashMap = provider.parseGradleHashes(`${dir}/build.gradle`)
+			expect([...hashMap.keys()]).to.not.be.empty
+			expect([...hashMap.keys()].every(k => k.startsWith('pkg:maven/'))).to.equal(true)
+			expect(hashMap.has('pkg:maven/org.jboss.logging/jboss-logging@3.5.0.Final')).to.equal(true)
+
+			// And end-to-end, that resolved transitive dependency carries its hash in the stack SBOM
+			let sbom = JSON.parse(provider.provideStack(`${dir}/build.gradle`).content)
+			let comp = sbom.components.find(c => c.name === 'jboss-logging' && c.version === '3.5.0.Final')
+			expect(comp.hashes).to.be.an('array').with.lengthOf(1)
+		}).timeout(10000)
+
+		/** Degradation warning (Maven lesson #2): a summary warning is emitted when some artifacts cannot be read. */
+		test('verify a warning is emitted when some resolved artifacts cannot be read', () => {
+			// Given an init script that points one dependency at a nonexistent file
+			let depTree = fs.readFileSync(`${dir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${dir}/gradle.properties`).toString()
+			let unreadable = 'io.quarkus:quarkus-hibernate-orm:2.13.5.Final'
+			let hashOutput = buildHashScriptOutput(depTree, coord =>
+				(coord === unreadable ? path.join(HASH_FIXTURE_DIR, 'does-not-exist.jar') : artifactFileFor(coord)))
+			let provider = new Java_gradle_groovy()
+			mockInvokeCommand(provider, depTree, props, hashOutput)
+
+			// When building the SBOM, a summary warning is emitted even without TRUSTIFY_DA_DEBUG
+			let warn = spy(console, 'warn')
+			try {
+				provider.provideComponent(`${dir}/build.gradle`, {})
+			} finally {
+				warn.restore()
+			}
+			expect(warn.calledWithMatch(/could not be read/)).to.equal(true)
+		}).timeout(10000)
+
+		/** Degradation warning (Maven lesson #2): a failing hash init script emits a warning rather than degrading silently. */
+		test('verify a warning is emitted when the hash init script fails', () => {
+			// Given a gradle binary that throws when the hash init script is invoked
+			let depTree = fs.readFileSync(`${dir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${dir}/gradle.properties`).toString()
+			let provider = new Java_gradle_groovy()
+			Object.getPrototypeOf(Object.getPrototypeOf(provider))._invokeCommand = function (bin, args) {
+				if (args.includes('daListHashes')) {
+					throw new Error('init script failed')
+				}
+				return getStubbedResponse(args, depTree, props)
+			}
+
+			// When building the SBOM, the silent degradation is surfaced as a warning
+			let warn = spy(console, 'warn')
+			try {
+				provider.provideStack(`${dir}/build.gradle`)
+			} finally {
+				warn.restore()
+			}
+			expect(warn.calledWithMatch(/without hashes/)).to.equal(true)
 		}).timeout(10000)
 	});
 
