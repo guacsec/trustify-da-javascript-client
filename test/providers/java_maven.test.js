@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { expect } from 'chai'
 import esmock from 'esmock';
-import { useFakeTimers } from "sinon";
+import { spy, useFakeTimers } from "sinon";
 import which from 'which';
 
 import Java_maven from '../../src/providers/java_maven.js'
@@ -327,6 +327,40 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 
 		// Then the hash map is empty — malformed lines are skipped
 		expect(hashMap.size).to.equal(0)
+	})
+
+	/**
+	 * Verifies that an artifact recurring across dependency-tree branches (as in a
+	 * multi-module reactor build) is read and hashed only once — the dedup guard
+	 * skips the redundant file read + SHA-256 computation for the already-hashed PURL.
+	 */
+	test('verify _buildMavenHashMap reads each artifact once despite repeated tree lines', () => {
+		// Given the same resolved artifact listed on three separate tree branches
+		const readSpy = spy(fs, 'readFileSync')
+		try {
+			const provider = new Java_maven()
+			const depTree = [
+				'com.example:root:jar:1.0.0',
+				'+- com.example:module-a:jar:1.0.0:compile',
+				'|  \\- log4j:log4j:jar:1.2.17:compile',
+				'+- com.example:module-b:jar:1.0.0:compile',
+				'|  \\- log4j:log4j:jar:1.2.17:compile',
+				'\\- com.example:module-c:jar:1.0.0:compile',
+				'   \\- log4j:log4j:jar:1.2.17:compile'
+			].join('\n')
+			const log4jJar = path.join(tmpM2Repo, 'log4j', 'log4j', '1.2.17', 'log4j-1.2.17.jar')
+
+			// When building the hash map
+			const hashMap = provider._buildMavenHashMap(depTree, { 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo })
+
+			// Then the log4j jar is read exactly once even though it appears three times,
+			// and its hash is still present with the correct digest
+			const log4jReads = readSpy.getCalls().filter(c => c.args[0] === log4jJar)
+			expect(log4jReads.length).to.equal(1)
+			expect(hashMap.get('pkg:maven/log4j/log4j@1.2.17')).to.deep.equal([{ alg: 'SHA-256', content: expectedDigest }])
+		} finally {
+			readSpy.restore()
+		}
 	})
 
 	/**

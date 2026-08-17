@@ -189,6 +189,15 @@ export default class Java_maven extends Base_java {
 			if (!coord.groupId || !coord.artifactId || !coord.packaging) { continue }
 			if (coord.packaging === 'pom') { continue }
 
+			// Key by the exact PURL parseDep() produces, so the lookup in
+			// parseDependencyTree (hashMap.get(to.toString())) always hits.
+			const purl = this._coordinateToPurl(coord).toString()
+			// The same artifact recurs across dependency-tree branches — notably in
+			// multi-module reactor builds, where every module re-lists shared deps.
+			// The digest is deterministic per PURL, so skip the redundant file read
+			// and SHA-256 computation once this PURL is already hashed.
+			if (hashMap.has(purl)) { continue }
+
 			const ext = Java_maven.PACKAGING_TO_JAR[coord.packaging] || coord.packaging
 			const groupPath = coord.groupId.replaceAll('.', path.sep)
 			const fileName = coord.classifier
@@ -199,9 +208,6 @@ export default class Java_maven extends Base_java {
 			try {
 				const fileContent = fs.readFileSync(artifactPath)
 				const digest = crypto.createHash('sha256').update(fileContent).digest('hex')
-				// Key by the exact PURL parseDep() produces, so the lookup in
-				// parseDependencyTree (hashMap.get(to.toString())) always hits.
-				const purl = this._coordinateToPurl(coord).toString()
 				hashMap.set(purl, [{ alg: 'SHA-256', content: digest }])
 			} catch {
 				if (process.env['TRUSTIFY_DA_DEBUG'] === 'true') {
