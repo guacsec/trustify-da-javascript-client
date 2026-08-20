@@ -20,7 +20,13 @@
             "version": "v1.9.1",
             "purl": "pkg:golang/github.com/gin-gonic/gin@v1.9.1",
             "type": "library",
-            "bom-ref": "pkg:golang/github.com/gin-gonic/gin@v1.9.1"
+            "bom-ref": "pkg:golang/github.com/gin-gonic/gin@v1.9.1",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "e227440277109d4e5c07b05e3a43edc637c24b27b40009b547445522a27e2668"
+                }
+            ]
         },
         {
             "group": "github.com/google",
@@ -28,7 +34,13 @@
             "version": "v1.1.2",
             "purl": "pkg:golang/github.com/google/uuid@v1.1.2",
             "type": "library",
-            "bom-ref": "pkg:golang/github.com/google/uuid@v1.1.2"
+            "bom-ref": "pkg:golang/github.com/google/uuid@v1.1.2",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "11585d4fed4ab1eca2d7fa5499729a17162c0cdcbd450624316447ebc27f5bb6"
+                }
+            ]
         },
         {
             "group": "github.com/jessevdk",
@@ -36,7 +48,13 @@
             "version": "v1.5.0",
             "purl": "pkg:golang/github.com/jessevdk/go-flags@v1.5.0",
             "type": "library",
-            "bom-ref": "pkg:golang/github.com/jessevdk/go-flags@v1.5.0"
+            "bom-ref": "pkg:golang/github.com/jessevdk/go-flags@v1.5.0",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "d63298bdbc448df525d1f9aa4c239fa27bec9071d73230724932d6e32f4b16f7"
+                }
+            ]
         },
         {
             "group": "github.com/kr",
@@ -44,7 +62,13 @@
             "version": "v0.3.1",
             "purl": "pkg:golang/github.com/kr/pretty@v0.3.1",
             "type": "library",
-            "bom-ref": "pkg:golang/github.com/kr/pretty@v0.3.1"
+            "bom-ref": "pkg:golang/github.com/kr/pretty@v0.3.1",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "7e5443e0d3706005299298557351dcb6147828420527ae67f0cc39a9d467dcb1"
+                }
+            ]
         },
         {
             "group": "gopkg.in",
@@ -52,7 +76,13 @@
             "version": "v2.4.0",
             "purl": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
             "type": "library",
-            "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0"
+            "bom-ref": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "0fcc60c04098ec262fc7e6369f8b01cfddc99fd251bf1762cb2a3c0937ee29a6"
+                }
+            ]
         },
         {
             "group": "k8s.io",
@@ -60,7 +90,13 @@
             "version": "v0.26.1",
             "purl": "pkg:golang/k8s.io/apimachinery@v0.26.1",
             "type": "library",
-            "bom-ref": "pkg:golang/k8s.io/apimachinery@v0.26.1"
+            "bom-ref": "pkg:golang/k8s.io/apimachinery@v0.26.1",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "f0467f78624bfa163f31808dc21983cd5aaada53e5dcddc1a3caefc1e2705d44"
+                }
+            ]
         },
         {
             "group": "k8s.io",
@@ -68,7 +104,13 @@
             "version": "v0.26.1",
             "purl": "pkg:golang/k8s.io/client-go@v0.26.1",
             "type": "library",
-            "bom-ref": "pkg:golang/k8s.io/client-go@v0.26.1"
+            "bom-ref": "pkg:golang/k8s.io/client-go@v0.26.1",
+            "hashes": [
+                {
+                    "alg": "SHA-256",
+                    "content": "f3b097cd826700c19a6bf2030df45d853cf193fc33199fbf1d4429aa05526575"
+                }
+            ]
         }
     ],
     "dependencies": [

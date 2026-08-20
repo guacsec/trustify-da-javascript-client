@@ -7,6 +7,7 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { getProjectLicense, getLicenseDetails } from './license/index.js'
+import { runRemediation } from './remediate.js'
 
 import client, { selectTrustifyDABackend, generateSbom } from './index.js'
 
@@ -467,9 +468,57 @@ const sbom = {
 	}
 }
 
+const remediate = {
+	command: 'remediate <path>',
+	desc: 'Scan and apply vulnerability remediations to manifest files',
+	builder: yargs => yargs.positional(
+		'path',
+		{
+			desc: 'Path to manifest file or directory',
+			type: 'string',
+			normalize: true,
+		}
+	).options({
+		'dry-run': {
+			alias: 'd',
+			type: 'boolean',
+			desc: 'Preview changes without modifying files',
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
+		},
+		'group-by': {
+			type: 'string',
+			choices: ['dependency', 'bundle'],
+			default: 'dependency',
+			desc: 'Report grouping strategy',
+		},
+	}),
+	handler: async args => {
+		try {
+			const result = await runRemediation(args.path, {
+				dryRun: args['dry-run'],
+				providers: args.providers,
+				sources: args.sources,
+				groupBy: args['group-by'],
+			})
+			console.log(result.output)
+			process.exit(result.exitCode)
+		} catch (err) {
+			console.error(err.message)
+			process.exit(1)
+		}
+	}
+}
+
 // parse and invoke the command
 yargs(hideBin(process.argv))
-	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|stack-batch|image|validate-token|license|sbom}`)
+	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|stack-batch|image|validate-token|license|sbom|remediate}`)
 	.command(stack)
 	.command(stackBatch)
 	.command(component)
@@ -477,6 +526,7 @@ yargs(hideBin(process.argv))
 	.command(validateToken)
 	.command(license)
 	.command(sbom)
+	.command(remediate)
 	.scriptName('')
 	.version(false)
 	.demandCommand(1)

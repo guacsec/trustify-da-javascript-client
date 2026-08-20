@@ -73,6 +73,15 @@ test/
 - **Async errors**: Bubble up naturally via async/await (no blanket try-catch)
 - **Validation errors**: Thrown early with descriptive context (manifest type, lock file)
 
+## CLI Commands
+
+New yargs commands in `src/cli.js` must follow the patterns established by the existing commands (`component`, `stack`, `stack-batch`, `image`, `validate-token`, `license`, `sbom`). Read those commands before adding a new one.
+
+Two things that are not obvious from reading siblings:
+
+- **Mutually exclusive flags**: use yargs `conflicts` (e.g., `conflicts: 'summary'`). Do not set `default: false` on conflicting boolean options — yargs treats defaulted booleans as "present" and fires the conflict on every invocation.
+- **Provider/source option wording**: include the env var reference in the description: `'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)'`. This ensures `--help` output tells users about the env var alternative.
+
 ## Testing Conventions
 
 - **Framework**: Mocha with TDD UI (`suite()` / `test()`)

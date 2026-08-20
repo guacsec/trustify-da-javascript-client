@@ -178,8 +178,11 @@ export default class Python_controller {
 			startingTime = new Date()
 			console.log("Starting time to get requirements.txt dependency tree = " + startingTime)
 		}
+		let installBestEfforts = getCustom("TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS","false",this.options);
+		if(installBestEfforts === "true" && this.realEnvironment) {
+			throw new Error("Conflicting settings, TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS=true requires TRUSTIFY_DA_PYTHON_VIRTUAL_ENV=true")
+		}
 		if(!this.realEnvironment) {
-			let installBestEfforts = getCustom("TRUSTIFY_DA_PYTHON_INSTALL_BEST_EFFORTS","false",this.options);
 			if(installBestEfforts === "false") {
 				try {
 					invokeCommand(this.pathToPipBin, ['install', '-r', this.pathToRequirements])

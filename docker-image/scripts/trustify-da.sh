@@ -82,7 +82,8 @@ printf "  Total Direct       :  %s \n" "$(jq -r '.scanned.direct' <<< $report)"
 printf "  Total Transitive   :  %s \n" "$(jq -r '.scanned.transitive' <<< $report)"
 
 providers=$(jq -rc '.providers | keys[] | select(. != "trusted-content")' <<< "$report")
-for provider in $providers; do
+while IFS= read -r provider; do
+  [ -z "$provider" ] && continue
   printf "\nProvider: %s\n" "${provider^}"
 
   provider_status=$(jq -r --arg provider "$provider" '.providers[$provider].status' <<< $report)
@@ -93,7 +94,7 @@ for provider in $providers; do
   code=$(echo $provider_status | jq -r '.code')
   if [ "$code" -eq 200 ]; then
     sources=$(jq -r --arg provider "$provider" '.providers[$provider].sources | keys[]' <<< "$report")
-    for source in $sources; do
+    while IFS= read -r source; do
       printf "  Source: %s\n" "${source^}"
       printf "    Vulnerabilities\n"
       printf "      Total          :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.total' <<< $report)"
@@ -103,9 +104,51 @@ for provider in $providers; do
       printf "      High           :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.high' <<< $report)"
       printf "      Medium         :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.medium' <<< $report)"
       printf "      Low            :  %s \n" "$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.low' <<< $report)"
-    done
+      remediations_count=$(jq -r --arg provider "$provider" --arg source "$source" '.providers[$provider].sources[$source].summary.remediations // 0' <<< $report)
+      printf "    Remediations     :  %s \n" "$remediations_count"
+      if [ "$remediations_count" -gt 0 ] 2>/dev/null; then
+        jq -r --arg provider "$provider" --arg source "$source" '
+          [.providers[$provider].sources[$source].dependencies[] |
+            . as $dep |
+            [(.issues // [])[] | select(.remediation != null) |
+              if .remediation.trustedContent.ref != null then
+                {ref: $dep.ref, target: .remediation.trustedContent.ref, type: "trustedContent", cves: ((.cves // [.id]) | join(", "))}
+              elif .remediation.fixedIn != null then
+                {ref: $dep.ref, target: (.remediation.fixedIn | join(", ")), type: "fixedIn", cves: ((.cves // [.id]) | join(", "))}
+              else
+                empty
+              end
+            ] + [(.transitive // [])[] | . as $t |
+              (.issues // [])[] | select(.remediation != null) |
+              if .remediation.trustedContent.ref != null then
+                {ref: $t.ref, target: .remediation.trustedContent.ref, type: "trustedContent", cves: ((.cves // [.id]) | join(", "))}
+              elif .remediation.fixedIn != null then
+                {ref: $t.ref, target: (.remediation.fixedIn | join(", ")), type: "fixedIn", cves: ((.cves // [.id]) | join(", "))}
+              else
+                empty
+              end
+            ]
+          ] | flatten | unique_by({ref, target}) |
+          sort_by(if .type == "trustedContent" then 0 else 1 end) | .[] |
+          "      \(.ref)\n        → \(.target)\n        CVEs: \(.cves)"
+        ' <<< "$report"
+      fi
+    done <<< "$sources"
+
+    rec_sources=$(jq -r --arg provider "$provider" '.providers[$provider].recommendations // {} | keys[]' <<< "$report" 2>/dev/null)
+    while IFS= read -r rec_source; do
+      [ -z "$rec_source" ] && continue
+      rec_total=$(jq -r --arg provider "$provider" --arg rs "$rec_source" '.providers[$provider].recommendations[$rs].summary.total // 0' <<< "$report")
+      printf "  Recommendations (%s): %s\n" "$rec_source" "$rec_total"
+      if [ "$rec_total" -gt 0 ] 2>/dev/null; then
+        jq -r --arg provider "$provider" --arg rs "$rec_source" '
+          .providers[$provider].recommendations[$rs].dependencies[]? |
+          "    \(.ref)\n      → \(.recommendation)"
+        ' <<< "$report"
+      fi
+    done <<< "$rec_sources"
   fi
-done
+done <<< "$providers"
 printf "=%.0s" {1..50}
 
   # Save report along with exit code into output file.
