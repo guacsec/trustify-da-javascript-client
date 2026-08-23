@@ -102,7 +102,7 @@ suite('testing the java-maven data provider', async () => {
 			expectedSbom = JSON.stringify(JSON.parse(expectedSbom),null, 4)
 			let javaMvnProvider = await createMockProvider(`test/providers/tst_manifests/maven/${testCase}`);
 			// invoke sut stack analysis for scenario manifest
-			let providedDataForStack =  javaMvnProvider.provideStack(`test/providers/tst_manifests/maven/${testCase}/pom.xml`)
+			let providedDataForStack = await javaMvnProvider.provideStack(`test/providers/tst_manifests/maven/${testCase}/pom.xml`)
 			// verify returned data matches expectation
 			let beautifiedOutput = JSON.stringify(JSON.parse(providedDataForStack.content),null, 4);
 			expect(beautifiedOutput).to.deep.equal(expectedSbom)
