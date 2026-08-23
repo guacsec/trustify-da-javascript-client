@@ -44,12 +44,12 @@ export default class Java_maven extends Base_java {
 	 * Provide content and content type for maven-maven stack analysis.
 	 * @param {string} manifest - the manifest path or name
 	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {Provided}
+	 * @returns {Promise<Provided>}
 	 */
-	provideStack(manifest, opts = {}) {
+	async provideStack(manifest, opts = {}) {
 		return {
 			ecosystem: ecosystem_maven,
-			content: this.#createSbomStackAnalysis(manifest, opts),
+			content: await this.#createSbomStackAnalysis(manifest, opts),
 			contentType: 'application/vnd.cyclonedx+json'
 		}
 	}
@@ -96,10 +96,10 @@ export default class Java_maven extends Base_java {
 	 * Create a Dot Graph dependency tree for a manifest path.
 	 * @param {string} manifest - path for pom.xml
 	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {string} the Dot Graph content
+	 * @returns {Promise<string>} the Dot Graph content
 	 * @private
 	 */
-	#createSbomStackAnalysis(manifest, opts = {}) {
+	async #createSbomStackAnalysis(manifest, opts = {}) {
 		const manifestDir = path.dirname(manifest)
 		const mvn = this.selectToolBinary(manifest, opts)
 		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
@@ -147,7 +147,7 @@ export default class Java_maven extends Base_java {
 			console.error("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content.toString())
 		}
 		const depTreeContent = content.toString()
-		const hashMap = this._buildMavenHashMap(depTreeContent, opts)
+		const hashMap = await this._buildMavenHashMap(depTreeContent, opts)
 		let sbom = this.createSbomFileFromTextFormat(depTreeContent, ignoredDeps, opts, manifest, hashMap);
 		// delete temp file and directory
 		fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -169,9 +169,9 @@ export default class Java_maven extends Base_java {
 	 *
 	 * @param {string} depTreeText Raw dependency tree text from mvn dependency:tree
 	 * @param {{}} [opts={}] Options bag (may contain TRUSTIFY_DA_MVN_REPO)
-	 * @returns {Map<string, Array<{alg: string, content: string}>>}
+	 * @returns {Promise<Map<string, Array<{alg: string, content: string}>>>}
 	 */
-	_buildMavenHashMap(depTreeText, opts = {}) {
+	async _buildMavenHashMap(depTreeText, opts = {}) {
 		const m2Repo = getCustom('TRUSTIFY_DA_MVN_REPO', path.join(os.homedir(), '.m2', 'repository'), opts)
 		const hashMap = new Map()
 		const lines = depTreeText.split(EOL)
@@ -212,8 +212,12 @@ export default class Java_maven extends Base_java {
 
 			attempted++
 			try {
-				const fileContent = fs.readFileSync(artifactPath)
-				const digest = crypto.createHash('sha256').update(fileContent).digest('hex')
+				const stream = fs.createReadStream(artifactPath)
+				const hash = crypto.createHash('sha256')
+				for await (const chunk of stream) {
+					hash.update(chunk)
+				}
+				const digest = hash.digest('hex')
 				hashMap.set(purl, [{ alg: 'SHA-256', content: digest }])
 			} catch {
 				missed++
