@@ -18,7 +18,13 @@
 			"version": "7.0.0",
 			"purl": "pkg:npm/is-number@7.0.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/is-number@7.0.0"
+			"bom-ref": "pkg:npm/is-number@7.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "e350a27e483a7bc4f2952a5db53a5e2d532abd20445734edb47bc4443ef8d7ea6767c00dbf4d34e0c44be3740a3c394af5c1af369e8d6566540656c65d8c719e"
+				}
+			]
 		}
 	],
 	"dependencies": [

@@ -91,8 +91,9 @@ export default class Yarn_berry_processor extends Yarn_processor {
    * Adds dependencies to the SBOM
    * @param {Sbom} sbom - The SBOM object to add dependencies to
    * @param {Object} depTree - The dependency tree object
+   * @param {function(PackageURL): (Array<{alg: string, content: string}>|undefined)} [hashesForPurl] - Resolves lock-file hashes for a purl
    */
-	addDependenciesToSbom(sbom, depTree) {
+	addDependenciesToSbom(sbom, depTree, hashesForPurl = () => undefined) {
 		if (!depTree) {
 			return;
 		}
@@ -149,7 +150,7 @@ export default class Yarn_berry_processor extends Yarn_processor {
 				if (!reachable.has(d.locator)) {return;}
 				const to = this.#purlFromLocator(d.locator);
 				if(to) {
-					sbom.addDependency(from, to);
+					sbom.addDependency(from, to, undefined, hashesForPurl(to));
 				}
 			});
 		})

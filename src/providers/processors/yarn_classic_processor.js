@@ -62,8 +62,9 @@ export default class Yarn_classic_processor extends Yarn_processor {
    * Adds dependencies to the SBOM
    * @param {Sbom} sbom - The SBOM object to add dependencies to
    * @param {Object} depTree - The dependency tree object
+   * @param {function(PackageURL): (Array<{alg: string, content: string}>|undefined)} [hashesForPurl] - Resolves lock-file hashes for a purl
    */
-	addDependenciesToSbom(sbom, depTree) {
+	addDependenciesToSbom(sbom, depTree, hashesForPurl = () => undefined) {
 		if (!depTree?.data?.trees) {
 			return;
 		}
@@ -74,13 +75,13 @@ export default class Yarn_classic_processor extends Yarn_processor {
 		depTree.data.trees.forEach(n => {
 			const dep = new NodeMetaData(n);
 			if(this._manifest.dependencies.includes(dep.name)) {
-				sbom.addDependency(rootPurl, dep.purl);
+				sbom.addDependency(rootPurl, dep.purl, undefined, hashesForPurl(dep.purl));
 			}
 			purls.set(dep.name, dep.purl);
 		});
 
 		depTree.data.trees.forEach(n => {
-			this.#addChildrenToSbom(sbom, n, purls);
+			this.#addChildrenToSbom(sbom, n, purls, hashesForPurl);
 		});
 	}
 
@@ -89,9 +90,10 @@ export default class Yarn_classic_processor extends Yarn_processor {
    * @param {Sbom} sbom - The SBOM object to add dependencies to
    * @param {Object} node - The current dependency node
    * @param {Map<string, PackageURL>} purls - Map of dependency names to their PackageURL objects
+   * @param {function(PackageURL): (Array<{alg: string, content: string}>|undefined)} hashesForPurl - Resolves lock-file hashes for a purl
    * @private
    */
-	#addChildrenToSbom(sbom, node, purls) {
+	#addChildrenToSbom(sbom, node, purls, hashesForPurl) {
 		const dep = new NodeMetaData(node);
 		const children = node.children ? node.children : [];
 		children.forEach(c => {
@@ -99,9 +101,9 @@ export default class Yarn_classic_processor extends Yarn_processor {
 			const from = dep.shadow ? purls.get(dep.name) : dep.purl;
 			const to = child.shadow ? purls.get(child.name) : child.purl;
 			if(from && to) {
-				sbom.addDependency(from, to);
+				sbom.addDependency(from, to, undefined, hashesForPurl(to));
 			}
-			this.#addChildrenToSbom(sbom, c, purls);
+			this.#addChildrenToSbom(sbom, c, purls, hashesForPurl);
 		});
 	}
 }

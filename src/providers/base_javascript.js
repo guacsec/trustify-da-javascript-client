@@ -19,6 +19,51 @@ import Manifest from './manifest.js';
 export const purlType = 'npm';
 
 /**
+ * Maps a Subresource Integrity (SRI) algorithm token to its CycloneDX label.
+ * @type {Object<string, string>}
+ */
+const SRI_ALG_LABELS = {
+	sha1: 'SHA-1',
+	sha256: 'SHA-256',
+	sha384: 'SHA-384',
+	sha512: 'SHA-512',
+};
+
+/**
+ * Converts a Subresource Integrity (SRI) string to a CycloneDX hash object.
+ * SRI is formatted as `<alg>-<base64>` (e.g. `sha512-Ab3d...`). CycloneDX
+ * expects an uppercased algorithm label (e.g. `SHA-512`) and a hex-encoded
+ * digest. When the SRI string contains multiple space-separated hashes, only
+ * the first is used.
+ * @param {string} integrity - SRI string from a lock file
+ * @returns {{alg: string, content: string}|null} CycloneDX hash, or null when unparseable
+ */
+export function sriToHash(integrity) {
+	if (typeof integrity !== 'string') {
+		return null;
+	}
+	const first = integrity.trim().split(/\s+/)[0];
+	if (!first) {
+		return null;
+	}
+	const dash = first.indexOf('-');
+	if (dash < 0) {
+		return null;
+	}
+	const alg = SRI_ALG_LABELS[first.slice(0, dash).toLowerCase()];
+	// Strip any SRI options (e.g. "?foo") that may follow the base64 payload
+	const base64 = first.slice(dash + 1).split('?')[0];
+	if (!alg || !base64) {
+		return null;
+	}
+	const content = Buffer.from(base64, 'base64').toString('hex');
+	if (!content) {
+		return null;
+	}
+	return { alg, content };
+}
+
+/**
  * Base class for JavaScript package manager providers.
  * This class provides common functionality for different JavaScript package managers
  * (npm, pnpm, yarn) to generate SBOMs and handle package dependencies.
@@ -31,6 +76,11 @@ export default class Base_javascript {
 	#cmd;
 	/** @type {string} */
 	#ecosystem;
+	/**
+	 * Lock-file hashes keyed by `name@version`.
+	 * @type {Map<string, Array<{alg: string, content: string}>>}
+	 */
+	#hashes = new Map();
 
 	/**
    * Sets up the provider with the manifest path and options
@@ -108,6 +158,61 @@ export default class Base_javascript {
    */
 	_updateLockFileCmdArgs() {
 		throw new TypeError("_updateLockFileCmdArgs must be implemented");
+	}
+
+	/**
+	 * Parses the provider's lock file into a hash map keyed by `name@version`.
+	 * Subclasses override this (accepting the lock directory) to support their
+	 * lock file format. The default implementation returns an empty map so
+	 * providers without lock parsing (or without a lock file present) gracefully
+	 * omit hashes.
+	 * @returns {Map<string, Array<{alg: string, content: string}>>} Hash map
+	 * @protected
+	 */
+	_parseLockFileHashes() {
+		return new Map();
+	}
+
+	/**
+	 * Loads lock-file hashes for the given directory into internal state.
+	 * Parsing failures degrade gracefully to an empty map (no hashes emitted).
+	 * @param {string} lockDir - Directory containing the lock file
+	 * @protected
+	 */
+	_loadHashes(lockDir) {
+		try {
+			this.#hashes = this._parseLockFileHashes(lockDir) || new Map();
+		} catch (_) {
+			this.#hashes = new Map();
+		}
+	}
+
+	/**
+	 * Looks up CycloneDX hashes for a package by name and resolved version.
+	 * @param {string} name - The package name (including scope, e.g. `@hapi/joi`)
+	 * @param {string} version - The resolved package version
+	 * @returns {Array<{alg: string, content: string}>|undefined} Hashes, or undefined
+	 * @protected
+	 */
+	_hashesFor(name, version) {
+		if (!name || !version) {
+			return undefined;
+		}
+		return this.#hashes.get(`${name}@${version}`);
+	}
+
+	/**
+	 * Looks up CycloneDX hashes for a package described by a PackageURL.
+	 * @param {PackageURL} purl - The package URL
+	 * @returns {Array<{alg: string, content: string}>|undefined} Hashes, or undefined
+	 * @protected
+	 */
+	_hashesForPurl(purl) {
+		if (!purl) {
+			return undefined;
+		}
+		const name = purl.namespace ? `${purl.namespace}/${purl.name}` : purl.name;
+		return this._hashesFor(name, purl.version);
 	}
 
 	/**
@@ -250,6 +355,7 @@ export default class Base_javascript {
 		const manifestDir = path.dirname(this.#manifest.manifestPath);
 		const cmdDir = this._findLockFileDir(manifestDir, opts) || manifestDir;
 		this._createLockFile(cmdDir);
+		this._loadHashes(cmdDir);
 
 		let output = this.#executeListCmd(includeTransitive, cmdDir);
 		output = this._parseDepTreeOutput(output);
@@ -317,7 +423,7 @@ export default class Base_javascript {
 				const [name, artifact] = entry;
 				const target = toPurl(purlType, name, artifact.version);
 				const rootPurl = toPurl(purlType, this.#manifest.name, this.#manifest.version);
-				sbom.addDependency(rootPurl, target);
+				sbom.addDependency(rootPurl, target, undefined, this._hashesFor(name, artifact.version));
 				this.#addDependenciesOf(sbom, target, artifact);
 			});
 	}
@@ -336,7 +442,7 @@ export default class Base_javascript {
 				const [name, depArtifact] = entry;
 				if(depArtifact.version !== undefined) {
 					const target = toPurl(purlType, name, depArtifact.version);
-					sbom.addDependency(from, target);
+					sbom.addDependency(from, target, undefined, this._hashesFor(name, depArtifact.version));
 					this.#addDependenciesOf(sbom, target, depArtifact);
 				}
 			});
@@ -363,7 +469,8 @@ export default class Base_javascript {
 			.sort();
 		for (const key of sortedDepsKeys) {
 			const rootPurl = toPurlFromString(sbom.getRoot().purl);
-			sbom.addDependency(rootPurl, rootDeps.get(key));
+			const targetPurl = rootDeps.get(key);
+			sbom.addDependency(rootPurl, targetPurl, undefined, this._hashesForPurl(targetPurl));
 		}
 		this.#ensurePeerAndOptionalDeps(sbom);
 		sbom.filterIgnoredDeps(this.#manifest.ignored);

@@ -1,9 +1,49 @@
-import Base_javascript from './base_javascript.js';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import Base_javascript, { sriToHash } from './base_javascript.js';
 
 export default class Javascript_npm extends Base_javascript {
 
 	_lockFileName() {
 		return "package-lock.json";
+	}
+
+	/**
+	 * Parses `package-lock.json` (lockfileVersion 2/3) into a hash map keyed by
+	 * `name@version`. Each `packages` entry is keyed by its install path
+	 * (e.g. `node_modules/@hapi/joi`); the package name is the segment after the
+	 * final `node_modules/`. The `integrity` field holds an SRI string.
+	 * @param {string} lockDir - Directory containing package-lock.json
+	 * @returns {Map<string, Array<{alg: string, content: string}>>} Hash map
+	 * @protected
+	 */
+	_parseLockFileHashes(lockDir) {
+		const map = new Map();
+		const lockPath = path.join(lockDir, this._lockFileName());
+		if (!fs.existsSync(lockPath)) {
+			return map;
+		}
+		let lock;
+		try {
+			lock = JSON.parse(fs.readFileSync(lockPath, 'utf-8'));
+		} catch (_) {
+			return map;
+		}
+		const packages = lock.packages || {};
+		for (const [pkgPath, entry] of Object.entries(packages)) {
+			if (!pkgPath || !entry || !entry.integrity || !entry.version) {
+				continue;
+			}
+			const marker = 'node_modules/';
+			const idx = pkgPath.lastIndexOf(marker);
+			const name = idx < 0 ? pkgPath : pkgPath.slice(idx + marker.length);
+			const hash = sriToHash(entry.integrity);
+			if (name && hash) {
+				map.set(`${name}@${entry.version}`, [hash]);
+			}
+		}
+		return map;
 	}
 
 	_cmdName() {

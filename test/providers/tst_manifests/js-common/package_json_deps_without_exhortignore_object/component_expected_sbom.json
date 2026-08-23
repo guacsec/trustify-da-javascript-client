@@ -19,77 +19,143 @@
 			"version": "17.1.1",
 			"purl": "pkg:npm/%40hapi/joi@17.1.1",
 			"type": "library",
-			"bom-ref": "pkg:npm/%40hapi/joi@17.1.1"
+			"bom-ref": "pkg:npm/%40hapi/joi@17.1.1",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "a780ca7990287995b8837bbb65e468faf083b920e04afb6c07f3697e35c41d352349e20d022fd1ad53968954358ac6a82f332f14485ef27e74eb9990ab501d42"
+				}
+			]
 		},
 		{
 			"name": "axios",
 			"version": "0.19.2",
 			"purl": "pkg:npm/axios@0.19.2",
 			"type": "library",
-			"bom-ref": "pkg:npm/axios@0.19.2"
+			"bom-ref": "pkg:npm/axios@0.19.2",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "7e3826e4cbd11cb871fa8b04db1a1e918ef40210119376ba86437edc8a358dcd348edaae1afc5894a96c1548665044f4579b5ee8271923b95cbf6626eb59a31c"
+				}
+			]
 		},
 		{
 			"name": "backend",
 			"version": "0.0.0",
 			"purl": "pkg:npm/backend@0.0.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/backend@0.0.0"
+			"bom-ref": "pkg:npm/backend@0.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "16ad9a1b9fb39a6b0abf60e19b78a3014e6ca6728e6f995d2659e70bf56193a9fc227eb36aaf5e08f04c462cf68fde0ffebf384046819adc21f6d8da0cf890aa"
+				}
+			]
 		},
 		{
 			"name": "bcryptjs",
 			"version": "2.4.3",
 			"purl": "pkg:npm/bcryptjs@2.4.3",
 			"type": "library",
-			"bom-ref": "pkg:npm/bcryptjs@2.4.3"
+			"bom-ref": "pkg:npm/bcryptjs@2.4.3",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "57f1f2fd7f55b7b7f705b3c9122f0175514c0721e2fa3357ad8916de1b9ac9b57f910d0a260d18e8f90431b9fecde4fe8be4a2299fc732a246208b782d90ea35"
+				}
+			]
 		},
 		{
 			"name": "dotenv",
 			"version": "8.6.0",
 			"purl": "pkg:npm/dotenv@8.6.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/dotenv@8.6.0"
+			"bom-ref": "pkg:npm/dotenv@8.6.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "22b3dd5d0b24d816f3bc204604e4e69921f94a8766a9936de04440643996e024feb4bf15b6f8a7ab2c2e00d685bb86ce316922d7a9ea7f47b8a02d1021a0ebfe"
+				}
+			]
 		},
 		{
 			"name": "express",
 			"version": "4.18.2",
 			"purl": "pkg:npm/express@4.18.2",
 			"type": "library",
-			"bom-ref": "pkg:npm/express@4.18.2"
+			"bom-ref": "pkg:npm/express@4.18.2",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "e7f3ec2fa8863dd7d0fe528cd54ba27a5620bf7054a097f3d5a53053dbc767e27b832bf07505c510120421ac5e19fd0621cade013372044c6d6a58ac0dbb8ca9"
+				}
+			]
 		},
 		{
 			"name": "jsdom",
 			"version": "19.0.0",
 			"purl": "pkg:npm/jsdom@19.0.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/jsdom@19.0.0"
+			"bom-ref": "pkg:npm/jsdom@19.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "4580328c26f1cbfbeb8bf09f9e351625042d6772ca94b9c3aa3fbd5cb36724f80419e8ab66cde1965291db4adef0b519ea8d5bd57e096adf90776eb398fe35f8"
+				}
+			]
 		},
 		{
 			"name": "jsonwebtoken",
 			"version": "8.5.1",
 			"purl": "pkg:npm/jsonwebtoken@8.5.1",
 			"type": "library",
-			"bom-ref": "pkg:npm/jsonwebtoken@8.5.1"
+			"bom-ref": "pkg:npm/jsonwebtoken@8.5.1",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "5e3c157d14ba8d332ca98b3412cb89e0b1b15d5d78cd0c9b35de0bdabd14bdb567485f407fcc7ba793336c9f74228cfff53238d7f8530afce717f968892ce7f3"
+				}
+			]
 		},
 		{
 			"name": "jsdom",
 			"version": "19.0.0",
 			"purl": "pkg:npm/jsdom@19.0.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/jsdom@19.0.0"
+			"bom-ref": "pkg:npm/jsdom@19.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "4580328c26f1cbfbeb8bf09f9e351625042d6772ca94b9c3aa3fbd5cb36724f80419e8ab66cde1965291db4adef0b519ea8d5bd57e096adf90776eb398fe35f8"
+				}
+			]
 		},
 		{
 			"name": "mongoose",
 			"version": "5.13.20",
 			"purl": "pkg:npm/mongoose@5.13.20",
 			"type": "library",
-			"bom-ref": "pkg:npm/mongoose@5.13.20"
+			"bom-ref": "pkg:npm/mongoose@5.13.20",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "4e31856bf5e7258b7ec0b9a7f32f6cb23c8ed8e84131e101b4e1dbf6224cd7a116bb60eee8bd50eb34a210adb38b261033c6a06f8b6e98d210173a9bc4877b30"
+				}
+			]
 		},
 		{
 			"name": "nodemon",
 			"version": "2.0.22",
 			"purl": "pkg:npm/nodemon@2.0.22",
 			"type": "library",
-			"bom-ref": "pkg:npm/nodemon@2.0.22"
+			"bom-ref": "pkg:npm/nodemon@2.0.22",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "07c62a68a326cae08eec1a30175675fe690fa8b93a72cfe5eb73a3b5dea8b4a8ccc78ec3ab5badc5f47171abc7d48ed549a2fc9f90546a8bad69d9ec5f700055"
+				}
+			]
 		}
 	],
 	"dependencies": [

@@ -18,21 +18,39 @@
 			"version": "4.3.4",
 			"purl": "pkg:npm/debug@4.3.4",
 			"type": "library",
-			"bom-ref": "pkg:npm/debug@4.3.4"
+			"bom-ref": "pkg:npm/debug@4.3.4",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "3d15851ee494dde0ed4093ef9cd63b25c91eb758f4b793ae3ac1733cfcec7a40f9d9997ca947c520f122b305ea22f1d61951ce817fbb1bfbc234d85e870c5f91"
+				}
+			]
 		},
 		{
 			"name": "ms",
 			"version": "2.1.2",
 			"purl": "pkg:npm/ms@2.1.2",
 			"type": "library",
-			"bom-ref": "pkg:npm/ms@2.1.2"
+			"bom-ref": "pkg:npm/ms@2.1.2",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "b0690fc7e56332d980e8c5f6ee80381411442c50996784b85ea7863970afebcb53fa36f7be4fd1c9a2963f43d32b25ad98b48cd1bf9a7544c4bdbb353c4687db"
+				}
+			]
 		},
 		{
 			"name": "is-number",
 			"version": "7.0.0",
 			"purl": "pkg:npm/is-number@7.0.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/is-number@7.0.0"
+			"bom-ref": "pkg:npm/is-number@7.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "e350a27e483a7bc4f2952a5db53a5e2d532abd20445734edb47bc4443ef8d7ea6767c00dbf4d34e0c44be3740a3c394af5c1af369e8d6566540656c65d8c719e"
+				}
+			]
 		}
 	],
 	"dependencies": [
