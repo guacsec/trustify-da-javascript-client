@@ -1,30 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { parseSyml } from '@yarnpkg/parsers';
+
 import Base_javascript, { sriToHash } from './base_javascript.js';
 import Yarn_berry_processor from './processors/yarn_berry_processor.js';
 import Yarn_classic_processor from './processors/yarn_classic_processor.js';
-
-/**
- * Extracts the unique package names from a `yarn.lock` entry header line.
- * A header lists one or more comma-separated specifiers (quoted or not) and
- * ends with a colon, e.g. `"mongoose@*", mongoose@^5.9.18:`. The name is the
- * portion before the range separator `@` (a leading scope `@` is preserved).
- * @param {string} header - The entry header line
- * @returns {string[]} Unique package names
- */
-function parseYarnEntryNames(header) {
-	const names = new Set();
-	const withoutColon = header.replace(/:\s*$/, '');
-	for (const rawSpec of withoutColon.split(',')) {
-		const spec = rawSpec.trim().replace(/^"|"$/g, '');
-		const at = spec.lastIndexOf('@');
-		if (at > 0) {
-			names.add(spec.slice(0, at));
-		}
-	}
-	return [...names];
-}
 
 /**
  * Converts a Yarn Berry `checksum` value to a CycloneDX hash object. Berry
@@ -58,8 +39,7 @@ export default class Javascript_yarn extends Base_javascript {
 	/**
 	 * Parses `yarn.lock` into a hash map keyed by `name@version`. Supports both
 	 * Yarn Classic (v1) entries with an `integrity` SRI field and Yarn Berry
-	 * (v2+) entries with a `checksum` field. Each blank line or comment ends the
-	 * current entry.
+	 * (v2+) entries with a `checksum` field.
 	 * @param {string} lockDir - Directory containing yarn.lock
 	 * @returns {Map<string, Array<{alg: string, content: string}>>} Hash map
 	 * @protected
@@ -77,41 +57,40 @@ export default class Javascript_yarn extends Base_javascript {
 			return map;
 		}
 
-		let names = [];
-		let version = null;
-		let hash = null;
-		const flush = () => {
-			if (version && hash && names.length) {
-				for (const name of names) {
+		const parsed = parseSyml(content);
+
+		for (const [spec, entry] of Object.entries(parsed)) {
+			if (spec === '__metadata') {
+				continue;
+			}
+
+			const version = entry.version;
+			if (!version) {
+				continue;
+			}
+
+			let hash = null;
+			if (entry.integrity) {
+				hash = sriToHash(entry.integrity);
+			} else if (entry.checksum) {
+				hash = berryChecksumToHash(entry.checksum);
+			}
+
+			if (!hash) {
+				continue;
+			}
+
+			// Handle comma-separated specifiers (e.g., "pkg@^1.0.0, pkg@^2.0.0")
+			for (const rawSpec of spec.split(',')) {
+				const trimmed = rawSpec.trim();
+				const atIndex = trimmed.lastIndexOf('@');
+				if (atIndex > 0) {
+					const name = trimmed.slice(0, atIndex);
 					map.set(`${name}@${version}`, [hash]);
 				}
 			}
-			names = [];
-			version = null;
-			hash = null;
-		};
-
-		for (const raw of content.split(/\r?\n/)) {
-			if (!raw.trim() || raw.startsWith('#')) {
-				flush();
-				continue;
-			}
-			if (!/^\s/.test(raw)) {
-				flush();
-				names = parseYarnEntryNames(raw);
-				continue;
-			}
-			const line = raw.trim();
-			let m;
-			if ((m = /^version:?\s+"?([^"]+?)"?$/.exec(line))) {
-				version = m[1];
-			} else if ((m = /^integrity\s+(.+)$/.exec(line))) {
-				hash = sriToHash(m[1].trim());
-			} else if ((m = /^checksum:?\s+"?([^"]+?)"?$/.exec(line))) {
-				hash = berryChecksumToHash(m[1].trim());
-			}
 		}
-		flush();
+
 		return map;
 	}
 
