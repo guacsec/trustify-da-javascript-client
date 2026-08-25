@@ -90,10 +90,10 @@ export default class Java_gradle extends Base_java {
 	 */
 
 
-	provideStack(manifest, opts = {}) {
+	async provideStack(manifest, opts = {}) {
 		return {
 			ecosystem: ecosystem_gradle,
-			content: this.#createSbomStackAnalysis(manifest, opts),
+			content: await this.#createSbomStackAnalysis(manifest, opts),
 			contentType: 'application/vnd.cyclonedx+json'
 		}
 	}
@@ -105,10 +105,10 @@ export default class Java_gradle extends Base_java {
 	 * @returns {Provided}
 	 */
 
-	provideComponent(manifest, opts = {}) {
+	async provideComponent(manifest, opts = {}) {
 		return {
 			ecosystem: ecosystem_gradle,
-			content: this.#getSbomForComponentAnalysis(manifest, opts),
+			content: await this.#getSbomForComponentAnalysis(manifest, opts),
 			contentType: 'application/vnd.cyclonedx+json'
 		}
 	}
@@ -187,7 +187,7 @@ export default class Java_gradle extends Base_java {
 				// Add dependency to SBOM if not already processed
 				if (!processedDeps.has(depKey)) {
 					processedDeps.add(depKey);
-					sbom.addDependency(currentParent, purl, scope, this.#lookupHashes(purl, hashMap));
+					sbom.addDependency(currentParent, purl, scope, hashMap?.get(purl.toString()));
 				}
 				parentStack.push(purl);
 			}
@@ -226,10 +226,10 @@ export default class Java_gradle extends Base_java {
 	 * @returns {string} the Dot Graph content
 	 * @private
 	 */
-	#createSbomStackAnalysis(manifest, opts = {}) {
+	async #createSbomStackAnalysis(manifest, opts = {}) {
 		let content = this.#getDependencies(manifest, opts)
 		let properties = this.#extractProperties(manifest, opts)
-		let hashMap = this.parseGradleHashes(manifest, opts)
+		let hashMap = await this.parseGradleHashes(manifest, opts)
 		// read dependency tree from temp file
 		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.log("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content)
@@ -281,10 +281,10 @@ export default class Java_gradle extends Base_java {
 	 * @returns {string} - sbom string of the direct dependencies of build.gradle
 	 * @private
 	 */
-	#getSbomForComponentAnalysis(manifestPath, opts = {}) {
+	async #getSbomForComponentAnalysis(manifestPath, opts = {}) {
 		let content = this.#getDependencies(manifestPath, opts)
 		let properties = this.#extractProperties(manifestPath, opts)
-		let hashMap = this.parseGradleHashes(manifestPath, opts)
+		let hashMap = await this.parseGradleHashes(manifestPath, opts)
 
 		let sbom = this.#buildDirectDependenciesSbom(content, properties, manifestPath, opts, hashMap)
 		return sbom
@@ -309,6 +309,22 @@ export default class Java_gradle extends Base_java {
 	}
 
 	/**
+	 * Hash a file using SHA-256 with streaming to handle large files efficiently.
+	 * @param {string} filePath - path to the file to hash
+	 * @returns {Promise<string>} hex-encoded SHA-256 digest
+	 * @private
+	 */
+	#hashFileStream(filePath) {
+		return new Promise((resolve, reject) => {
+			const hash = crypto.createHash('sha256')
+			const stream = fs.createReadStream(filePath)
+			stream.on('data', chunk => hash.update(chunk))
+			stream.on('end', () => resolve(hash.digest('hex')))
+			stream.on('error', reject)
+		})
+	}
+
+	/**
 	 * Compute SHA-256 hashes for the resolved artifacts of a Gradle manifest.
 	 *
 	 * Rather than scanning the local Gradle cache, this asks Gradle itself for
@@ -326,9 +342,9 @@ export default class Java_gradle extends Base_java {
 	 *
 	 * @param {string} manifest - path to build.gradle[.kts]
 	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {Map<string, Array<{alg: string, content: string}>>} map of canonical PURL string to CycloneDX hashes
+	 * @returns {Promise<Map<string, Array<{alg: string, content: string}>>>} map of canonical PURL string to CycloneDX hashes
 	 */
-	parseGradleHashes(manifest, opts = {}) {
+	async parseGradleHashes(manifest, opts = {}) {
 		const hashMap = new Map()
 		const debug = process.env["TRUSTIFY_DA_DEBUG"] === "true"
 
@@ -336,10 +352,7 @@ export default class Java_gradle extends Base_java {
 		try {
 			gradle = this.selectToolBinary(manifest, opts)
 		} catch (error) {
-			console.warn('Gradle could not be invoked to compute artifact hashes, SBOM will be generated without hashes')
-			if (debug) {
-				console.error(`Gradle hash: selectToolBinary failed => ${error.stack || error.message}`)
-			}
+			console.warn(`Gradle could not be invoked to compute artifact hashes, SBOM will be generated without hashes: ${error.stack || error.message}`)
 			return hashMap
 		}
 
@@ -369,14 +382,14 @@ export default class Java_gradle extends Base_java {
 					continue
 				}
 				// Build the key with the same canonical PURL builder parseDep uses for
-				// the lookup, so the stored key and the #lookupHashes key cannot drift.
+				// the lookup, so the stored key and the lookup key cannot drift.
 				const key = this.toPurl(coord.group, coord.name, coord.version).toString()
 				if (hashMap.has(key)) {
 					continue
 				}
 				attempted++
 				try {
-					const digest = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+					const digest = await this.#hashFileStream(file)
 					hashMap.set(key, [{ alg: 'SHA-256', content: digest }])
 				} catch (error) {
 					// artifact file missing/unreadable — omit the hash for this component
@@ -403,22 +416,6 @@ export default class Java_gradle extends Base_java {
 		}
 
 		return hashMap
-	}
-
-	/**
-	 * Look up the CycloneDX hashes for a dependency purl in the hash map.
-	 * Keys off the canonical PURL string so it matches the key stored by
-	 * {@link parseGradleHashes}.
-	 * @param {PackageURL} purl - the dependency package URL
-	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] - map of canonical PURL string to hashes
-	 * @returns {Array<{alg: string, content: string}>|undefined} the hashes, or undefined when absent
-	 * @private
-	 */
-	#lookupHashes(purl, hashMap) {
-		if (!hashMap) {
-			return undefined
-		}
-		return hashMap.get(purl.toString())
 	}
 
 	/**
@@ -488,7 +485,7 @@ export default class Java_gradle extends Base_java {
 		directDependencies.forEach((scope, dep) => {
 			const purl = this.parseDep(dep);
 			purl.scope = scope;
-			sbom.addDependency(rootPurl, purl, scope, this.#lookupHashes(purl, hashMap));
+			sbom.addDependency(rootPurl, purl, scope, hashMap?.get(purl.toString()));
 		});
 
 		return sbom.filterIgnoredDepsIncludingVersion(ignoredDeps).getAsJsonString(opts);
