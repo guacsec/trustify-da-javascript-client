@@ -25,7 +25,9 @@
 		"provenance": true
 	},
 	"type": "module",
-	"bin": "dist/src/cli.js",
+	"bin": {
+		"trustify-da": "dist/src/cli.js"
+	},
 	"main": "dist/src/index.js",
 	"module": "dist/src/index.js",
 	"types": "dist/src/index.d.ts",

@@ -31,7 +31,7 @@ if [ "$manifest_name" = "package.json" ] && [ -f "$manifest_dir/yarn.lock" ]; th
 fi
 
 # Getting RHDA stack analysis report using Exhort Javascript CLI.
-report=$(trustify-da-javascript-client stack $manifest_file_path 2>error.log)
+report=$(trustify-da stack $manifest_file_path 2>error.log)
 
 exit_code=$?
 

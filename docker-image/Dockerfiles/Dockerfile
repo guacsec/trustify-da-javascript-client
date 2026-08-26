@@ -50,7 +50,7 @@ COPY dist ./dist
 COPY config ./config
 RUN npm install --production \
     && mkdir -p /app/node_modules/.bin \
-    && ln -s /app/dist/src/cli.js /app/node_modules/.bin/trustify-da-javascript-client
+    && ln -s /app/dist/src/cli.js /app/node_modules/.bin/trustify-da
 
 # assign executable permissions to all installed binaries
 RUN chmod +x /usr/temurin-21/bin/java \
@@ -59,7 +59,7 @@ RUN chmod +x /usr/temurin-21/bin/java \
     && chmod +x /usr/go/bin/go \
     && chmod +x /usr/bin/jq \
     && chmod +x /app/dist/src/cli.js \
-    && chmod +x /app/node_modules/.bin/trustify-da-javascript-client \
+    && chmod +x /app/node_modules/.bin/trustify-da \
     && chmod +x /trustify-da.sh
 
 # use default user
