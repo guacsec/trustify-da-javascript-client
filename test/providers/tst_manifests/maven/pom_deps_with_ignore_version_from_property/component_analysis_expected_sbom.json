@@ -1,6 +1,6 @@
 {
 	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
+	"specVersion": "1.6",
 	"version": 1,
 	"metadata": {
 		"timestamp": "2023-08-07T00:00:00.000Z",
@@ -16,6 +16,15 @@
 					"license": {
 						"id": "Apache-2.0"
 					}
+				}
+			]
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.3.0"
 				}
 			]
 		}

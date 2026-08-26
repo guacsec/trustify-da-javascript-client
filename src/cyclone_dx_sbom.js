@@ -1,6 +1,36 @@
+import fs from "node:fs";
+import path from "node:path";
 import {EOL} from "os";
+import * as url from "url";
 
 import {PackageURL} from "packageurl-js";
+
+/**
+ * Reads this package's version from package.json, resolving the path relative
+ * to this module (mirrors the lookup in index.js). Returns undefined if the
+ * file cannot be read, so SBOM generation never fails on a missing version.
+ * @return {string|undefined} the package version, or undefined
+ * @private
+ */
+function readPackageVersion() {
+	try {
+		let dirName = import.meta.dirname
+		if (!dirName) {
+			dirName = url.fileURLToPath(new URL('.', import.meta.url))
+		}
+		const packageJson = JSON.parse(fs.readFileSync(path.join(dirName, "..", "package.json")).toString())
+		return packageJson.version
+	} catch {
+		return undefined
+	}
+}
+
+/**
+ * This client's version, read once at module load, used to populate
+ * metadata.tools.components[].version in the generated SBOM.
+ * @type {string|undefined}
+ */
+const PACKAGE_VERSION = readPackageVersion()
 
 /**
  *
@@ -198,11 +228,18 @@ export default class CycloneDxSbom {
 		const rootPurl = this.rootComponent?.purl;
 		this.sbomObject = {
 			"bomFormat": "CycloneDX",
-			"specVersion": "1.4",
+			"specVersion": "1.6",
 			"version": 1,
 			"metadata": {
 				"timestamp": new Date(),
 				"component": this.rootComponent,
+				"tools": {
+					"components": [{
+						"type": "application",
+						"name": "trustify-da-javascript-client",
+						"version": PACKAGE_VERSION
+					}]
+				},
 				"properties": new Array()
 			},
 			"components": this.components.filter(c => c.purl !== rootPurl),

@@ -1,6 +1,6 @@
 {
 	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
+	"specVersion": "1.6",
 	"version": 1,
 	"metadata": {
 		"timestamp": "2023-10-01T00:00:00.000Z",
@@ -10,6 +10,15 @@
 			"purl": "pkg:pypi/default-pip-root@0.0.0",
 			"type": "application",
 			"bom-ref": "pkg:pypi/default-pip-root@0.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.3.0"
+				}
+			]
 		}
 	},
 	"components": [
@@ -19,7 +28,12 @@
 			"purl": "pkg:pypi/certifi@2023.7.22",
 			"type": "library",
 			"bom-ref": "pkg:pypi/certifi@2023.7.22",
-			"hashes": [{"alg": "SHA-256", "content": "539cc1d13202e33ca466e88b2807e29f4c13049d6d853261b21e0e8d461bbbf0"}]
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "539cc1d13202e33ca466e88b2807e29f4c13049d6d853261b21e0e8d461bbbf0"
+				}
+			]
 		},
 		{
 			"name": "six",
@@ -27,7 +41,12 @@
 			"purl": "pkg:pypi/six@1.16.0",
 			"type": "library",
 			"bom-ref": "pkg:pypi/six@1.16.0",
-			"hashes": [{"alg": "SHA-256", "content": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"}]
+			"hashes": [
+				{
+					"alg": "SHA-256",
+					"content": "1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"
+				}
+			]
 		}
 	],
 	"dependencies": [
