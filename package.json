@@ -69,10 +69,12 @@
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
+		"@cyclonedx/cyclonedx-library": "^10.2.0",
 		"@eslint/js": "^10.0.0",
 		"@trustify-da/trustify-da-api-model": "^2.0.12",
 		"@types/node": "^25.9.1",
 		"@types/which": "^3.0.4",
+		"ajv": "^8.20.0",
 		"babel-plugin-rewire": "^1.2.0",
 		"c8": "^11.0.0",
 		"chai": "^6.2.2",
