@@ -45,6 +45,39 @@ export function getCustom(key, def = null, opts = {}) {
 }
 
 /**
+ * Validates that an executable path does not use directory traversal or relative segments.
+ * @param {string} binPath - The executable path to validate.
+ * @returns {string} The validated path.
+ * @throws {Error} If the path contains '..' segments or is a relative path with separators.
+ */
+function validateExecutablePath(binPath) {
+	if (typeof binPath !== 'string' || binPath.length === 0) {
+		throw new Error('Executable path rejected: expected a non-empty string')
+	}
+
+	if (binPath.startsWith('./') || binPath.startsWith('.\\')) {
+		throw new Error(
+			`Executable path rejected: relative paths starting with './' are not allowed: ${binPath}`
+		)
+	}
+
+	const segments = binPath.split(/[/\\]/)
+	if (segments.includes('..')) {
+		throw new Error(
+			`Executable path rejected: path contains directory traversal segment (..): ${binPath}`
+		)
+	}
+
+	if ((binPath.includes('/') || binPath.includes('\\')) && !path.isAbsolute(binPath)) {
+		throw new Error(
+			`Executable path rejected: relative paths are not allowed, use an absolute path or a bare command name: ${binPath}`
+		)
+	}
+
+	return binPath
+}
+
+/**
  * Utility function for looking up custom variable for a binary path.
  * Will look in the environment variables (1) or in opts (2) for a key with TRUSTIFY_DA_x_PATH, x is an
  * uppercase version of passed name to look for. The name will also be returned if nothing else was
@@ -55,7 +88,8 @@ export function getCustom(key, def = null, opts = {}) {
  * 		original name supplied
  */
 export function getCustomPath(name, opts = {}) {
-	return getCustom(`TRUSTIFY_DA_${name.toUpperCase()}_PATH`, name, opts)
+	const resolvedPath = getCustom(`TRUSTIFY_DA_${name.toUpperCase()}_PATH`, name, opts)
+	return validateExecutablePath(resolvedPath)
 }
 
 /**

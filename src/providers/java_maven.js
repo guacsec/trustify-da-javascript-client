@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -43,12 +44,12 @@ export default class Java_maven extends Base_java {
 	 * Provide content and content type for maven-maven stack analysis.
 	 * @param {string} manifest - the manifest path or name
 	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {Provided}
+	 * @returns {Promise<Provided>}
 	 */
-	provideStack(manifest, opts = {}) {
+	async provideStack(manifest, opts = {}) {
 		return {
 			ecosystem: ecosystem_maven,
-			content: this.#createSbomStackAnalysis(manifest, opts),
+			content: await this.#createSbomStackAnalysis(manifest, opts),
 			contentType: 'application/vnd.cyclonedx+json'
 		}
 	}
@@ -95,10 +96,10 @@ export default class Java_maven extends Base_java {
 	 * Create a Dot Graph dependency tree for a manifest path.
 	 * @param {string} manifest - path for pom.xml
 	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {string} the Dot Graph content
+	 * @returns {Promise<string>} the Dot Graph content
 	 * @private
 	 */
-	#createSbomStackAnalysis(manifest, opts = {}) {
+	async #createSbomStackAnalysis(manifest, opts = {}) {
 		const manifestDir = path.dirname(manifest)
 		const mvn = this.selectToolBinary(manifest, opts)
 		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
@@ -145,21 +146,104 @@ export default class Java_maven extends Base_java {
 		if (process.env["TRUSTIFY_DA_DEBUG"] === "true") {
 			console.error("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content.toString())
 		}
-		let sbom = this.createSbomFileFromTextFormat(content.toString(), ignoredDeps, opts, manifest);
+		const depTreeContent = content.toString()
+		const hashMap = await this._buildMavenHashMap(depTreeContent, opts)
+		let sbom = this.createSbomFileFromTextFormat(depTreeContent, ignoredDeps, opts, manifest, hashMap);
 		// delete temp file and directory
 		fs.rmSync(tmpDir, { recursive: true, force: true })
 		// return dependency graph as string
 		return sbom
 	}
 
+	/** @type {Object<string, string>} Packaging types that produce .jar files despite non-jar packaging names. */
+	static PACKAGING_TO_JAR = { 'bundle': 'jar', 'eclipse-plugin': 'jar' }
+
 	/**
+	 * Build a Map of PURL string → CycloneDX hash entries by reading artifact files from the local Maven repository.
 	 *
+	 * Both the artifact file path and the hash-map key are derived from the
+	 * shared {@link Base_java#parseCoordinate} parser: the file path uses the
+	 * resolved version and raw classifier, while the key uses the same canonical
+	 * PURL builder as {@link Base_java#parseDep}. This guarantees the key always
+	 * matches the PURL that {@link Base_java#parseDependencyTree} looks up.
+	 *
+	 * @param {string} depTreeText Raw dependency tree text from mvn dependency:tree
+	 * @param {{}} [opts={}] Options bag (may contain TRUSTIFY_DA_MVN_REPO)
+	 * @returns {Promise<Map<string, Array<{alg: string, content: string}>>>}
+	 */
+	async _buildMavenHashMap(depTreeText, opts = {}) {
+		const m2Repo = getCustom('TRUSTIFY_DA_MVN_REPO', path.join(os.homedir(), '.m2', 'repository'), opts)
+		const hashMap = new Map()
+		const lines = depTreeText.split(EOL)
+		// Track hash coverage so an incomplete .m2 cache (e.g. ephemeral CI
+		// containers or resolve-only phases) surfaces a summary warning instead
+		// of silently producing an SBOM with missing hashes.
+		let attempted = 0
+		let missed = 0
+
+		for (const rawLine of lines) {
+			const trimmed = rawLine.trim()
+			// Strip leading tree-drawing characters (e.g. "\-", "+-", "|") so the
+			// parenthesized-line check sees the coordinate itself. Omitted
+			// duplicate/conflict lines start with these characters after trim(),
+			// then an opening "(" — without stripping, the "(" check never fires.
+			const cleaned = trimmed.replace(/^[|+\\\- ]+/, '')
+			if (!cleaned || cleaned.startsWith('(')) { continue }
+
+			const coord = this.parseCoordinate(rawLine)
+			if (!coord.groupId || !coord.artifactId || !coord.packaging) { continue }
+			if (coord.packaging === 'pom') { continue }
+
+			// Key by the exact PURL parseDep() produces, so the lookup in
+			// parseDependencyTree (hashMap.get(to.toString())) always hits.
+			const purl = this._coordinateToPurl(coord).toString()
+			// The same artifact recurs across dependency-tree branches — notably in
+			// multi-module reactor builds, where every module re-lists shared deps.
+			// The digest is deterministic per PURL, so skip the redundant file read
+			// and SHA-256 computation once this PURL is already hashed.
+			if (hashMap.has(purl)) { continue }
+
+			const ext = Java_maven.PACKAGING_TO_JAR[coord.packaging] || coord.packaging
+			const groupPath = coord.groupId.replaceAll('.', path.sep)
+			const fileName = coord.classifier
+				? `${coord.artifactId}-${coord.version}-${coord.classifier}.${ext}`
+				: `${coord.artifactId}-${coord.version}.${ext}`
+			const artifactPath = path.join(m2Repo, groupPath, coord.artifactId, coord.version, fileName)
+
+			attempted++
+			try {
+				const stream = fs.createReadStream(artifactPath)
+				const hash = crypto.createHash('sha256')
+				for await (const chunk of stream) {
+					hash.update(chunk)
+				}
+				const digest = hash.digest('hex')
+				hashMap.set(purl, [{ alg: 'SHA-256', content: digest }])
+			} catch {
+				missed++
+				if (process.env['TRUSTIFY_DA_DEBUG'] === 'true') {
+					console.error(`Maven hash: artifact not found at ${artifactPath}, omitting hash`)
+				}
+			}
+		}
+		// Mirror the pip provider's convention (python_controller.js): surface an
+		// unconditional warning when hashes could not be computed, so incomplete
+		// hash coverage is visible even without TRUSTIFY_DA_DEBUG.
+		if (missed > 0) {
+			console.warn(`Maven hash: ${missed} of ${attempted} artifacts could not be read from the local .m2 cache; SBOM will be generated without hashes for those components.`)
+		}
+		return hashMap
+	}
+
+	/**
 	 * @param {String} textGraphList Text graph String of the manifest
 	 * @param {[String]} ignoredDeps List of ignored dependencies to be omitted from sbom
+	 * @param {{}} opts Options
 	 * @param {String} manifestPath Path to the pom.xml manifest
+	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] PURL→hashes map
 	 * @return {String} formatted sbom Json String with all dependencies
 	 */
-	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts, manifestPath) {
+	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts, manifestPath, hashMap) {
 		let lines = textGraphList.split(EOL);
 		// get root component
 		let root = lines[0];
@@ -168,6 +252,9 @@ export default class Java_maven extends Base_java {
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
 		this.parseDependencyTree(root, 0, lines.slice(1), sbom);
+		// Attach Maven artifact hashes as a post-processing step, keeping this
+		// Maven-specific concern out of the shared dependency-tree parser.
+		sbom.attachHashes(hashMap);
 		return sbom.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts);
 	}
 
