@@ -367,10 +367,7 @@ export default class Java_gradle extends Base_java {
 					'daListHashes',
 				], { cwd: path.dirname(manifest) })
 			} catch (error) {
-				console.warn('Gradle hash init script failed, SBOM will be generated without hashes')
-				if (debug) {
-					console.error(`Gradle hash: init script invocation failed => ${error.stack || error.message}`)
-				}
+				console.warn(`Gradle hash init script failed, SBOM will be generated without hashes: ${error.stack || error.message}`)
 				return hashMap
 			}
 
@@ -404,12 +401,9 @@ export default class Java_gradle extends Base_java {
 			}
 		} catch (error) {
 			// Unexpected failure (e.g. a programming error) is degraded to keep SBOM
-			// generation working, but surfaced under debug so it is not mistaken for
-			// ordinary graceful degradation.
-			console.warn('Gradle artifact hashing failed, SBOM will be generated without hashes')
-			if (debug) {
-				console.error(`Gradle hash: unexpected failure => ${error.stack || error.message}`)
-			}
+			// generation working, but the error is surfaced so it is not mistaken
+			// for ordinary graceful degradation.
+			console.warn(`Gradle artifact hashing failed, SBOM will be generated without hashes: ${error.stack || error.message}`)
 			return hashMap
 		} finally {
 			try { fs.unlinkSync(initScriptPath) } catch { /* ignore */ }
