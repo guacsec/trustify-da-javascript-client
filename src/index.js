@@ -1,16 +1,18 @@
+import fs from 'node:fs'
 import path from "node:path";
 import { EOL } from "os";
+
 import pLimit from 'p-limit'
 
-import { availableProviders, match } from './provider.js'
 import analysis from './analysis.js'
-import fs from 'node:fs'
-import { getCustom } from "./tools.js";
 import { resolveBatchMetadata, resolveContinueOnError } from './batch_opts.js'
-import { discoverMavenModules } from './providers/java_maven.js'
-import { discoverGradleSubprojects } from './providers/java_gradle.js'
+import { getPackageVersion } from './package_version.js'
+import { availableProviders, match } from './provider.js'
 import { discoverGoWorkspaceModules } from './providers/golang_gomodules.js'
+import { discoverGradleSubprojects } from './providers/java_gradle.js'
+import { discoverMavenModules } from './providers/java_maven.js'
 import { discoverUvWorkspaceMembers } from './providers/python_uv.js'
+import { getCustom } from "./tools.js";
 import {
 	discoverWorkspaceCrates,
 	discoverWorkspacePackages,
@@ -18,8 +20,6 @@ import {
 	resolveWorkspaceDiscoveryIgnore,
 	validatePackageJson,
 } from './workspace.js'
-import.meta.dirname
-import * as url from 'url';
 
 export { parseImageRef } from "./oci_image/utils.js";
 export { ImageRef } from "./oci_image/images.js";
@@ -121,24 +121,7 @@ function logOptionsAndEnvironmentsVariables(alongsideText, valueToBePrinted) {
  * @private
  */
 function readAndPrintVersionFromPackageJson() {
-	let dirName
-	// new ESM way in nodeJS ( since node version 22 ) to bring module directory.
-	dirName = import.meta.dirname
-	// old ESM way in nodeJS ( before node versions 22.00 to bring module directory)
-	if (!dirName) {
-		dirName = url.fileURLToPath(new URL('.', import.meta.url));
-	}
-
-	try {
-		if (__dirname) {
-			dirName = __dirname;
-		}
-	} catch (e) {
-		console.log("__dirname is not defined, continue with fileUrlPath")
-	}
-
-	let packageJson = JSON.parse(fs.readFileSync(path.join(dirName, "..", "package.json")).toString())
-	logOptionsAndEnvironmentsVariables("trustify-da-javascript-client analysis started, version: ", packageJson.version)
+	logOptionsAndEnvironmentsVariables("trustify-da-javascript-client analysis started, version: ", getPackageVersion())
 }
 
 /**

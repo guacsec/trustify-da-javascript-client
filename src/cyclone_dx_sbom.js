@@ -1,36 +1,15 @@
-import fs from "node:fs";
-import path from "node:path";
 import {EOL} from "os";
-import * as url from "url";
 
 import {PackageURL} from "packageurl-js";
 
-/**
- * Reads this package's version from package.json, resolving the path relative
- * to this module (mirrors the lookup in index.js). Returns undefined if the
- * file cannot be read, so SBOM generation never fails on a missing version.
- * @return {string|undefined} the package version, or undefined
- * @private
- */
-function readPackageVersion() {
-	try {
-		let dirName = import.meta.dirname
-		if (!dirName) {
-			dirName = url.fileURLToPath(new URL('.', import.meta.url))
-		}
-		const packageJson = JSON.parse(fs.readFileSync(path.join(dirName, "..", "package.json")).toString())
-		return packageJson.version
-	} catch {
-		return undefined
-	}
-}
+import {getPackageVersion} from "./package_version.js";
 
 /**
  * This client's version, read once at module load, used to populate
  * metadata.tools.components[].version in the generated SBOM.
  * @type {string|undefined}
  */
-const PACKAGE_VERSION = readPackageVersion()
+const PACKAGE_VERSION = getPackageVersion()
 
 /**
  *
