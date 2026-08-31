@@ -275,7 +275,7 @@ $ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by 
 <li><a href="https://www.rust-lang.org/">Rust</a> - <a href="https://doc.rust-lang.org/cargo/">Cargo</a></li>
 </ul>
 
-<h3>Image Analysis Prerequisites</h3>
+<h3>Dockerfile Analysis Prerequisites</h3>
 <p>
 OCI image and <code>Dockerfile</code>/<code>Containerfile</code> analysis require the following external tools to be installed and available on your <code>PATH</code>:
 </p>
@@ -284,7 +284,7 @@ OCI image and <code>Dockerfile</code>/<code>Containerfile</code> analysis requir
 <li><a href="https://github.com/containers/skopeo">skopeo</a> — resolves the image digest and manifest from the registry.</li>
 </ul>
 <p>
-<strong>Image analysis is not supported on Windows</strong>, because <code>skopeo</code> provides no native Windows binary.
+<strong>Dockerfile analysis is not supported on Windows</strong>, because <code>skopeo</code> provides no native Windows binary.
 </p>
 
 <h3>License Detection</h3>
