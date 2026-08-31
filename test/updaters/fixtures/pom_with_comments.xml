@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Project-level comment preserved across updates -->
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>formatted-app</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <!-- Jackson version for JSON processing -->
+        <jackson.version>2.15.2</jackson.version>
+        <untouched.prop>keep-me</untouched.prop>
+    </properties>
+
+    <dependencies>
+        <!-- Direct dependency with inline comment -->
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>lib-a</artifactId>
+            <version>1.0.0</version> <!-- current version -->
+        </dependency>
+
+        <!-- Property-based dependency -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <!--
+            Multi-line comment block that should
+            remain completely untouched after updates
+        -->
+        <dependency>
+            <groupId>org.other</groupId>
+            <artifactId>stable-lib</artifactId>
+            <version>9.9.9</version>
+        </dependency>
+    </dependencies>
+</project>

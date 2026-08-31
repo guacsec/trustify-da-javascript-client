@@ -6,6 +6,7 @@ import esmock from 'esmock';
 import { useFakeTimers } from "sinon";
 
 import { availableProviders, match } from '../../src/provider.js';
+import { sriToHash } from '../../src/providers/base_javascript.js';
 import Manifest from '../../src/providers/manifest.js';
 import { compareSboms } from '../utils/sbom_utils.js';
 
@@ -373,4 +374,116 @@ suite('testing the javascript-npm data provider', async () => {
 			.to.throw('package.json requires a lock file')
 	})
 
+});
+
+suite('sriToHash - SRI to CycloneDX hash conversion', () => {
+	// The SHA-512 SRI for express@4.18.2 and its expected hex-encoded digest.
+	const EXPRESS_SRI = 'sha512-5/PsL6iGPdfQ/lKM1UuielYgv3BUoJfz1aUwU9vHZ+J7gyvwdQXFEBIEIaxeGf0GIcreATNyBExtalisDbuMqQ==';
+	const EXPRESS_HEX = 'e7f3ec2fa8863dd7d0fe528cd54ba27a5620bf7054a097f3d5a53053dbc767e27b832bf07505c510120421ac5e19fd0621cade013372044c6d6a58ac0dbb8ca9';
+	// The well-known SHA-256 SRI of the empty input and its hex digest.
+	const EMPTY_SHA256_SRI = 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=';
+	const EMPTY_SHA256_HEX = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
+	test('converts a sha512 SRI string to a hex-encoded SHA-512 hash', () => {
+		expect(sriToHash(EXPRESS_SRI)).to.deep.equal({ alg: 'SHA-512', content: EXPRESS_HEX });
+	});
+
+	test('converts a sha256 SRI string to a hex-encoded SHA-256 hash', () => {
+		expect(sriToHash(EMPTY_SHA256_SRI)).to.deep.equal({ alg: 'SHA-256', content: EMPTY_SHA256_HEX });
+	});
+
+	test('uses only the first digest when several are space-separated', () => {
+		expect(sriToHash(`${EXPRESS_SRI} ${EMPTY_SHA256_SRI}`)).to.deep.equal({ alg: 'SHA-512', content: EXPRESS_HEX });
+	});
+
+	test('ignores SRI options following the digest', () => {
+		expect(sriToHash(`${EMPTY_SHA256_SRI}?foo=bar`)).to.deep.equal({ alg: 'SHA-256', content: EMPTY_SHA256_HEX });
+	});
+
+	[null, undefined, 42, '', '   ', 'notansri', 'md5-abc123', 'sha512-'].forEach(input => {
+		test(`returns null for unparseable input: ${JSON.stringify(input)}`, () => {
+			expect(sriToHash(input)).to.be.null;
+		});
+	});
+});
+
+suite('lock-file hash extraction (TC-5548)', () => {
+	let hashClock;
+	suiteSetup(() => hashClock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z')));
+	suiteTeardown(() => hashClock.restore());
+
+	const WITHOUT_IGNORE = 'package_json_deps_without_exhortignore_object';
+	const VALID_ALGS = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
+
+	// After aligning the drifted lock fixtures to the listing versions, every
+	// direct dependency resolves to a hash for all four SRI/integrity-bearing
+	// providers - proving hash extraction is wired end-to-end per provider.
+	['npm', 'pnpm', 'yarn-classic', 'yarn-berry'].forEach(providerName => {
+		test(`extracts a valid hash for every direct dependency - ${providerName} component analysis`, async () => {
+			const listing = fs.readFileSync(`test/providers/tst_manifests/${providerName}/${WITHOUT_IGNORE}/listing_component.json`).toString();
+			const provider = await createMockProvider(providerName, listing);
+			const manifestPath = `test/providers/tst_manifests/${providerName}/${WITHOUT_IGNORE}/package.json`;
+			const sbom = JSON.parse(provider.provideComponent(manifestPath).content);
+
+			const libraries = sbom.components.filter(c => c.type === 'library');
+			expect(libraries).to.not.be.empty;
+			libraries.forEach(component => {
+				expect(component.hashes, `${component.purl} should carry hashes`).to.be.an('array').that.is.not.empty;
+				component.hashes.forEach(h => {
+					expect(h.alg).to.be.oneOf(VALID_ALGS);
+					expect(h.content).to.match(/^[0-9a-f]+$/);
+				});
+			});
+		}).timeout(15000);
+	});
+
+	test('resolves the SHA-512 from package-lock.json integrity (SRI to hex) - npm', async () => {
+		const listing = fs.readFileSync(`test/providers/tst_manifests/npm/${WITHOUT_IGNORE}/listing_component.json`).toString();
+		const provider = await createMockProvider('npm', listing);
+		const sbom = JSON.parse(provider.provideComponent(`test/providers/tst_manifests/npm/${WITHOUT_IGNORE}/package.json`).content);
+
+		const express = sbom.components.find(c => c.purl === 'pkg:npm/express@4.18.2');
+		expect(express.hashes).to.deep.equal([{
+			alg: 'SHA-512',
+			content: 'e7f3ec2fa8863dd7d0fe528cd54ba27a5620bf7054a097f3d5a53053dbc767e27b832bf07505c510120421ac5e19fd0621cade013372044c6d6a58ac0dbb8ca9'
+		}]);
+	}).timeout(15000);
+
+	// Yarn Berry stores the Yarn cache checksum (not the npm SRI) in the
+	// `checksum` field; the digest after the `<cacheKey>/` prefix is the SHA-512.
+	test('resolves the Yarn Berry checksum field as a SHA-512 hash - yarn-berry', async () => {
+		const testCase = 'package_json_deps_with_exhortignore_object';
+		const listing = fs.readFileSync(`test/providers/tst_manifests/yarn-berry/${testCase}/listing_stack.json`).toString();
+		const provider = await createMockProvider('yarn-berry', listing);
+		const sbom = JSON.parse(provider.provideStack(`test/providers/tst_manifests/yarn-berry/${testCase}/package.json`).content);
+
+		const express = sbom.components.find(c => c.purl === 'pkg:npm/express@4.21.2');
+		expect(express.hashes).to.deep.equal([{
+			alg: 'SHA-512',
+			content: '38168fd0a32756600b56e6214afecf4fc79ec28eca7f7a91c2ab8d50df4f47562ca3f9dee412da7f5cea6b1a1544b33b40f9f8586dbacfbdada0fe90dbb10a1f'
+		}]);
+	}).timeout(30000);
+
+	// When the lock file does not contain the resolved versions (fixture drift or
+	// an unmatched tree), no hashes are emitted and analysis still succeeds.
+	test('omits hashes when lock versions do not match the listing (graceful degradation) - npm', async () => {
+		const testCase = 'package_json_deps_with_mixed_dep_types';
+		const listing = fs.readFileSync(`test/providers/tst_manifests/npm/${testCase}/listing_component.json`).toString();
+		const provider = await createMockProvider('npm', listing);
+		const sbom = JSON.parse(provider.provideComponent(`test/providers/tst_manifests/npm/${testCase}/package.json`).content);
+
+		const libraries = sbom.components.filter(c => c.type === 'library');
+		expect(libraries).to.not.be.empty;
+		libraries.forEach(component => expect(component.hashes, `${component.purl} should have no hashes`).to.be.undefined);
+	}).timeout(15000);
+
+	// Absent lock file: parsing degrades to an empty map (no error, no hashes).
+	['npm', 'pnpm', 'yarn-classic', 'yarn-berry', 'bun'].forEach(providerName => {
+		test(`returns an empty hash map when the lock file is absent (graceful degradation) - ${providerName}`, async () => {
+			const provider = await createMockProvider(providerName, '');
+			const map = provider._parseLockFileHashes('test/providers/tst_manifests');
+			expect(map).to.be.a('Map');
+			expect(map.size).to.equal(0);
+		});
+	});
 });

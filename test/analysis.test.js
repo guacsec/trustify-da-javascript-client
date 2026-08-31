@@ -207,6 +207,140 @@ suite('testing the analysis module for sending api requests', () => {
 		))
 	})
 
+	suite('appendAnalysisQueryParams — URL construction with providers and sources', () => {
+		/** Verifies that providers param is appended when set via opts. */
+		test('appends providers query param from opts', () => {
+			const url = new URL('http://example.com/api/v5/analysis')
+			analysis.appendAnalysisQueryParams(url, { TRUSTIFY_DA_PROVIDERS: 'redhat,lightwell' })
+			expect(url.searchParams.get('providers')).to.equal('redhat,lightwell')
+		})
+
+		/** Verifies that sources param is appended when set via opts. */
+		test('appends sources query param from opts', () => {
+			const url = new URL('http://example.com/api/v5/analysis')
+			analysis.appendAnalysisQueryParams(url, { TRUSTIFY_DA_SOURCES: 'osv' })
+			expect(url.searchParams.get('sources')).to.equal('osv')
+		})
+
+		/** Verifies that both providers and sources are appended together. */
+		test('appends both providers and sources when both are set', () => {
+			const url = new URL('http://example.com/api/v5/analysis')
+			analysis.appendAnalysisQueryParams(url, {
+				TRUSTIFY_DA_PROVIDERS: 'redhat',
+				TRUSTIFY_DA_SOURCES: 'osv,nvd'
+			})
+			expect(url.searchParams.get('providers')).to.equal('redhat')
+			expect(url.searchParams.get('sources')).to.equal('osv,nvd')
+		})
+
+		/** Verifies that no providers or sources params are added when neither is set. */
+		test('does not append providers or sources when neither is set', () => {
+			const url = new URL('http://example.com/api/v5/analysis')
+			analysis.appendAnalysisQueryParams(url, {})
+			expect(url.searchParams.has('providers')).to.equal(false)
+			expect(url.searchParams.has('sources')).to.equal(false)
+		})
+
+		/** Verifies that environment variables are respected as fallback for providers. */
+		test('reads providers from environment variable when opts is empty', () => {
+			process.env['TRUSTIFY_DA_PROVIDERS'] = 'trustify'
+			try {
+				const url = new URL('http://example.com/api/v5/analysis')
+				analysis.appendAnalysisQueryParams(url, {})
+				expect(url.searchParams.get('providers')).to.equal('trustify')
+			} finally {
+				delete process.env['TRUSTIFY_DA_PROVIDERS']
+			}
+		})
+
+		/** Verifies that environment variables are respected as fallback for sources. */
+		test('reads sources from environment variable when opts is empty', () => {
+			process.env['TRUSTIFY_DA_SOURCES'] = 'osv'
+			try {
+				const url = new URL('http://example.com/api/v5/analysis')
+				analysis.appendAnalysisQueryParams(url, {})
+				expect(url.searchParams.get('sources')).to.equal('osv')
+			} finally {
+				delete process.env['TRUSTIFY_DA_SOURCES']
+			}
+		})
+
+		/** Verifies that recommend=false is still appended alongside providers/sources. */
+		test('appends recommend=false alongside providers and sources', () => {
+			const url = new URL('http://example.com/api/v5/analysis')
+			analysis.appendAnalysisQueryParams(url, {
+				TRUSTIFY_DA_RECOMMEND: 'false',
+				TRUSTIFY_DA_PROVIDERS: 'redhat',
+				TRUSTIFY_DA_SOURCES: 'osv'
+			})
+			expect(url.searchParams.get('recommend')).to.equal('false')
+			expect(url.searchParams.get('providers')).to.equal('redhat')
+			expect(url.searchParams.get('sources')).to.equal('osv')
+		})
+	})
+
+	suite('verify providers and sources are forwarded in HTTP requests', () => {
+		let fakeManifest = 'fake-file-providers.typ'
+		let stackProviderStub = stub()
+		let fakeProvided = {
+			ecosystem: 'dummy-ecosystem',
+			content: 'dummy-content',
+			contentType: 'dummy-content-type'
+		}
+		stackProviderStub.withArgs(fakeManifest).returns(fakeProvided)
+		let fakeProvider = {
+			provideComponent: () => { },
+			provideStack: stackProviderStub,
+			isSupported: () => { }
+		}
+
+		setup(() => {
+			fs.writeFileSync(fakeManifest, 'dummy-content')
+		})
+
+		teardown(() => {
+			if (fs.existsSync(fakeManifest)) {
+				fs.unlinkSync(fakeManifest)
+			}
+		})
+
+		/** Verifies that providers query param reaches the backend URL during stack analysis. */
+		test('requestStack sends providers query param to backend', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				const url = new URL(request.url)
+				if (url.searchParams.get('providers') === 'redhat,lightwell') {
+					return HttpResponse.json({ filtered: true })
+				}
+				return new HttpResponse(null, { status: 400 })
+			}),
+			async () => {
+				let res = await analysis.requestStack(
+					fakeProvider, fakeManifest, backendUrl, false,
+					{ TRUSTIFY_DA_PROVIDERS: 'redhat,lightwell' }
+				)
+				expect(res).to.deep.equal({ filtered: true })
+			}
+		))
+
+		/** Verifies that sources query param reaches the backend URL during stack analysis. */
+		test('requestStack sends sources query param to backend', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, ({ request }) => {
+				const url = new URL(request.url)
+				if (url.searchParams.get('sources') === 'osv') {
+					return HttpResponse.json({ sourceFiltered: true })
+				}
+				return new HttpResponse(null, { status: 400 })
+			}),
+			async () => {
+				let res = await analysis.requestStack(
+					fakeProvider, fakeManifest, backendUrl, false,
+					{ TRUSTIFY_DA_SOURCES: 'osv' }
+				)
+				expect(res).to.deep.equal({ sourceFiltered: true })
+			}
+		))
+	})
+
 	suite('addProxyAgent', () => {
 		afterEach(() => {
 			delete process.env['TRUSTIFY_DA_PROXY_URL']

@@ -25,7 +25,9 @@
 		"provenance": true
 	},
 	"type": "module",
-	"bin": "dist/src/cli.js",
+	"bin": {
+		"trustify-da": "dist/src/cli.js"
+	},
 	"main": "dist/src/index.js",
 	"module": "dist/src/index.js",
 	"types": "dist/src/index.d.ts",
@@ -48,7 +50,7 @@
 	},
 	"dependencies": {
 		"@babel/core": "^7.23.2",
-		"@cyclonedx/cyclonedx-library": "^10.0.0",
+		"@yarnpkg/parsers": "^3.1.0",
 		"eslint-import-resolver-typescript": "^4.4.4",
 		"fast-glob": "^3.3.3",
 		"fast-xml-parser": "^5.3.4",
@@ -69,10 +71,12 @@
 	},
 	"devDependencies": {
 		"@babel/core": "^7.23.2",
+		"@cyclonedx/cyclonedx-library": "^10.2.0",
 		"@eslint/js": "^10.0.0",
-		"@trustify-da/trustify-da-api-model": "^2.0.9",
+		"@trustify-da/trustify-da-api-model": "^2.0.12",
 		"@types/node": "^25.9.1",
 		"@types/which": "^3.0.4",
+		"ajv": "^8.20.0",
 		"babel-plugin-rewire": "^1.2.0",
 		"c8": "^11.0.0",
 		"chai": "^6.2.2",

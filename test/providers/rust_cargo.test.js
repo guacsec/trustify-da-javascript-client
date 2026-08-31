@@ -144,6 +144,20 @@ suite('testing the rust-cargo data provider', () => {
 		expect(provider).to.not.be.null
 		expect(provider.isSupported('Cargo.toml')).to.be.true
 	})
+
+	test('verify hash extraction accepts opts parameter and reads Cargo.lock from discovered location', async () => {
+		const testDir = 'test/providers/tst_manifests/cargo/cargo_workspace_dir_hash_test/member1'
+
+		// Test that provideStack with opts doesn't throw and produces an SBOM with hashes
+		let provider = await createMockProvider(testDir)
+		let sbom = JSON.parse(provider.provideStack(`${testDir}/Cargo.toml`, {}).content)
+		let serdeDep = sbom.components.find(c => c.name === 'serde')
+		expect(serdeDep).to.exist
+		expect(serdeDep.hashes).to.exist
+		expect(serdeDep.hashes).to.have.lengthOf(1)
+		expect(serdeDep.hashes[0].alg).to.equal('SHA-256')
+		expect(serdeDep.hashes[0].content).to.be.a('string').and.have.lengthOf(64)
+	}).timeout(10000)
 });
 
 suite('testing the rust-cargo single crate without ignore', () => {

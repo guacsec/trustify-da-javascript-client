@@ -135,6 +135,77 @@ suite('CycloneDX SBOM hash support', () => {
 		expect(depComponents[0].hashes).to.deep.equal(depHashes)
 	})
 
+	/** Verifies that attachHashes enriches an existing component matched by PURL. */
+	test('attachHashes attaches hashes to a matching component by PURL', () => {
+		// Given an SBOM with a dependency added without hashes
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('maven', 'com.example', 'root', '1.0.0', undefined, undefined)
+		const dep = new PackageURL('maven', 'log4j', 'log4j', '1.2.17', undefined, undefined)
+		sbom.addRoot(root)
+		sbom.addDependency(root, dep)
+
+		// When attaching hashes keyed by the dependency's PURL
+		sbom.attachHashes(new Map([[dep.toString(), sampleHashes]]))
+
+		// Then the matching component carries the hashes
+		const depComponent = sbom.components.find(c => c.name === 'log4j')
+		expect(depComponent.hashes).to.deep.equal(sampleHashes)
+	})
+
+	/** Verifies that attachHashes leaves components without a map entry untouched. */
+	test('attachHashes leaves unmatched components without a hashes field', () => {
+		// Given an SBOM whose dependency has no entry in the hash map
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('maven', 'com.example', 'root', '1.0.0', undefined, undefined)
+		const dep = new PackageURL('maven', 'log4j', 'log4j', '1.2.17', undefined, undefined)
+		sbom.addRoot(root)
+		sbom.addDependency(root, dep)
+
+		// When attaching a map that references a different PURL
+		const other = new PackageURL('maven', 'com.other', 'lib', '9.9.9', undefined, undefined)
+		sbom.attachHashes(new Map([[other.toString(), sampleHashes]]))
+
+		// Then the unmatched component has no hashes property
+		const depComponent = sbom.components.find(c => c.name === 'log4j')
+		expect(depComponent).to.not.have.property('hashes')
+	})
+
+	/** Verifies that attachHashes does not overwrite hashes already present on a component. */
+	test('attachHashes does not overwrite existing hashes', () => {
+		// Given a component that already has hashes
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('maven', 'com.example', 'root', '1.0.0', undefined, undefined)
+		const dep = new PackageURL('maven', 'log4j', 'log4j', '1.2.17', undefined, undefined)
+		const originalHashes = [{ alg: 'SHA-256', content: 'original' }]
+		sbom.addRoot(root)
+		sbom.addDependency(root, dep, undefined, originalHashes)
+
+		// When attaching a different hash for the same PURL
+		sbom.attachHashes(new Map([[dep.toString(), sampleHashes]]))
+
+		// Then the original hashes are preserved
+		const depComponent = sbom.components.find(c => c.name === 'log4j')
+		expect(depComponent.hashes).to.deep.equal(originalHashes)
+	})
+
+	/** Verifies that attachHashes tolerates an undefined or empty map without error. */
+	test('attachHashes is a no-op for an empty or undefined map', () => {
+		// Given an SBOM with a dependency
+		const sbom = new CycloneDxSbom()
+		const root = new PackageURL('maven', 'com.example', 'root', '1.0.0', undefined, undefined)
+		const dep = new PackageURL('maven', 'log4j', 'log4j', '1.2.17', undefined, undefined)
+		sbom.addRoot(root)
+		sbom.addDependency(root, dep)
+
+		// When attaching an empty map and an undefined map
+		sbom.attachHashes(new Map())
+		sbom.attachHashes(undefined)
+
+		// Then no hashes are added and no error is thrown
+		const depComponent = sbom.components.find(c => c.name === 'log4j')
+		expect(depComponent).to.not.have.property('hashes')
+	})
+
 	/** Verifies that passing an empty hashes array is treated the same as no hashes. */
 	test('empty hashes array does not add hashes field', () => {
 		// Given an SBOM with a dependency with an empty hashes array

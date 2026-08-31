@@ -1,6 +1,6 @@
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
+  "specVersion": "1.6",
   "version": 1,
   "metadata": {
     "timestamp": "2023-10-01T00:00:00.000Z",
@@ -10,6 +10,15 @@
       "purl": "pkg:pypi/uv-mono@0.1.0",
       "type": "application",
       "bom-ref": "pkg:pypi/uv-mono@0.1.0"
+    },
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "trustify-da-javascript-client",
+          "version": "0.3.0"
+        }
+      ]
     }
   },
   "components": [

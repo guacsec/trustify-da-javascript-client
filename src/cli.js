@@ -7,6 +7,7 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { getProjectLicense, getLicenseDetails } from './license/index.js'
+import { runRemediation } from './remediate.js'
 
 import client, { selectTrustifyDABackend, generateSbom } from './index.js'
 
@@ -28,11 +29,25 @@ const component = {
 			desc: 'Workspace root directory (for monorepos; lock file is expected here)',
 			type: 'string',
 			normalize: true,
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
 		let manifestName = args['/path/to/manifest']
 		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
+		}
 		let res = await client.componentAnalysis(manifestName, opts)
 		console.log(JSON.stringify(res, null, 2))
 	}
@@ -88,6 +103,14 @@ const image = {
 			desc: 'For JSON report, get only the \'summary\'',
 			type: 'boolean',
 			conflicts: 'html'
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
@@ -97,7 +120,14 @@ const image = {
 		}
 		let html = args['html']
 		let summary = args['summary']
-		let res = await client.imageAnalysis(imageRefs, html)
+		const opts = {}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
+		}
+		let res = await client.imageAnalysis(imageRefs, html, opts)
 		if(summary && !html) {
 			let summaries = {}
 			for (let [imageRef, report] of Object.entries(res)) {
@@ -152,6 +182,14 @@ const stack = {
 			desc: 'Workspace root directory (for monorepos; lock file is expected here)',
 			type: 'string',
 			normalize: true,
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
@@ -159,6 +197,12 @@ const stack = {
 		let html = args['html']
 		let summary = args['summary']
 		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
+		}
 		let theProvidersSummary = new Map();
 		let theProvidersObject ={}
 		let res = await client.stackAnalysis(manifest, html, opts)
@@ -230,6 +274,14 @@ const stackBatch = {
 			desc: 'Stop on first invalid package.json or SBOM error (env: TRUSTIFY_DA_CONTINUE_ON_ERROR=false)',
 			type: 'boolean',
 			default: false,
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
 		}
 	}),
 	handler: async args => {
@@ -249,6 +301,12 @@ const stackBatch = {
 		}
 		if (args.failFast) {
 			opts.continueOnError = false
+		}
+		if (args.providers) {
+			opts.TRUSTIFY_DA_PROVIDERS = args.providers
+		}
+		if (args.sources) {
+			opts.TRUSTIFY_DA_SOURCES = args.sources
 		}
 		let res = await client.stackAnalysisBatch(workspaceRoot, html, opts)
 		const batchAnalysis =
@@ -410,9 +468,57 @@ const sbom = {
 	}
 }
 
+const remediate = {
+	command: 'remediate <path>',
+	desc: 'Scan and apply vulnerability remediations to manifest files',
+	builder: yargs => yargs.positional(
+		'path',
+		{
+			desc: 'Path to manifest file or directory',
+			type: 'string',
+			normalize: true,
+		}
+	).options({
+		'dry-run': {
+			alias: 'd',
+			type: 'boolean',
+			desc: 'Preview changes without modifying files',
+		},
+		providers: {
+			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
+			type: 'string',
+		},
+		sources: {
+			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
+			type: 'string',
+		},
+		'group-by': {
+			type: 'string',
+			choices: ['dependency', 'bundle'],
+			default: 'dependency',
+			desc: 'Report grouping strategy',
+		},
+	}),
+	handler: async args => {
+		try {
+			const result = await runRemediation(args.path, {
+				dryRun: args['dry-run'],
+				providers: args.providers,
+				sources: args.sources,
+				groupBy: args['group-by'],
+			})
+			console.log(result.output)
+			process.exit(result.exitCode)
+		} catch (err) {
+			console.error(err.message)
+			process.exit(1)
+		}
+	}
+}
+
 // parse and invoke the command
 yargs(hideBin(process.argv))
-	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|stack-batch|image|validate-token|license|sbom}`)
+	.usage(`Usage: ${process.argv[0].includes("node") ?  path.parse(process.argv[1]).base : path.parse(process.argv[0]).base} {component|stack|stack-batch|image|validate-token|license|sbom|remediate}`)
 	.command(stack)
 	.command(stackBatch)
 	.command(component)
@@ -420,6 +526,7 @@ yargs(hideBin(process.argv))
 	.command(validateToken)
 	.command(license)
 	.command(sbom)
+	.command(remediate)
 	.scriptName('')
 	.version(false)
 	.demandCommand(1)

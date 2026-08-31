@@ -1,0 +1,42 @@
+{
+    "packages": [
+        {
+            "name": "member1",
+            "version": "1.0.0",
+            "id": "path+file:///fake/path/member1#1.0.0",
+            "source": null,
+            "dependencies": [
+                { "name": "serde", "kind": null }
+            ]
+        },
+        {
+            "name": "serde",
+            "version": "1.0.193",
+            "id": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+            "source": "registry+https://github.com/rust-lang/crates.io-index",
+            "dependencies": []
+        }
+    ],
+    "workspace_members": [
+        "path+file:///fake/path/member1#1.0.0"
+    ],
+    "workspace_root": "/fake/path",
+    "resolve": {
+        "root": "path+file:///fake/path/member1#1.0.0",
+        "nodes": [
+            {
+                "id": "path+file:///fake/path/member1#1.0.0",
+                "deps": [
+                    {
+                        "pkg": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+                        "dep_kinds": [{ "kind": null, "target": null }]
+                    }
+                ]
+            },
+            {
+                "id": "registry+https://github.com/rust-lang/crates.io-index#serde@1.0.193",
+                "deps": []
+            }
+        ]
+    }
+}

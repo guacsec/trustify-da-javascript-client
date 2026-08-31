@@ -3,12 +3,52 @@ import path from 'node:path'
 
 import { parse } from 'jsonc-parser';
 
-import Base_javascript from './base_javascript.js';
+import Base_javascript, { sriToHash } from './base_javascript.js';
 
 export default class Javascript_bun extends Base_javascript {
 
 	_lockFileName() {
 		return "bun.lock";
+	}
+
+	/**
+	 * Parses `bun.lock` into a hash map keyed by `name@version`. Each entry in
+	 * the `packages` section is an array whose first element is the resolved id
+	 * (`name@version`) and whose fourth element is the SRI integrity string.
+	 * @param {string} lockDir - Directory containing bun.lock
+	 * @returns {Map<string, Array<{alg: string, content: string}>>} Hash map
+	 * @protected
+	 */
+	_parseLockFileHashes(lockDir) {
+		const map = new Map();
+		const lockPath = path.join(lockDir, this._lockFileName());
+		if (!fs.existsSync(lockPath)) {
+			return map;
+		}
+		let lockData;
+		try {
+			lockData = parse(fs.readFileSync(lockPath, 'utf-8'));
+		} catch (_) {
+			return map;
+		}
+		const packages = lockData?.packages || {};
+		for (const entry of Object.values(packages)) {
+			if (!Array.isArray(entry) || typeof entry[0] !== 'string' || typeof entry[3] !== 'string') {
+				continue;
+			}
+			const id = entry[0];
+			const at = id.lastIndexOf('@');
+			if (at <= 0) {
+				continue;
+			}
+			const name = id.slice(0, at);
+			const version = id.slice(at + 1);
+			const hash = sriToHash(entry[3]);
+			if (name && version && hash) {
+				map.set(`${name}@${version}`, [hash]);
+			}
+		}
+		return map;
 	}
 
 	_cmdName() {
@@ -28,6 +68,7 @@ export default class Javascript_bun extends Base_javascript {
 		const manifestDir = path.dirname(this._getManifest().manifestPath);
 		const lockDir = this._findLockFileDir(manifestDir, opts) || manifestDir;
 		this._createLockFile(lockDir);
+		this._loadHashes(lockDir);
 
 		const lockContent = fs.readFileSync(path.join(lockDir, 'bun.lock'), 'utf-8');
 		const lockData = parse(lockContent);

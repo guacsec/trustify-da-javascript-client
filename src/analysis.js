@@ -9,7 +9,7 @@ import { addProxyAgent, getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_
 /** Media type for CycloneDX JSON batch payloads (batch-analysis API). */
 export const CYCLONEDX_JSON_MEDIA_TYPE = 'application/vnd.cyclonedx+json'
 
-export default { requestComponent, requestStack, requestStackBatch, requestImages, validateToken }
+export default { requestComponent, requestStack, requestStackBatch, requestImages, validateToken, appendAnalysisQueryParams }
 
 /**
  * Send a stack analysis request and get the report as 'text/html' or 'application/json'.
@@ -47,9 +47,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v5/analysis`);
-	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
-		finalUrl.searchParams.append('recommend', 'false');
-	}
+	appendAnalysisQueryParams(finalUrl, opts);
 
 	let resp = await fetch(finalUrl, fetchOptions)
 	let result
@@ -112,9 +110,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 	}, opts);
 
 	const finalUrl = new URL(`${url}/api/v5/analysis`);
-	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
-		finalUrl.searchParams.append('recommend', 'false');
-	}
+	appendAnalysisQueryParams(finalUrl, opts);
 
 	let resp = await fetch(finalUrl, fetchOptions)
 	let result
@@ -156,9 +152,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  */
 async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
 	const finalUrl = new URL(`${url}/api/v5/batch-analysis`)
-	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
-		finalUrl.searchParams.append('recommend', 'false')
-	}
+	appendAnalysisQueryParams(finalUrl, opts);
 
 	const fetchOptions = addProxyAgent({
 		method: 'POST',
@@ -209,9 +203,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 	}
 
 	const finalUrl = new URL(`${url}/api/v5/batch-analysis`);
-	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
-		finalUrl.searchParams.append('recommend', 'false');
-	}
+	appendAnalysisQueryParams(finalUrl, opts);
 
 	const fetchOptions = addProxyAgent({
 		method: 'POST',
@@ -244,6 +236,25 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 		return result
 	} else {
 		throw new Error(`Got error response from Trustify DA backend - http return code : ${resp.status}, ex-request-id: ${resp.headers.get("ex-request-id")}  error message =>  ${await resp.text()}`)
+	}
+}
+
+/**
+ * Append common analysis query parameters (recommend, providers, sources) to a URL.
+ * @param {URL} url - the URL object to append query parameters to
+ * @param {import("index.js").Options} [opts={}] - options containing parameter overrides
+ */
+function appendAnalysisQueryParams(url, opts = {}) {
+	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
+		url.searchParams.append('recommend', 'false');
+	}
+	const providers = getCustom('TRUSTIFY_DA_PROVIDERS', null, opts);
+	if (providers) {
+		url.searchParams.append('providers', providers);
+	}
+	const sources = getCustom('TRUSTIFY_DA_SOURCES', null, opts);
+	if (sources) {
+		url.searchParams.append('sources', sources);
 	}
 }
 

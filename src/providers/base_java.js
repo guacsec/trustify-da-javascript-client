@@ -22,6 +22,14 @@ export default class Base_Java {
 	DEP_REGEX = /(([-a-zA-Z0-9._]{2,})|[0-9])/g
 	CONFLICT_REGEX = /.*omitted for conflict with (\S+)\)/
 
+	/**
+	 * Maven dependency scopes. Used to detect whether the trailing column of a
+	 * dependency-tree line is a scope keyword — which in turn signals that an
+	 * optional classifier column is present between the packaging and version.
+	 * @type {string[]}
+	 */
+	static MAVEN_SCOPES = ['compile', 'provided', 'runtime', 'test', 'system', 'import']
+
 	globalBinary
 	localWrapper
 
@@ -91,29 +99,72 @@ export default class Base_Java {
 	}
 
 	/**
+	 * Parse a single dependency-tree line into its Maven coordinate parts.
+	 *
+	 * This is the single source of truth for interpreting a dependency-tree
+	 * line. Both {@link parseDep} (used to build SBOM component PURLs) and the
+	 * Maven hash-map builder rely on it, so the PURL key and the artifact file
+	 * path can never drift from one another.
+	 *
+	 * A line has the shape `groupId:artifactId:packaging[:classifier]:version[:scope]`.
+	 * The classifier column is only present when a sixth column holds a known
+	 * Maven scope keyword; otherwise the fourth column is the version.
+	 *
+	 * @param {string} line - line to parse from a dependency tree
+	 * @returns {{groupId: string, artifactId: string, packaging: string, classifier: (string|null), version: string, scope: (string|null), overridden: boolean}}
+	 *   Parsed coordinate. `version` is the resolved concrete version — when the
+	 *   line carries a conflict override the override version replaces it and
+	 *   `overridden` is set, mirroring how Maven records the winning version.
+	 */
+	parseCoordinate(line) {
+		const parts = line.split(':').map(part => part ? part.match(this.DEP_REGEX)?.[0] ?? '' : '')
+		const groupId = parts[0] ?? ''
+		const artifactId = parts[1] ?? ''
+		const packaging = parts[2] ?? ''
+		// A classifier column exists only when a sixth column holds a scope keyword.
+		const hasClassifier = parts.length >= 6 && Base_Java.MAVEN_SCOPES.includes(parts[5])
+		const classifier = hasClassifier ? parts[3] : null
+		let version = (hasClassifier ? parts[4] : parts[3]) ?? ''
+		const scope = hasClassifier ? parts[5] : (parts.length >= 5 ? parts[4] : null)
+		// A conflict override replaces the resolved version entirely.
+		const override = line.match(this.CONFLICT_REGEX)
+		const overridden = Boolean(override)
+		if (overridden) {
+			version = override[1]
+		}
+		return { groupId, artifactId, packaging, classifier, version, scope, overridden }
+	}
+
+	/**
+	 * Build the canonical PackageURL for a parsed coordinate.
+	 *
+	 * The classifier is folded into the version component (e.g.
+	 * `4.1.0-linux-x86_64`) except when the version came from a conflict
+	 * override, in which case the override version stands alone — matching the
+	 * historical behavior of {@link parseDep}.
+	 *
+	 * @param {{groupId: string, artifactId: string, classifier: (string|null), version: string, overridden: boolean}} coord
+	 * @returns {PackageURL} The canonical packageURL for the coordinate
+	 * @protected
+	 */
+	_coordinateToPurl(coord) {
+		const purlVersion = (coord.classifier && !coord.overridden)
+			? `${coord.version}-${coord.classifier}`
+			: coord.version
+		return this.toPurl(coord.groupId, coord.artifactId, purlVersion)
+	}
+
+	/**
 	 * Create a PackageURL from any line in a Text Graph dependency tree for a manifest path.
 	 * @param {string} line - line to parse from a dependencies.txt file
 	 * @returns {PackageURL} The parsed packageURL
 	 */
 	parseDep(line) {
-		let match = line.split(':').map(part => part ? part.match(this.DEP_REGEX)[0] : '');
-		if (!match) {
-			throw new Error(`Unable generate SBOM from dependency tree. Line: ${line} cannot be parsed into a PackageURL`);
-		}
-		let version
-		if (match.length >= 5 && ['compile', 'provided', 'runtime'].includes(match[5])) {
-			version = `${match[4]}-${match[3]}`
-		} else {
-			version = match[3]
-		}
-		let override = line.match(this.CONFLICT_REGEX);
-		if (override) {
-			version = override[1];
-		}
-		if (match[0].trim() === '') {
+		const coord = this.parseCoordinate(line)
+		if (coord.groupId.trim() === '') {
 			throw new Error(`Artifact coordinates should have a non-empty group ID: ${line}`);
 		}
-		return this.toPurl(match[0], match[1], version);
+		return this._coordinateToPurl(coord);
 	}
 
 	/**

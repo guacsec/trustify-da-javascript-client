@@ -209,6 +209,29 @@ function performManifestVersionsCheck(rootElementName, goModGraphOutputRows, man
 	}
 }
 
+/** Parses go.sum to build a hash map of module@version to CycloneDX hashes. */
+function parseGoSumHashes(manifestDir) {
+	let goSumPath = path.join(manifestDir, 'go.sum')
+	if (!fs.existsSync(goSumPath)) {
+		return new Map()
+	}
+	let hashMap = new Map()
+	let content = fs.readFileSync(goSumPath, 'utf-8')
+	for (let line of content.split('\n')) {
+		line = line.trim()
+		if (!line) { continue }
+		let parts = line.split(/\s+/)
+		if (parts.length < 3) { continue }
+		let [mod, version, hash] = parts
+		if (version.endsWith('/go.mod')) { continue }
+		if (!hash.startsWith('h1:')) { continue }
+		let base64Part = hash.slice(3)
+		let hexDigest = Buffer.from(base64Part, 'base64').toString('hex')
+		hashMap.set(`${mod}@${version}`, [{alg: "SHA-256", content: hexDigest}])
+	}
+	return hashMap
+}
+
 /**
  * Create SBOM json string for go Module.
  * @param {string} manifest - path for go.mod
@@ -264,6 +287,8 @@ async function getSBOM(manifest, opts = {}, includeTransitive) {
 		performManifestVersionsCheck(root, rows, manifestContent, parser, requireQuery)
 	}
 
+	let goSumHashes = parseGoSumHashes(manifestDir)
+
 	const mainModule = toPurl(root, "@")
 	const license = readLicenseFromManifest(manifest);
 	sbom.addRoot(mainModule, license)
@@ -285,7 +310,7 @@ async function getSBOM(manifest, opts = {}, includeTransitive) {
 			if (getParentVertexFromEdge(row) === root && !directDepPaths.has(getPackageName(child))) {
 				return;
 			}
-			sbom.addDependency(source, target)
+			sbom.addDependency(source, target, undefined, goSumHashes.get(child))
 
 		})
 		// at the end, filter out all ignored dependencies including versions.
@@ -298,11 +323,20 @@ async function getSBOM(manifest, opts = {}, includeTransitive) {
 			let target = toPurl(child, "@");
 			if(dependencyNotIgnored(ignoredDeps, target)) {
 				if (directDepPaths.has(getPackageName(child))) {
-					sbom.addDependency(mainModule, target)
+					sbom.addDependency(mainModule, target, undefined, goSumHashes.get(child))
 				}
 			}
 		})
 		enforceRemovingIgnoredDepsInCaseOfAutomaticVersionUpdate(ignoredDeps, sbom)
+	}
+
+	// Backfill hashes for components that were only seen as dependency sources
+	for (const comp of sbom.sbomModel.components) {
+		if (!comp.hashes && comp.purl) {
+			let key = decodeURIComponent(comp.purl.replace('pkg:golang/', ''))
+			let hashes = goSumHashes.get(key)
+			if (hashes) { comp.hashes = hashes }
+		}
 	}
 
 	return sbom.getAsJsonString(opts)

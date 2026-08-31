@@ -2,6 +2,15 @@ import {EOL} from "os";
 
 import {PackageURL} from "packageurl-js";
 
+import {getPackageVersion} from "./package_version.js";
+
+/**
+ * This client's version, read once at module load, used to populate
+ * metadata.tools.components[].version in the generated SBOM.
+ * @type {string|undefined}
+ */
+const PACKAGE_VERSION = getPackageVersion()
+
 /**
  *
  * @param component {PackageURL}
@@ -164,6 +173,31 @@ export default class CycloneDxSbom {
 		return this;
 	}
 
+	/**
+	 * Attach hashes to already-added components by matching their PURL. This is a
+	 * post-processing step so ecosystem-specific hash sources (e.g. Maven reading
+	 * the local .m2 cache) can enrich the SBOM without threading their concern
+	 * through the shared dependency-tree parser. Components without a matching
+	 * entry, or whose hashes are already set, are left untouched.
+	 * @param {Map<string, Array<{alg: string, content: string}>>} hashMap - PURL→hashes map
+	 * @return {CycloneDxSbom} the updated SBOM
+	 */
+	attachHashes(hashMap) {
+		if (!hashMap || hashMap.size === 0) {
+			return this
+		}
+		for (const component of this.components) {
+			if (component.hashes) {
+				continue
+			}
+			const hashes = hashMap.get(component.purl)
+			if (hashes && hashes.length > 0) {
+				component.hashes = hashes
+			}
+		}
+		return this
+	}
+
 	/** @param {{}} opts - various options, settings and configuration of application.
  	 * @return String CycloneDx Sbom json object in a string format
 	 */
@@ -173,11 +207,18 @@ export default class CycloneDxSbom {
 		const rootPurl = this.rootComponent?.purl;
 		this.sbomObject = {
 			"bomFormat": "CycloneDX",
-			"specVersion": "1.4",
+			"specVersion": "1.6",
 			"version": 1,
 			"metadata": {
 				"timestamp": new Date(),
 				"component": this.rootComponent,
+				"tools": {
+					"components": [{
+						"type": "application",
+						"name": "trustify-da-javascript-client",
+						"version": PACKAGE_VERSION
+					}]
+				},
 				"properties": new Array()
 			},
 			"components": this.components.filter(c => c.purl !== rootPurl),

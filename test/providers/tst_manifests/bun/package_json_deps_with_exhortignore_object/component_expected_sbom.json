@@ -1,6 +1,6 @@
 {
 	"bomFormat": "CycloneDX",
-	"specVersion": "1.4",
+	"specVersion": "1.6",
 	"version": 1,
 	"metadata": {
 		"timestamp": "2023-08-07T00:00:00.000Z",
@@ -10,6 +10,15 @@
 			"purl": "pkg:npm/bun-test@1.0.0",
 			"type": "application",
 			"bom-ref": "pkg:npm/bun-test@1.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.3.0"
+				}
+			]
 		}
 	},
 	"components": [
@@ -18,7 +27,13 @@
 			"version": "7.0.0",
 			"purl": "pkg:npm/is-number@7.0.0",
 			"type": "library",
-			"bom-ref": "pkg:npm/is-number@7.0.0"
+			"bom-ref": "pkg:npm/is-number@7.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "e350a27e483a7bc4f2952a5db53a5e2d532abd20445734edb47bc4443ef8d7ea6767c00dbf4d34e0c44be3740a3c394af5c1af369e8d6566540656c65d8c719e"
+				}
+			]
 		}
 	],
 	"dependencies": [
