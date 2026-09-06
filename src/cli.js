@@ -6,10 +6,43 @@ import * as path from "path";
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
+import { resolveConfig } from './config.js'
 import { getProjectLicense, getLicenseDetails } from './license/index.js'
 import { runRemediation } from './remediate.js'
 
 import client, { selectTrustifyDABackend, generateSbom } from './index.js'
+
+/**
+ * Builds a yargs middleware that loads `.trustify-da.yml` (discovered by walking
+ * up from the command's target path) and fills `--providers`, `--sources`, and
+ * `--group-by` with config file values when they were not supplied on the CLI or
+ * via environment variables. Precedence: CLI flag > env var > config file > default.
+ * @param {string} pathKey - the positional argument holding the target path
+ * @param {{ groupBy?: boolean }} [options={}] - set `groupBy` when the command exposes `--group-by`
+ * @returns {(args: object) => object} yargs middleware
+ */
+function configMiddleware(pathKey, options = {}) {
+	return args => {
+		const merged = resolveConfig(
+			args[pathKey],
+			{ backendUrl: args.backendUrl, providers: args.providers, sources: args.sources, groupBy: args['group-by'] },
+			process.env
+		)
+		if (args.providers !== undefined) {
+			args.providers = merged.providers.join(',')
+		}
+		if (args.sources !== undefined) {
+			args.sources = merged.sources.join(',')
+		}
+		if (args.backendUrl !== undefined) {
+			args.backendUrl = merged.backendUrl
+		}
+		if (options.groupBy) {
+			args['group-by'] = merged.groupBy
+		}
+		return args
+	}
+}
 
 
 // command for component analysis take manifest type and content
@@ -183,6 +216,10 @@ const stack = {
 			type: 'string',
 			normalize: true,
 		},
+		backendUrl: {
+			desc: 'Trustify DA backend URL (env: TRUSTIFY_DA_BACKEND_URL)',
+			type: 'string',
+		},
 		providers: {
 			desc: 'Comma-separated list of vulnerability providers (env: TRUSTIFY_DA_PROVIDERS)',
 			type: 'string',
@@ -191,12 +228,15 @@ const stack = {
 			desc: 'Comma-separated list of vulnerability sources (env: TRUSTIFY_DA_SOURCES)',
 			type: 'string',
 		}
-	}),
+	}).middleware(configMiddleware('/path/to/manifest')),
 	handler: async args => {
 		let manifest = args['/path/to/manifest']
 		let html = args['html']
 		let summary = args['summary']
 		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		if (args.backendUrl) {
+			opts.TRUSTIFY_DA_BACKEND_URL = args.backendUrl
+		}
 		if (args.providers) {
 			opts.TRUSTIFY_DA_PROVIDERS = args.providers
 		}
@@ -495,16 +535,20 @@ const remediate = {
 		'group-by': {
 			type: 'string',
 			choices: ['dependency', 'bundle'],
-			default: 'dependency',
-			desc: 'Report grouping strategy',
+			desc: 'Report grouping strategy (default: dependency)',
 		},
-	}),
+		backendUrl: {
+			desc: 'Trustify DA backend URL (env: TRUSTIFY_DA_BACKEND_URL)',
+			type: 'string',
+		},
+	}).middleware(configMiddleware('path', { groupBy: true })),
 	handler: async args => {
 		try {
 			const result = await runRemediation(args.path, {
 				dryRun: args['dry-run'],
 				providers: args.providers,
 				sources: args.sources,
+				backendUrl: args.backendUrl,
 				groupBy: args['group-by'],
 			})
 			console.log(result.output)

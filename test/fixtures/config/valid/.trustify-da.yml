@@ -1,0 +1,20 @@
+backend-url: https://da.example.com
+providers: [redhat, lightwell]
+sources: [osv]
+
+remediation:
+  group-by: bundle
+  exclude:
+    - pkg:maven/com.example/legacy-lib
+  labels: [trustify-da, security]
+  branch-prefix: trustify-da/
+
+check:
+  fail-on:
+    critical: 0
+    high: 10
+    license-conflicts: 0
+
+sbom:
+  format: cyclonedx
+  targets: [artifact, trustify]

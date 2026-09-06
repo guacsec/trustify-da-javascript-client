@@ -32,13 +32,13 @@ suite('testing Select Trustify DA Backend function', () => {
 		expect(selectedUrl).to.be.equals(testUrl);
 	});
 
-	test('When TRUSTIFY_DA_BACKEND_URL is set in both environment and opts, environment variable should take precedence', () => {
+	test('When TRUSTIFY_DA_BACKEND_URL is set in both environment and opts, opts should take precedence', () => {
 		process.env['TRUSTIFY_DA_BACKEND_URL'] = testUrl;
 		let testOpts = {
 			'TRUSTIFY_DA_BACKEND_URL': testUrl2
 		};
 		let selectedUrl = selectTrustifyDABackend(testOpts);
-		expect(selectedUrl).to.be.equals(testUrl);
+		expect(selectedUrl).to.be.equals(testUrl2);
 		delete process.env['TRUSTIFY_DA_BACKEND_URL'];
 	});
 

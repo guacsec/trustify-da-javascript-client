@@ -71,11 +71,12 @@ function getManifestType(basename) {
  * @param {boolean} [options.dryRun=false] - preview changes without modifying files (applies by default)
  * @param {string} [options.providers] - comma-separated provider list
  * @param {string} [options.sources] - comma-separated source list
+ * @param {string} [options.backendUrl] - Trustify DA backend URL
  * @param {'dependency'|'bundle'} [options.groupBy='dependency'] - report grouping strategy
  * @returns {Promise<{exitCode: number, output: string}>}
  */
 export async function runRemediation(targetPath, options = {}) {
-	const { dryRun = false, providers, sources, groupBy = 'dependency' } = options
+	const { dryRun = false, providers, sources, backendUrl, groupBy = 'dependency' } = options
 
 	const resolvedPath = path.resolve(targetPath)
 
@@ -100,6 +101,9 @@ export async function runRemediation(targetPath, options = {}) {
 	}
 
 	const opts = {}
+	if (backendUrl) {
+		opts.TRUSTIFY_DA_BACKEND_URL = backendUrl
+	}
 	if (providers) {
 		opts.TRUSTIFY_DA_PROVIDERS = providers
 	}

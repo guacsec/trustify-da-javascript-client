@@ -1,0 +1,4 @@
+backend-url: https://da.example.com
+providers: [redhat, lightwell
+remediation:
+  group-by: {unterminated
