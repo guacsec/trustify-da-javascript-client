@@ -126,10 +126,8 @@ function readAndPrintVersionFromPackageJson() {
 }
 
 /**
- * This function is used to determine the Trustify DA backend URL.
- * The TRUSTIFY_DA_BACKEND_URL is evaluated in the following order and selected when it finds it first:
- * 1. Environment Variable
- * 2. (key,value) from opts object
+ * Selects the Trustify DA backend URL from opts.TRUSTIFY_DA_BACKEND_URL, then environment
+ * variable TRUSTIFY_DA_BACKEND_URL. Options take precedence over environment variables.
  * If TRUSTIFY_DA_BACKEND_URL is not set, the function will throw an error.
  * @param {{TRUSTIFY_DA_DEBUG?: string | undefined; TRUSTIFY_DA_BACKEND_URL?: string | undefined}} [opts={}]
  * @return {string} - The selected Trustify DA backend URL
