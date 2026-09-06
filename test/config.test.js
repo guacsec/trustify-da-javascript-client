@@ -172,6 +172,24 @@ suite('mergeConfig', () => {
 		expect(() => mergeConfig({}, { groupBy: 'invalid' }, {}))
 			.to.throw('Invalid group-by value "invalid"')
 	})
+
+	test('CLI empty string overrides environment variable for providers', () => {
+		// Given an environment variable and an explicitly empty CLI flag
+		const env = { TRUSTIFY_DA_PROVIDERS: 'env-provider' }
+		const merged = mergeConfig({}, { providers: '' }, env)
+
+		// Then the empty CLI value wins over the environment value
+		expect(merged.providers).to.deep.equal([])
+	})
+
+	test('CLI empty string overrides environment variable for backendUrl', () => {
+		// Given an environment variable and an explicitly empty CLI flag
+		const env = { TRUSTIFY_DA_BACKEND_URL: 'https://env.example.com' }
+		const merged = mergeConfig({}, { backendUrl: '' }, env)
+
+		// Then the empty CLI value wins over the environment value
+		expect(merged.backendUrl).to.equal('')
+	})
 })
 
 suite('resolveConfig', () => {

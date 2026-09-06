@@ -28,13 +28,13 @@ function configMiddleware(pathKey, options = {}) {
 			{ backendUrl: args.backendUrl, providers: args.providers, sources: args.sources, groupBy: args['group-by'] },
 			process.env
 		)
-		if (merged.providers.length) {
+		if (args.providers !== undefined) {
 			args.providers = merged.providers.join(',')
 		}
-		if (merged.sources.length) {
+		if (args.sources !== undefined) {
 			args.sources = merged.sources.join(',')
 		}
-		if (merged.backendUrl) {
+		if (args.backendUrl !== undefined) {
 			args.backendUrl = merged.backendUrl
 		}
 		if (options.groupBy) {
