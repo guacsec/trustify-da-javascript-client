@@ -18,7 +18,7 @@ ghcr.io/guacsec/trustify-da-javascript-client
 See the [GitHub Container Registry](https://github.com/guacsec/trustify-da-javascript-client/pkgs/container/trustify-da-javascript-client)
 
 Ecosystem                     | Version                                                            |
-------------------------------| ------------------------------------------------------------------ | 
+------------------------------| ------------------------------------------------------------------ |
 Maven | 3.9.12 |
 Gradle | 9.2.1 |
 Go | 1.25.5 |
@@ -27,6 +27,35 @@ PNPM | 10.1.0 |
 Yarn Classic | 1.22.22 |
 Yarn Berry | 4.9.1 |
 Python | n/a |
+
+## Usage
+
+The image uses the `trustify-da` CLI as its entrypoint, so any subcommand is passed
+directly as `docker run <image> <command> [args]`:
+
+``` shell
+# Show CLI usage and all available subcommands
+docker run ghcr.io/guacsec/trustify-da-javascript-client --help
+
+# Stack analysis (mount the project so the manifest is reachable in the container)
+docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client stack /src/pom.xml
+
+# Remediation
+docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client remediate /src --dry-run
+
+# SBOM generation
+docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client sbom /src/pom.xml
+```
+
+Run `docker run <image> <command> --help` (e.g. `stack --help`) for per-subcommand options.
+
+For Yarn projects, set `TRUSTIFY_DA_YARN_PATH` to select the Yarn version — the image
+ships `/usr/local/bin/yarn-classic` (1.22.22) and `/usr/local/bin/yarn-berry` (4.9.1):
+
+``` shell
+docker run -v "$PWD":/src -e TRUSTIFY_DA_YARN_PATH=/usr/local/bin/yarn-berry \
+  ghcr.io/guacsec/trustify-da-javascript-client stack /src/package.json
+```
 
 ### Note for Python users
 
