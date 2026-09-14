@@ -1,7 +1,7 @@
 # Trustify Dependency Analytics Javascript Client Container Images
 
-These dockerfiles provides all nessesary components to generate images for Trustify Dependency Analytics.
-These images can be used as base images to set up the necessary environment and dependencies for running the Trustify Dependency Analytics.
+These Dockerfiles provide the components needed to generate images for Trustify Dependency Analytics CLI commands.
+The images use `trustify-da` as their entrypoint and are not general-purpose base images. Derived images that need to run another command must replace the entrypoint.
 
 ## Prerequisites
 Before getting started, ensure that you have one of the following prerequisites installed on your system:
@@ -30,7 +30,7 @@ Python | n/a |
 
 ## Usage
 
-The image uses the `trustify-da` CLI as its entrypoint, so any subcommand is passed
+The image uses the `trustify-da` CLI as its entrypoint, so subcommands are passed
 directly as `docker run <image> <command> [args]`:
 
 ``` shell
@@ -46,6 +46,8 @@ docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client remediat
 # SBOM generation
 docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client sbom /src/pom.xml
 ```
+
+In `--dry-run` mode, exit code `2` means remediations are available. Treat it as a successful scan result in CI.
 
 Run `docker run <image> <command> --help` (e.g. `stack --help`) for per-subcommand options.
 

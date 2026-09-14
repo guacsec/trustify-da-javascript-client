@@ -127,6 +127,5 @@ COPY --from=builder /usr/bin/jq /usr/bin/jq
 # Copy trustify-da-javascript-client from the builder stage
 COPY --from=builder /app /app
 
-# Use the trustify-da CLI directly as the entrypoint; any subcommand (stack,
-# remediate, sbom, image, license, ...) can be passed as `docker run <image> <command> [args]`
+# Use the trustify-da CLI directly as the entrypoint.
 ENTRYPOINT ["trustify-da"]
