@@ -158,7 +158,6 @@ export function findManifests(targetPath) {
  * @param {string} [options.providers] - comma-separated provider list
  * @param {string} [options.sources] - comma-separated source list
  * @param {string} [options.backendUrl] - Trustify DA backend URL
- * @param {'dependency'|'bundle'} [options.groupBy='dependency'] - report grouping strategy
  * @param {boolean} [options.perDependencyChanges=false] - when true, each remediation is populated with
  *   a `changes` array describing the isolated, single-dependency edit (see {@link DependencyFix}). This lets
  *   callers create one commit/PR per dependency without attributing diff hunks themselves.
@@ -170,7 +169,7 @@ export function findManifests(targetPath) {
  *   truthful "updated N files" count without conflating "had remediations" with "was written".
  */
 export async function runRemediation(targetPath, options = {}) {
-	const { dryRun = false, providers, sources, perDependencyChanges = false, backendUrl, groupBy = 'dependency' } = options
+	const { dryRun = false, providers, sources, perDependencyChanges = false, backendUrl } = options
 
 	const manifestPaths = findManifests(targetPath)
 	if (manifestPaths.length === 0) {

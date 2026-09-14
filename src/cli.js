@@ -578,7 +578,6 @@ const remediate = {
 				providers: args.providers,
 				sources: args.sources,
 				backendUrl: args.backendUrl,
-				groupBy: args['group-by'],
 			})
 
 			if (result.remediations.length === 0 && result.manifests.length === 0) {
