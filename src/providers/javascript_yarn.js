@@ -107,7 +107,20 @@ export default class Javascript_yarn extends Base_javascript {
 	}
 
 	_setUp(manifestPath, opts) {
-		super._setUp(manifestPath, opts);
+		// Auto-detect Yarn variant only if TRUSTIFY_DA_YARN_PATH is not explicitly set
+		const yarnPathKey = 'TRUSTIFY_DA_YARN_PATH';
+		const hasExplicitPath = (yarnPathKey in opts && typeof opts[yarnPathKey] === 'string') ||
+			(yarnPathKey in process.env);
+		const resolvedOpts = { ...opts };
+
+		if (!hasExplicitPath) {
+			const autoPath = this._detectYarnPath(manifestPath);
+			if (autoPath) {
+				resolvedOpts[yarnPathKey] = autoPath;
+			}
+		}
+
+		super._setUp(manifestPath, resolvedOpts);
 
 		const version = this._version() ?? '';
 		const matches = Javascript_yarn.VERSION_PATTERN.exec(version);
@@ -119,6 +132,56 @@ export default class Javascript_yarn extends Base_javascript {
 		const isClassic = matches[1] === '1';
 		this._setEcosystem(isClassic ? 'yarn-classic' : 'yarn-berry');
 		this.#processor = isClassic ? new Yarn_classic_processor(this._getManifest()) : new Yarn_berry_processor(this._getManifest());
+	}
+
+	/**
+	 * Detects the correct Yarn binary path based on project manifest signals.
+	 * Only runs for Yarn projects (package.json with sibling yarn.lock).
+	 * Checks packageManager field, then .yarnrc.yml presence, then defaults to classic.
+	 * @param {string} manifestPath - Path to package.json
+	 * @returns {string|null} Absolute path to the Yarn binary, or null if not a Yarn project
+	 * @private
+	 */
+	_detectYarnPath(manifestPath) {
+		const manifestDir = path.dirname(manifestPath);
+		const manifestName = path.basename(manifestPath);
+
+		// Only detect for Yarn projects (package.json + yarn.lock)
+		if (manifestName !== 'package.json') {
+			return null;
+		}
+		const yarnLockPath = path.join(manifestDir, 'yarn.lock');
+		if (!fs.existsSync(yarnLockPath)) {
+			return null;
+		}
+
+		// Check packageManager field in package.json
+		try {
+			const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+			const packageManager = manifest.packageManager;
+
+			if (packageManager && typeof packageManager === 'string') {
+				// packageManager is authoritative — parse "yarn@X.Y.Z"
+				const match = /^yarn@(\d+)\./.exec(packageManager);
+				if (match) {
+					const majorVersion = match[1];
+					return majorVersion === '1'
+						? '/usr/local/bin/yarn-classic'
+						: '/usr/local/bin/yarn-berry';
+				}
+			}
+		} catch (err) {
+			// If we can't read package.json, fall through to file-based detection
+		}
+
+		// Fall back to .yarnrc.yml presence
+		const yarnrcPath = path.join(manifestDir, '.yarnrc.yml');
+		if (fs.existsSync(yarnrcPath)) {
+			return '/usr/local/bin/yarn-berry';
+		}
+
+		// Default to Classic for bare v1 yarn.lock
+		return '/usr/local/bin/yarn-classic';
 	}
 
 	_getRootDependencies(depTree) {

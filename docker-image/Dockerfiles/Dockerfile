@@ -40,9 +40,6 @@ RUN npm install -g corepack@latest \
 # install jq JSON formating tool
 RUN curl -kL https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux64 -o /usr/bin/jq
 
-# Copy RHDA script (before changing WORKDIR)
-COPY docker-image/scripts/trustify-da.sh /trustify-da.sh
-
 # Copy project files and install Exhort javascript API locally
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -59,8 +56,7 @@ RUN chmod +x /usr/temurin-21/bin/java \
     && chmod +x /usr/go/bin/go \
     && chmod +x /usr/bin/jq \
     && chmod +x /app/dist/src/cli.js \
-    && chmod +x /app/node_modules/.bin/trustify-da \
-    && chmod +x /trustify-da.sh
+    && chmod +x /app/node_modules/.bin/trustify-da
 
 # use default user
 USER default
@@ -122,9 +118,8 @@ USER 1001
 # Update PATH (corepack bin first for pnpm/yarn to be found reliably)
 ENV PATH=/usr/local/corepack/bin:/app/node_modules/.bin:$JAVA_HOME/bin:$MAVEN_HOME/bin:$GOLANG_HOME/bin:$GRADLE_HOME/bin:$PATH
 
-# Set explicit paths for package managers (used by trustify-da-javascript-client)
+# Set explicit path for pnpm (used by trustify-da-javascript-client)
 ENV TRUSTIFY_DA_PNPM_PATH=/usr/local/corepack/bin/pnpm
-ENV TRUSTIFY_DA_YARN_PATH=/usr/local/corepack/bin/yarn
 
 # Copy jq executable from the builder stage
 COPY --from=builder /usr/bin/jq /usr/bin/jq
@@ -132,5 +127,5 @@ COPY --from=builder /usr/bin/jq /usr/bin/jq
 # Copy trustify-da-javascript-client from the builder stage
 COPY --from=builder /app /app
 
-# Copy trustify-da-javascript-client executable script from the builder stage
-COPY --from=builder /trustify-da.sh /trustify-da.sh
+# Use the trustify-da CLI directly as the entrypoint.
+ENTRYPOINT ["trustify-da"]
