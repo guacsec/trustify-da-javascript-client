@@ -150,6 +150,13 @@ export default class Python_uv extends Base_pyproject {
 					}
 				}
 
+				// PEP 440 direct references (name @ url) — skip, no pinned version available
+				if (child.children.find(c => c.type === 'url_spec')) {
+					currentPkg = null
+					collectingVia = false
+					continue
+				}
+
 				let name = nameNode.text
 				let version = null
 				let versionMatches = pinnedVersionQuery.matches(child)

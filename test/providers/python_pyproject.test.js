@@ -474,6 +474,32 @@ suite('testing the python-pyproject data provider', () => {
 					'click should have no children since colorama is marker-filtered')
 			}
 		)).timeout(TIMEOUT)
+
+		test('PEP 440 direct references (name @ url) are skipped', injectAndRun(
+			makeUvExport([{line: 'certifi @ git+https://github.com/certifi/python-certifi@main'}]),
+			async () => {
+				let result = await uvProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+				let sbom = JSON.parse(result.content)
+				let names = sbom.components.map(c => c.name)
+				expect(names).to.not.include('certifi',
+					'direct reference packages should be skipped')
+				expect(names).to.include('click',
+					'regular pinned packages should still be present')
+			}
+		)).timeout(TIMEOUT)
+
+		test('path dependencies are skipped', injectAndRun(
+			makeUvExport([{line: './local-pkg'}]),
+			async () => {
+				let result = await uvProvider.provideStack(path.join(fixtureDir, 'pyproject.toml'))
+				let sbom = JSON.parse(result.content)
+				let names = sbom.components.map(c => c.name)
+				expect(names).to.not.include('local-pkg',
+					'path dependencies should be skipped')
+				expect(names).to.include('click',
+					'regular pinned packages should still be present')
+			}
+		)).timeout(TIMEOUT)
 	})
 
 	suite('poetry projects - PEP 508 marker filtering (TC-4042 reproducer)', () => {
