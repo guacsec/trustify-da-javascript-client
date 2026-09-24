@@ -122,9 +122,8 @@ USER 1001
 # Update PATH (corepack bin first for pnpm/yarn to be found reliably)
 ENV PATH=/usr/local/corepack/bin:/app/node_modules/.bin:$JAVA_HOME/bin:$MAVEN_HOME/bin:$GOLANG_HOME/bin:$GRADLE_HOME/bin:$PATH
 
-# Set explicit paths for package managers (used by trustify-da-javascript-client)
+# Set explicit path for pnpm (used by trustify-da-javascript-client)
 ENV TRUSTIFY_DA_PNPM_PATH=/usr/local/corepack/bin/pnpm
-ENV TRUSTIFY_DA_YARN_PATH=/usr/local/corepack/bin/yarn
 
 # Copy jq executable from the builder stage
 COPY --from=builder /usr/bin/jq /usr/bin/jq
