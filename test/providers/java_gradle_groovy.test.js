@@ -42,6 +42,7 @@ suite('testing the java-gradle-groovy data provider', () => {
 		"deps_with_ignore_full_specification",
 		"deps_with_ignore_named_params",
 		"deps_with_ignore_notations",
+		"deps_with_empty_project_group",
 	].forEach(testCase => {
 		let scenario = testCase.replaceAll('_', ' ')
 
@@ -210,25 +211,4 @@ suite('testing the java-gradle-groovy data provider', () => {
 		}).timeout(10000)
 	});
 
-	[
-		"deps_with_empty_project_group"
-	].forEach(testCase => {
-		let scenario = testCase.replaceAll('_', ' ')
-
-		test(`verify gradle provider throws with scenario ${scenario}`, async () => {
-			// load the expected list for the scenario
-			let dependencyTreeTextContent = fs.readFileSync(`test/providers/tst_manifests/gradle/${testCase}/depTree.txt`,).toString()
-			let gradleProperties = fs.readFileSync(`test/providers/tst_manifests/gradle/${testCase}/gradle.properties`,).toString()
-			let provider = new Java_gradle_groovy()
-			mockInvokeCommand(provider, dependencyTreeTextContent, gradleProperties)
-			// invoke component analysis for scenario manifest
-			let error
-			try {
-				await provider.provideComponent(`test/providers/tst_manifests/gradle/${testCase}/build.gradle`, {})
-			} catch (e) {
-				error = e
-			}
-			expect(error).to.exist
-		})
-	})
 });

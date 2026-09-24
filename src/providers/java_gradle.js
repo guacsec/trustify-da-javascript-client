@@ -193,6 +193,13 @@ export default class Java_gradle extends Base_java {
 		}
 	}
 
+	#buildRootCoordinate(properties) {
+		const group = properties.group || 'unknown'
+		const version = properties.version || '0.0.0'
+		const rootName = properties[ROOT_PROJECT_KEY_NAME]?.match(/Root project '(.+)'/)?.[1] || 'unknown'
+		return `${group}:${rootName}:jar:${version}`
+	}
+
 	/**
 	 * Create a Dot Graph dependency tree for a manifest path.
 	 * @param {string} manifest - path for pom.xml
@@ -202,7 +209,7 @@ export default class Java_gradle extends Base_java {
 	 */
 	#buildSbom(content, properties, manifestPath, opts = {}, hashMap) {
 		let sbom = new Sbom();
-		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
+		let root = this.#buildRootCoordinate(properties)
 		let rootPurl = this.parseDep(root)
 		const license = this.readLicenseFromManifest(manifestPath);
 		sbom.addRoot(rootPurl, license)
@@ -463,7 +470,7 @@ export default class Java_gradle extends Base_java {
 	 */
 	#buildDirectDependenciesSbom(content, properties, manifestPath, opts = {}, hashMap) {
 		let sbom = new Sbom();
-		let root = `${properties.group}:${properties[ROOT_PROJECT_KEY_NAME].match(/Root project '(.+)'/)[1]}:jar:${properties.version}`
+		let root = this.#buildRootCoordinate(properties)
 		let rootPurl = this.parseDep(root)
 		const license = this.readLicenseFromManifest(manifestPath);
 		sbom.addRoot(rootPurl, license)
