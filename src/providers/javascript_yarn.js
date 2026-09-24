@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { parseSyml } from '@yarnpkg/parsers';
 
+import { environmentVariableIsPopulated } from '../tools.js';
 import Base_javascript, { sriToHash } from './base_javascript.js';
 import Yarn_berry_processor from './processors/yarn_berry_processor.js';
 import Yarn_classic_processor from './processors/yarn_classic_processor.js';
@@ -109,8 +110,10 @@ export default class Javascript_yarn extends Base_javascript {
 	_setUp(manifestPath, opts) {
 		// Auto-detect Yarn variant only if TRUSTIFY_DA_YARN_PATH is not explicitly set
 		const yarnPathKey = 'TRUSTIFY_DA_YARN_PATH';
-		const hasExplicitPath = (yarnPathKey in opts && typeof opts[yarnPathKey] === 'string') ||
-			(yarnPathKey in process.env);
+		// An empty opts/env value is treated as unset so auto-detection still runs
+		// (getCustomPath would otherwise reject the empty path).
+		const hasExplicitPath = (typeof opts[yarnPathKey] === 'string' && opts[yarnPathKey] !== '') ||
+			environmentVariableIsPopulated(yarnPathKey);
 		const resolvedOpts = { ...opts };
 
 		if (!hasExplicitPath) {
@@ -160,15 +163,20 @@ export default class Javascript_yarn extends Base_javascript {
 			const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
 			const packageManager = manifest.packageManager;
 
-			if (packageManager && typeof packageManager === 'string') {
-				// packageManager is authoritative — parse "yarn@X.Y.Z"
-				const match = /^yarn@(\d+)\./.exec(packageManager);
-				if (match) {
-					const majorVersion = match[1];
-					return majorVersion === '1'
-						? '/usr/local/bin/yarn-classic'
-						: '/usr/local/bin/yarn-berry';
+			// A present packageManager field is authoritative: if it names a non-Yarn
+			// (or malformed) manager, don't guess a Yarn variant from a stale yarn.lock.
+			if (packageManager != null) {
+				if (typeof packageManager === 'string') {
+					// parse "yarn@X.Y.Z"
+					const match = /^yarn@(\d+)\./.exec(packageManager);
+					if (match) {
+						const majorVersion = match[1];
+						return majorVersion === '1'
+							? '/usr/local/bin/yarn-classic'
+							: '/usr/local/bin/yarn-berry';
+					}
 				}
+				return null;
 			}
 		} catch (err) {
 			// If we can't read package.json, fall through to file-based detection
