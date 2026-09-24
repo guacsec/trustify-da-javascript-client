@@ -40,9 +40,6 @@ RUN npm install -g corepack@latest \
 # install jq JSON formating tool
 RUN curl -kL https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux64 -o /usr/bin/jq
 
-# Copy RHDA script (before changing WORKDIR)
-COPY docker-image/scripts/trustify-da.sh /trustify-da.sh
-
 # Copy project files and install Exhort javascript API locally
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -59,8 +56,7 @@ RUN chmod +x /usr/temurin-21/bin/java \
     && chmod +x /usr/go/bin/go \
     && chmod +x /usr/bin/jq \
     && chmod +x /app/dist/src/cli.js \
-    && chmod +x /app/node_modules/.bin/trustify-da \
-    && chmod +x /trustify-da.sh
+    && chmod +x /app/node_modules/.bin/trustify-da
 
 # use default user
 USER default
@@ -132,5 +128,5 @@ COPY --from=builder /usr/bin/jq /usr/bin/jq
 # Copy trustify-da-javascript-client from the builder stage
 COPY --from=builder /app /app
 
-# Copy trustify-da-javascript-client executable script from the builder stage
-COPY --from=builder /trustify-da.sh /trustify-da.sh
+# Use the trustify-da CLI directly as the entrypoint.
+ENTRYPOINT ["trustify-da"]
