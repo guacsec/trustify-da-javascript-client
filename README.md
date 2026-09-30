@@ -878,7 +878,6 @@ jobs:
         env:
           TRUSTIFY_DA_BACKEND_URL: ${{ secrets.TRUSTIFY_DA_BACKEND_URL }}
         with:
-          entrypoint: trustify-da-javascript-client
           args: remediate . --providers provider1,provider2
 
       - name: Create pull request
