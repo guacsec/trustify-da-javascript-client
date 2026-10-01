@@ -70,9 +70,10 @@ suite('Yarn auto-detection', () => {
 	 * @param {Object} options - Configuration options
 	 * @param {string} [options.packageManager] - packageManager field value
 	 * @param {boolean} [options.yarnrc] - Whether to create .yarnrc.yml
+	 * @param {boolean} [options.workspace] - Whether to return a workspace member manifest
 	 * @returns {string} Path to package.json
 	 */
-	function createYarnFixture({ packageManager, yarnrc } = {}) {
+	function createYarnFixture({ packageManager, yarnrc, workspace } = {}) {
 		const manifest = {
 			name: 'test-pkg',
 			version: '1.0.0',
@@ -80,6 +81,9 @@ suite('Yarn auto-detection', () => {
 		};
 		if (packageManager) {
 			manifest.packageManager = packageManager;
+		}
+		if (workspace) {
+			manifest.workspaces = ['packages/*'];
 		}
 
 		const manifestPath = path.join(tempDir, 'package.json');
@@ -90,8 +94,48 @@ suite('Yarn auto-detection', () => {
 			fs.writeFileSync(path.join(tempDir, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
 		}
 
+		if (workspace) {
+			const memberDir = path.join(tempDir, 'packages', 'member-a');
+			fs.mkdirSync(memberDir, { recursive: true });
+			const memberManifestPath = path.join(memberDir, 'package.json');
+			fs.writeFileSync(memberManifestPath, JSON.stringify({ name: 'member-a', version: '1.0.0' }));
+			return memberManifestPath;
+		}
+
 		return manifestPath;
 	}
+
+	['1.22.22', '4.9.1'].forEach(version => {
+		test(`_setUp detects Yarn ${version} from the workspace root for a nested member`, async () => {
+			const manifestPath = createYarnFixture({ packageManager: `yarn@${version}`, workspace: true });
+
+			const { capturedOpts, invokedCommand } = await setUpWithStubbedYarn(manifestPath, { version });
+
+			const expectedPath = `/usr/local/bin/yarn-${version.startsWith('1.') ? 'classic' : 'berry'}`;
+			expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal(expectedPath);
+			expect(invokedCommand).to.equal(expectedPath);
+		});
+	});
+
+	test('detects Berry from .yarnrc.yml at the workspace root for a nested member', () => {
+		const manifestPath = createYarnFixture({ yarnrc: true, workspace: true });
+
+		expect(new Javascript_yarn()._detectYarnPath(manifestPath)).to.equal('/usr/local/bin/yarn-berry');
+	});
+
+	test('_setUp honors TRUSTIFY_DA_WORKSPACE_DIR when detecting the Yarn variant', async () => {
+		const manifestPath = createYarnFixture({ packageManager: 'yarn@4.9.1', workspace: true });
+		const workspaceDir = path.join(tempDir, 'selected-workspace');
+		fs.mkdirSync(workspaceDir);
+		fs.writeFileSync(path.join(workspaceDir, 'package.json'), JSON.stringify({ packageManager: 'yarn@1.22.22' }));
+		fs.writeFileSync(path.join(workspaceDir, 'yarn.lock'), '# Yarn lockfile v1\n');
+
+		const { capturedOpts } = await setUpWithStubbedYarn(manifestPath, {
+			opts: { TRUSTIFY_DA_WORKSPACE_DIR: workspaceDir },
+		});
+
+		expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('/usr/local/bin/yarn-classic');
+	});
 
 	test('auto-detects classic when TRUSTIFY_DA_YARN_PATH unset, no packageManager, no .yarnrc.yml', () => {
 		createYarnFixture();

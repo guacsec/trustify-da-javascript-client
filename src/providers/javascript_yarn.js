@@ -117,7 +117,7 @@ export default class Javascript_yarn extends Base_javascript {
 		const resolvedOpts = { ...opts };
 
 		if (!hasExplicitPath) {
-			const autoPath = this._detectYarnPath(manifestPath);
+			const autoPath = this._detectYarnPath(manifestPath, opts);
 			if (autoPath) {
 				resolvedOpts[yarnPathKey] = fs.existsSync(autoPath) ? autoPath : this._cmdName();
 			}
@@ -139,28 +139,28 @@ export default class Javascript_yarn extends Base_javascript {
 
 	/**
 	 * Detects the correct Yarn binary path based on project manifest signals.
-	 * Only runs for Yarn projects (package.json with sibling yarn.lock).
-	 * Checks packageManager field, then .yarnrc.yml presence, then defaults to classic.
+	 * Uses the same workspace lock file lookup as dependency analysis.
+	 * Checks packageManager and .yarnrc.yml in the lock file directory, then defaults to classic.
 	 * @param {string} manifestPath - Path to package.json
+	 * @param {Object} [opts={}] - Options, including TRUSTIFY_DA_WORKSPACE_DIR
 	 * @returns {string|null} Absolute path to the Yarn binary, or null if not a Yarn project
 	 * @private
 	 */
-	_detectYarnPath(manifestPath) {
-		const manifestDir = path.dirname(manifestPath);
+	_detectYarnPath(manifestPath, opts = {}) {
 		const manifestName = path.basename(manifestPath);
 
-		// Only detect for Yarn projects (package.json + yarn.lock)
+		// Only detect for Yarn projects (package.json + a reachable yarn.lock)
 		if (manifestName !== 'package.json') {
 			return null;
 		}
-		const yarnLockPath = path.join(manifestDir, 'yarn.lock');
-		if (!fs.existsSync(yarnLockPath)) {
+		const manifestDir = this._findLockFileDir(path.dirname(manifestPath), opts);
+		if (!manifestDir) {
 			return null;
 		}
 
 		// Check packageManager field in package.json
 		try {
-			const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+			const manifest = JSON.parse(fs.readFileSync(path.join(manifestDir, 'package.json'), 'utf-8'));
 			const packageManager = manifest.packageManager;
 
 			// A present packageManager field is authoritative: if it names a non-Yarn
