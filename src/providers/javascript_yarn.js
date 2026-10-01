@@ -119,7 +119,7 @@ export default class Javascript_yarn extends Base_javascript {
 		if (!hasExplicitPath) {
 			const autoPath = this._detectYarnPath(manifestPath);
 			if (autoPath) {
-				resolvedOpts[yarnPathKey] = autoPath;
+				resolvedOpts[yarnPathKey] = fs.existsSync(autoPath) ? autoPath : this._cmdName();
 			}
 		}
 
