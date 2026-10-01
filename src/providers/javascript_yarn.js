@@ -3,7 +3,9 @@ import path from 'node:path';
 
 import { parseSyml } from '@yarnpkg/parsers';
 
+import { environmentVariableIsPopulated } from '../tools.js';
 import Base_javascript, { sriToHash } from './base_javascript.js';
+import Manifest from './manifest.js';
 import Yarn_berry_processor from './processors/yarn_berry_processor.js';
 import Yarn_classic_processor from './processors/yarn_classic_processor.js';
 
@@ -107,9 +109,26 @@ export default class Javascript_yarn extends Base_javascript {
 	}
 
 	_setUp(manifestPath, opts) {
-		super._setUp(manifestPath, opts);
+		const manifest = new Manifest(manifestPath);
+		// Auto-detect Yarn variant only if TRUSTIFY_DA_YARN_PATH is not explicitly set
+		const yarnPathKey = 'TRUSTIFY_DA_YARN_PATH';
+		// An empty opts/env value is treated as unset so auto-detection still runs
+		// (getCustomPath would otherwise reject the empty path).
+		const hasExplicitPath = (typeof opts[yarnPathKey] === 'string' && opts[yarnPathKey] !== '') ||
+			environmentVariableIsPopulated(yarnPathKey);
+		const resolvedOpts = { ...opts };
 
-		const version = this._version() ?? '';
+		if (!hasExplicitPath) {
+			const autoPath = this._detectYarnPath(manifestPath, opts, manifest);
+			if (autoPath) {
+				resolvedOpts[yarnPathKey] = fs.existsSync(autoPath) ? autoPath : this._cmdName();
+			}
+		}
+
+		super._setUp(manifestPath, resolvedOpts, manifest);
+
+		const versionDir = this._findLockFileDir(path.dirname(manifestPath), opts) || path.dirname(manifestPath);
+		const version = this._version({ cwd: versionDir }) ?? '';
 		const matches = Javascript_yarn.VERSION_PATTERN.exec(version);
 
 		if (matches?.length !== 2) {
@@ -119,6 +138,58 @@ export default class Javascript_yarn extends Base_javascript {
 		const isClassic = matches[1] === '1';
 		this._setEcosystem(isClassic ? 'yarn-classic' : 'yarn-berry');
 		this.#processor = isClassic ? new Yarn_classic_processor(this._getManifest()) : new Yarn_berry_processor(this._getManifest());
+	}
+
+	/**
+	 * Detects the correct Yarn binary path based on project manifest signals.
+	 * Uses the same workspace lock file lookup as dependency analysis.
+	 * Uses yarn on PATH for a declared version so Corepack can honor the project pin.
+	 * Otherwise checks .yarnrc.yml in the lock file directory, then defaults to classic.
+	 * @param {string} manifestPath - Path to package.json
+	 * @param {Object} [opts={}] - Options, including TRUSTIFY_DA_WORKSPACE_DIR
+	 * @param {Manifest} [manifest] - Manifest already loaded during setup
+	 * @returns {string|null} Yarn command name or absolute binary path, or null if not a Yarn project
+	 * @private
+	 */
+	_detectYarnPath(manifestPath, opts = {}, manifest) {
+		const manifestName = path.basename(manifestPath);
+
+		// Only detect for Yarn projects (package.json + a reachable yarn.lock)
+		if (manifestName !== 'package.json') {
+			return null;
+		}
+		const manifestDir = this._findLockFileDir(path.dirname(manifestPath), opts);
+		if (!manifestDir) {
+			return null;
+		}
+
+		// Check packageManager field in package.json
+		try {
+			const rootManifestPath = path.join(manifestDir, 'package.json');
+			const packageManager = manifest && path.resolve(manifest.manifestPath) === rootManifestPath
+				? manifest.packageManager
+				: JSON.parse(fs.readFileSync(rootManifestPath, 'utf-8')).packageManager;
+
+			// A present packageManager field is authoritative: if it names a non-Yarn
+			// (or malformed) manager, don't guess a Yarn variant from a stale yarn.lock.
+			if (packageManager != null) {
+				if (typeof packageManager === 'string' && /^yarn@\d+\./.test(packageManager)) {
+					return this._cmdName();
+				}
+				return null;
+			}
+		} catch (err) {
+			// If we can't read package.json, fall through to file-based detection
+		}
+
+		// Fall back to .yarnrc.yml presence
+		const yarnrcPath = path.join(manifestDir, '.yarnrc.yml');
+		if (fs.existsSync(yarnrcPath)) {
+			return '/usr/local/bin/yarn-berry';
+		}
+
+		// Default to Classic for bare v1 yarn.lock
+		return '/usr/local/bin/yarn-classic';
 	}
 
 	_getRootDependencies(depTree) {
