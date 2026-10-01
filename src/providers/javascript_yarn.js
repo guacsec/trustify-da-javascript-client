@@ -5,6 +5,7 @@ import { parseSyml } from '@yarnpkg/parsers';
 
 import { environmentVariableIsPopulated } from '../tools.js';
 import Base_javascript, { sriToHash } from './base_javascript.js';
+import Manifest from './manifest.js';
 import Yarn_berry_processor from './processors/yarn_berry_processor.js';
 import Yarn_classic_processor from './processors/yarn_classic_processor.js';
 
@@ -108,6 +109,7 @@ export default class Javascript_yarn extends Base_javascript {
 	}
 
 	_setUp(manifestPath, opts) {
+		const manifest = new Manifest(manifestPath);
 		// Auto-detect Yarn variant only if TRUSTIFY_DA_YARN_PATH is not explicitly set
 		const yarnPathKey = 'TRUSTIFY_DA_YARN_PATH';
 		// An empty opts/env value is treated as unset so auto-detection still runs
@@ -117,13 +119,13 @@ export default class Javascript_yarn extends Base_javascript {
 		const resolvedOpts = { ...opts };
 
 		if (!hasExplicitPath) {
-			const autoPath = this._detectYarnPath(manifestPath, opts);
+			const autoPath = this._detectYarnPath(manifestPath, opts, manifest);
 			if (autoPath) {
 				resolvedOpts[yarnPathKey] = fs.existsSync(autoPath) ? autoPath : this._cmdName();
 			}
 		}
 
-		super._setUp(manifestPath, resolvedOpts);
+		super._setUp(manifestPath, resolvedOpts, manifest);
 
 		const version = this._version() ?? '';
 		const matches = Javascript_yarn.VERSION_PATTERN.exec(version);
@@ -143,10 +145,11 @@ export default class Javascript_yarn extends Base_javascript {
 	 * Checks packageManager and .yarnrc.yml in the lock file directory, then defaults to classic.
 	 * @param {string} manifestPath - Path to package.json
 	 * @param {Object} [opts={}] - Options, including TRUSTIFY_DA_WORKSPACE_DIR
+	 * @param {Manifest} [manifest] - Manifest already loaded during setup
 	 * @returns {string|null} Absolute path to the Yarn binary, or null if not a Yarn project
 	 * @private
 	 */
-	_detectYarnPath(manifestPath, opts = {}) {
+	_detectYarnPath(manifestPath, opts = {}, manifest) {
 		const manifestName = path.basename(manifestPath);
 
 		// Only detect for Yarn projects (package.json + a reachable yarn.lock)
@@ -160,8 +163,10 @@ export default class Javascript_yarn extends Base_javascript {
 
 		// Check packageManager field in package.json
 		try {
-			const manifest = JSON.parse(fs.readFileSync(path.join(manifestDir, 'package.json'), 'utf-8'));
-			const packageManager = manifest.packageManager;
+			const rootManifestPath = path.join(manifestDir, 'package.json');
+			const packageManager = manifest && path.resolve(manifest.manifestPath) === rootManifestPath
+				? manifest.packageManager
+				: JSON.parse(fs.readFileSync(rootManifestPath, 'utf-8')).packageManager;
 
 			// A present packageManager field is authoritative: if it names a non-Yarn
 			// (or malformed) manager, don't guess a Yarn variant from a stale yarn.lock.

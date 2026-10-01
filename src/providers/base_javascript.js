@@ -86,11 +86,12 @@ export default class Base_javascript {
    * Sets up the provider with the manifest path and options
    * @param {string} manifestPath - Path to the package.json manifest file
    * @param {Object} opts - Configuration options for the provider
+   * @param {Manifest} [manifest] - Manifest already loaded by the provider
    * @protected
    */
-	_setUp(manifestPath, opts) {
+	_setUp(manifestPath, opts, manifest) {
 		this.#cmd = getCustomPath(this._cmdName(), opts);
-		this.#manifest = new Manifest(manifestPath);
+		this.#manifest = manifest ?? new Manifest(manifestPath);
 		this.#ecosystem = purlType;
 	}
 
