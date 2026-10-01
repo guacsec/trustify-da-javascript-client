@@ -1,3 +1,4 @@
+import { rejects } from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -6,6 +7,7 @@ import esmock from 'esmock';
 import { spy } from 'sinon';
 
 import Javascript_yarn from '../src/providers/javascript_yarn.js';
+import { getCustomPath } from '../src/tools.js';
 
 /**
  * Runs Javascript_yarn._setUp with the package-manager binary stubbed out, capturing
@@ -13,14 +15,14 @@ import Javascript_yarn from '../src/providers/javascript_yarn.js';
  * invoking a real yarn binary.
  * @param {string} manifestPath - Path to package.json
  * @param {{version?: string, opts?: Object, containerYarnAvailable?: boolean}} [config]
- * @returns {Promise<{capturedOpts: Object, invokedCommand: string, manifest: Object}>}
+ * @returns {Promise<{capturedOpts: Object, invokedCommand: string, invokedOpts: Object, manifest: Object}>}
  */
 async function setUpWithStubbedYarn(manifestPath, {
 	version = '1.22.22', opts = {}, containerYarnAvailable = true
 } = {}) {
 	let capturedOpts;
 	let invokedCommand;
-	const key = 'TRUSTIFY_DA_YARN_PATH';
+	let invokedOpts;
 	const MockedYarn = await esmock('../src/providers/javascript_yarn.js', {
 		'node:fs': {
 			existsSync: file => ['/usr/local/bin/yarn-classic', '/usr/local/bin/yarn-berry'].includes(file)
@@ -28,14 +30,13 @@ async function setUpWithStubbedYarn(manifestPath, {
 		},
 		'../src/providers/base_javascript.js': await esmock('../src/providers/base_javascript.js', {
 			'../src/tools.js': {
-				// Mirror getCustom precedence (opts wins, then env) so env-override tests are meaningful.
 				getCustomPath: (name, o) => {
 					capturedOpts = o;
-					const fromOpts = typeof o?.[key] === 'string' && o[key] !== '' ? o[key] : undefined;
-					return fromOpts ?? (process.env[key] || name);
+					return getCustomPath(name, o);
 				},
-				invokeCommand: (cmd, args) => {
+				invokeCommand: (cmd, args, commandOpts) => {
 					invokedCommand = cmd;
+					invokedOpts = commandOpts;
 					return args.includes('--version') ? version : '';
 				},
 			},
@@ -43,7 +44,7 @@ async function setUpWithStubbedYarn(manifestPath, {
 	});
 	const provider = new MockedYarn();
 	provider._setUp(manifestPath, opts);
-	return { capturedOpts, invokedCommand, manifest: provider._getManifest() };
+	return { capturedOpts, invokedCommand, invokedOpts, manifest: provider._getManifest() };
 }
 
 suite('Yarn auto-detection', () => {
@@ -107,15 +108,15 @@ suite('Yarn auto-detection', () => {
 		return manifestPath;
 	}
 
-	['1.22.22', '4.9.1'].forEach(version => {
-		test(`_setUp detects Yarn ${version} from the workspace root for a nested member`, async () => {
+	['1.22.22', '3.1.1', '4.9.1'].forEach(version => {
+		test(`_setUp preserves declared Yarn ${version} at the workspace root for a nested member`, async () => {
 			const manifestPath = createYarnFixture({ packageManager: `yarn@${version}`, workspace: true });
 
-			const { capturedOpts, invokedCommand, manifest } = await setUpWithStubbedYarn(manifestPath, { version });
+			const { capturedOpts, invokedCommand, invokedOpts, manifest } = await setUpWithStubbedYarn(manifestPath, { version });
 
-			const expectedPath = `/usr/local/bin/yarn-${version.startsWith('1.') ? 'classic' : 'berry'}`;
-			expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal(expectedPath);
-			expect(invokedCommand).to.equal(expectedPath);
+			expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('yarn');
+			expect(invokedCommand).to.equal('yarn');
+			expect(invokedOpts.cwd).to.equal(tempDir);
 			expect(manifest.manifestPath).to.equal(manifestPath);
 			expect(manifest.name).to.equal('member-a');
 		});
@@ -127,25 +128,23 @@ suite('Yarn auto-detection', () => {
 		expect(new Javascript_yarn()._detectYarnPath(manifestPath)).to.equal('/usr/local/bin/yarn-berry');
 	});
 
-	test('_setUp honors TRUSTIFY_DA_WORKSPACE_DIR when detecting the Yarn variant', async () => {
+	test('_setUp queries the declared Yarn version in TRUSTIFY_DA_WORKSPACE_DIR', async () => {
 		const manifestPath = createYarnFixture({ packageManager: 'yarn@4.9.1', workspace: true });
 		const workspaceDir = path.join(tempDir, 'selected-workspace');
 		fs.mkdirSync(workspaceDir);
 		fs.writeFileSync(path.join(workspaceDir, 'package.json'), JSON.stringify({ packageManager: 'yarn@1.22.22' }));
 		fs.writeFileSync(path.join(workspaceDir, 'yarn.lock'), '# Yarn lockfile v1\n');
 
-		const { capturedOpts } = await setUpWithStubbedYarn(manifestPath, {
+		const { capturedOpts, invokedOpts } = await setUpWithStubbedYarn(manifestPath, {
 			opts: { TRUSTIFY_DA_WORKSPACE_DIR: workspaceDir },
 		});
 
-		expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('/usr/local/bin/yarn-classic');
+		expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('yarn');
+		expect(invokedOpts.cwd).to.equal(workspaceDir);
 	});
 
 	test('auto-detects classic when TRUSTIFY_DA_YARN_PATH unset, no packageManager, no .yarnrc.yml', () => {
 		createYarnFixture();
-		// After _setUp runs with auto-detection, env var should be set
-		// We can't easily test _setUp without mocking yarn binary, so we test the detection logic
-		// by checking that the env var gets set
 		const manifestPath = path.join(tempDir, 'package.json');
 
 		// Import and instantiate to access the method
@@ -165,24 +164,15 @@ suite('Yarn auto-detection', () => {
 		expect(detected).to.equal('/usr/local/bin/yarn-berry');
 	});
 
-	test('auto-detects classic from packageManager yarn@1.x', () => {
-		createYarnFixture({ packageManager: 'yarn@1.22.22' });
-		const manifestPath = path.join(tempDir, 'package.json');
+	['1.22.22', '3.1.1', '4.9.1'].forEach(version => {
+		test(`uses yarn on PATH for declared packageManager yarn@${version}`, async () => {
+			const manifestPath = createYarnFixture({ packageManager: `yarn@${version}` });
 
-		const provider = new Javascript_yarn();
-		const detected = provider._detectYarnPath(manifestPath);
-
-		expect(detected).to.equal('/usr/local/bin/yarn-classic');
-	});
-
-	test('auto-detects berry from packageManager yarn@4.x', () => {
-		createYarnFixture({ packageManager: 'yarn@4.9.1' });
-		const manifestPath = path.join(tempDir, 'package.json');
-
-		const provider = new Javascript_yarn();
-		const detected = provider._detectYarnPath(manifestPath);
-
-		expect(detected).to.equal('/usr/local/bin/yarn-berry');
+			expect(new Javascript_yarn()._detectYarnPath(manifestPath)).to.equal('yarn');
+			const { capturedOpts, invokedCommand } = await setUpWithStubbedYarn(manifestPath, { version });
+			expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('yarn');
+			expect(invokedCommand).to.equal('yarn');
+		});
 	});
 
 	test('packageManager field takes precedence over .yarnrc.yml', () => {
@@ -192,7 +182,7 @@ suite('Yarn auto-detection', () => {
 		const provider = new Javascript_yarn();
 		const detected = provider._detectYarnPath(manifestPath);
 
-		expect(detected).to.equal('/usr/local/bin/yarn-classic');
+		expect(detected).to.equal('yarn');
 	});
 
 	test('returns null when manifest is not package.json', () => {
@@ -226,7 +216,7 @@ suite('Yarn auto-detection', () => {
 		const provider = new Javascript_yarn();
 		const detected = provider._detectYarnPath(manifestPath);
 
-		expect(detected).to.equal('/usr/local/bin/yarn-berry');
+		expect(detected).to.equal('yarn');
 	});
 
 	test('handles malformed package.json gracefully', () => {
@@ -250,7 +240,7 @@ suite('Yarn auto-detection', () => {
 	});
 
 	test('_setUp threads the detected path into super._setUp without mutating process.env', async () => {
-		const manifestPath = createYarnFixture({ packageManager: 'yarn@4.9.1' });
+		const manifestPath = createYarnFixture({ yarnrc: true });
 
 		const { capturedOpts } = await setUpWithStubbedYarn(manifestPath, { version: '4.9.1' });
 
@@ -264,7 +254,7 @@ suite('Yarn auto-detection', () => {
 		try {
 			const { capturedOpts, manifest } = await setUpWithStubbedYarn(manifestPath, { version: '4.9.1' });
 
-			expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('/usr/local/bin/yarn-berry');
+			expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('yarn');
 			expect(manifest.dependencies).to.deep.equal(['lodash']);
 			expect(readFile.getCalls().filter(call => call.args[0] === manifestPath)).to.have.lengthOf(1);
 		} finally {
@@ -283,7 +273,7 @@ suite('Yarn auto-detection', () => {
 
 	['1.22.22', '4.9.1'].forEach(version => {
 		test(`_setUp falls back to yarn on PATH when the Yarn ${version} container binary is absent`, async () => {
-			const manifestPath = createYarnFixture({ packageManager: `yarn@${version}` });
+			const manifestPath = createYarnFixture({ yarnrc: !version.startsWith('1.') });
 
 			const { capturedOpts, invokedCommand } = await setUpWithStubbedYarn(manifestPath, {
 				version, containerYarnAvailable: false,
@@ -304,6 +294,15 @@ suite('Yarn auto-detection', () => {
 
 		expect(capturedOpts.TRUSTIFY_DA_YARN_PATH).to.equal('/custom/yarn');
 		expect(invokedCommand).to.equal('/custom/yarn');
+	});
+
+	test('_setUp rejects an empty opts path even when the environment provides a path', async () => {
+		process.env.TRUSTIFY_DA_YARN_PATH = '/custom/yarn';
+		const manifestPath = createYarnFixture();
+
+		await rejects(setUpWithStubbedYarn(manifestPath, {
+			opts: { TRUSTIFY_DA_YARN_PATH: '' },
+		}), { message: 'Executable path rejected: expected a non-empty string' });
 	});
 
 	test('_setUp respects an explicit TRUSTIFY_DA_YARN_PATH and skips auto-detection', async () => {

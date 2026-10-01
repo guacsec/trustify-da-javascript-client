@@ -352,9 +352,9 @@ export default class Base_javascript {
    * @protected
    */
 	_buildDependencyTree(includeTransitive, opts = {}) {
-		this._version();
 		const manifestDir = path.dirname(this.#manifest.manifestPath);
 		const cmdDir = this._findLockFileDir(manifestDir, opts) || manifestDir;
+		this._version({ cwd: cmdDir });
 		this._createLockFile(cmdDir);
 		this._loadHashes(cmdDir);
 
@@ -514,11 +514,12 @@ export default class Base_javascript {
 
 	/**
    * Gets the version of the package manager
+   * @param {Object} [opts={}] - Command options, including the workspace directory
    * @returns {string} The version string of the package manager
    * @protected
    */
-	_version() {
-		return this.#invokeCommand(['--version']);
+	_version(opts = {}) {
+		return this.#invokeCommand(['--version'], opts);
 	}
 
 	/**

@@ -127,7 +127,8 @@ export default class Javascript_yarn extends Base_javascript {
 
 		super._setUp(manifestPath, resolvedOpts, manifest);
 
-		const version = this._version() ?? '';
+		const versionDir = this._findLockFileDir(path.dirname(manifestPath), opts) || path.dirname(manifestPath);
+		const version = this._version({ cwd: versionDir }) ?? '';
 		const matches = Javascript_yarn.VERSION_PATTERN.exec(version);
 
 		if (matches?.length !== 2) {
@@ -142,11 +143,12 @@ export default class Javascript_yarn extends Base_javascript {
 	/**
 	 * Detects the correct Yarn binary path based on project manifest signals.
 	 * Uses the same workspace lock file lookup as dependency analysis.
-	 * Checks packageManager and .yarnrc.yml in the lock file directory, then defaults to classic.
+	 * Uses yarn on PATH for a declared version so Corepack can honor the project pin.
+	 * Otherwise checks .yarnrc.yml in the lock file directory, then defaults to classic.
 	 * @param {string} manifestPath - Path to package.json
 	 * @param {Object} [opts={}] - Options, including TRUSTIFY_DA_WORKSPACE_DIR
 	 * @param {Manifest} [manifest] - Manifest already loaded during setup
-	 * @returns {string|null} Absolute path to the Yarn binary, or null if not a Yarn project
+	 * @returns {string|null} Yarn command name or absolute binary path, or null if not a Yarn project
 	 * @private
 	 */
 	_detectYarnPath(manifestPath, opts = {}, manifest) {
@@ -171,15 +173,8 @@ export default class Javascript_yarn extends Base_javascript {
 			// A present packageManager field is authoritative: if it names a non-Yarn
 			// (or malformed) manager, don't guess a Yarn variant from a stale yarn.lock.
 			if (packageManager != null) {
-				if (typeof packageManager === 'string') {
-					// parse "yarn@X.Y.Z"
-					const match = /^yarn@(\d+)\./.exec(packageManager);
-					if (match) {
-						const majorVersion = match[1];
-						return majorVersion === '1'
-							? '/usr/local/bin/yarn-classic'
-							: '/usr/local/bin/yarn-berry';
-					}
+				if (typeof packageManager === 'string' && /^yarn@\d+\./.test(packageManager)) {
+					return this._cmdName();
 				}
 				return null;
 			}
