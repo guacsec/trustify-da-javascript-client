@@ -566,6 +566,11 @@ const remediate = {
 			choices: ['dependency', 'bundle'],
 			desc: 'Report grouping strategy (default: dependency)',
 		},
+		exclude: {
+			desc: 'Version-less purl glob to exclude from remediation, e.g. pkg:maven/com.example/legacy-lib. Supports globs: * within a segment (pkg:maven/com.example/* for a group), ** across segments (pkg:maven/** for an ecosystem). Repeat flag per entry.',
+			type: 'string',
+			array: true,
+		},
 		backendUrl: {
 			desc: 'Trustify DA backend URL (env: TRUSTIFY_DA_BACKEND_URL)',
 			type: 'string',
@@ -578,6 +583,9 @@ const remediate = {
 				providers: args.providers,
 				sources: args.sources,
 				backendUrl: args.backendUrl,
+				exclude: Array.isArray(args.exclude)
+					? args.exclude.filter(p => p != null && String(p).trim())
+					: [],
 			})
 
 			if (result.remediations.length === 0 && result.manifests.length === 0) {

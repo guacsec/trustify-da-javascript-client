@@ -568,4 +568,210 @@ suite('remediate — runRemediation', () => {
 			}
 		})
 	})
+
+	suite('exclude filter', () => {
+		/**
+		 * Builds an AnalysisReport containing several dependencies under one provider/source.
+		 * @param {Array<{depRef: string, fixedIn: string[], issueId: string, severity?: string}>} deps
+		 * @returns {object}
+		 */
+		function buildExcludeReport(deps) {
+			return {
+				providers: {
+					redhat: {
+						sources: {
+							osv: {
+								dependencies: deps.map(d => ({
+									ref: d.depRef,
+									issues: [{
+										id: d.issueId,
+										severity: d.severity ?? 'HIGH',
+										remediation: { fixedIn: d.fixedIn },
+									}],
+								})),
+							},
+						},
+					},
+				},
+			}
+		}
+
+		const COMMONS_TEXT = { depRef: 'pkg:maven/org.apache.commons/commons-text@1.9', fixedIn: ['pkg:maven/org.apache.commons/commons-text@1.10.0'], issueId: 'CVE-2022-42889' }
+		const JACKSON_CORE = { depRef: 'pkg:maven/com.fasterxml.jackson.core/jackson-core@2.14.0', fixedIn: ['pkg:maven/com.fasterxml.jackson.core/jackson-core@2.15.0'], issueId: 'CVE-2020-1000' }
+		const LOG4J = { depRef: 'pkg:maven/org.apache.logging.log4j/log4j-core@2.14.0', fixedIn: ['pkg:maven/org.apache.logging.log4j/log4j-core@2.17.1'], issueId: 'CVE-2021-44228' }
+
+		/** An excluded purl (matched without its @version) is absent from the result. */
+		test('excluded purl is absent from result.remediations', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT]))
+
+				const result = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:maven/org.apache.commons/commons-text'] })
+
+				expect(result.remediations).to.have.lengthOf(0)
+				expect(result.remediations.map(r => r.artifactId)).to.not.include('commons-text')
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** Non-excluded purls survive even when an exclude list is present. */
+		test('non-excluded purls are present when an exclude list is non-empty', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT, JACKSON_CORE]))
+
+				const result = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:maven/org.apache.commons/commons-text'] })
+
+				const artifacts = result.remediations.map(r => r.artifactId)
+				expect(artifacts).to.not.include('commons-text')
+				expect(artifacts).to.include('jackson-core')
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** An empty exclude list behaves identically to omitting the option. */
+		test('empty exclude list produces the same results as omitting the option', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT, JACKSON_CORE]))
+
+				const withEmpty = await runRemediation(pomPath, { dryRun: true, exclude: [] })
+				const withOmitted = await runRemediation(pomPath, { dryRun: true })
+
+				expect(withEmpty.remediations.map(r => r.artifactId).sort())
+					.to.deep.equal(withOmitted.remediations.map(r => r.artifactId).sort())
+				expect(withEmpty.remediations).to.have.lengthOf(2)
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** Every entry in a multi-entry exclude list filters its matching purl. */
+		test('multiple exclude entries each filter correctly', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT, JACKSON_CORE, LOG4J]))
+
+				const result = await runRemediation(pomPath, {
+					dryRun: true,
+					exclude: [
+						'pkg:maven/org.apache.commons/commons-text',
+						'pkg:maven/com.fasterxml.jackson.core/jackson-core',
+					],
+				})
+
+				const artifacts = result.remediations.map(r => r.artifactId)
+				expect(artifacts).to.deep.equal(['log4j-core'])
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** A `*` wildcard excludes every artifact under a group. */
+		test('wildcard pattern excludes a whole group', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([
+					COMMONS_TEXT,
+					{ depRef: 'pkg:maven/org.apache.commons/commons-lang3@3.9', fixedIn: ['pkg:maven/org.apache.commons/commons-lang3@3.12.0'], issueId: 'CVE-2021-2000' },
+					JACKSON_CORE,
+				]))
+
+				const result = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:maven/org.apache.commons/*'] })
+
+				const artifacts = result.remediations.map(r => r.artifactId)
+				expect(artifacts).to.deep.equal(['jackson-core'])
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** A `*` wildcard matches within the name segment too. */
+		test('wildcard pattern matches a partial name', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT, JACKSON_CORE]))
+
+				const result = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:maven/org.apache.commons/commons-*'] })
+
+				const artifacts = result.remediations.map(r => r.artifactId)
+				expect(artifacts).to.deep.equal(['jackson-core'])
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** A `**` globstar crosses `/` segments, excluding a whole ecosystem. */
+		test('globstar pattern excludes an entire ecosystem across segments', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([
+					COMMONS_TEXT,
+					JACKSON_CORE,
+					{ depRef: 'pkg:npm/%40babel/traverse@7.0.0', fixedIn: ['pkg:npm/%40babel/traverse@7.23.2'], issueId: 'CVE-2023-45133' },
+				]))
+
+				// `*` would not cross the namespace/name boundary; `**` does.
+				const result = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:maven/**'] })
+
+				const artifacts = result.remediations.map(r => r.artifactId)
+				expect(artifacts).to.deep.equal(['traverse'])
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** The purl `type` is matched case-insensitively (purl types are case-insensitive). */
+		test('exclude type is matched case-insensitively', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT]))
+
+				const result = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:MAVEN/org.apache.commons/commons-text'] })
+
+				expect(result.remediations).to.have.lengthOf(0)
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** An npm scope matches whether written `@scope` or percent-encoded `%40scope`. */
+		test('npm scope matches regardless of percent-encoding', async () => {
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'npm' }) })
+				requestStackStub.resolves(buildExcludeReport([
+					{ depRef: 'pkg:npm/%40babel/traverse@7.0.0', fixedIn: ['pkg:npm/%40babel/traverse@7.23.2'], issueId: 'CVE-2023-45133' },
+					JACKSON_CORE,
+				]))
+
+				const withPlainScope = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:npm/@babel/traverse'] })
+				const withEncodedScope = await runRemediation(pomPath, { dryRun: true, exclude: ['pkg:npm/%40babel/traverse'] })
+
+				expect(withPlainScope.remediations.map(r => r.artifactId)).to.deep.equal(['jackson-core'])
+				expect(withEncodedScope.remediations.map(r => r.artifactId)).to.deep.equal(['jackson-core'])
+			} finally {
+				cleanup()
+			}
+		})
+	})
 })
