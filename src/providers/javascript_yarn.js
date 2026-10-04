@@ -4,6 +4,7 @@ import path from 'node:path';
 import { parseSyml } from '@yarnpkg/parsers';
 
 import { environmentVariableIsPopulated } from '../tools.js';
+
 import Base_javascript, { sriToHash } from './base_javascript.js';
 import Manifest from './manifest.js';
 import Yarn_berry_processor from './processors/yarn_berry_processor.js';
@@ -143,8 +144,8 @@ export default class Javascript_yarn extends Base_javascript {
 	/**
 	 * Detects the correct Yarn binary path based on project manifest signals.
 	 * Uses the same workspace lock file lookup as dependency analysis.
-	 * Uses yarn on PATH for a declared version so Corepack can honor the project pin.
-	 * Otherwise checks .yarnrc.yml in the lock file directory, then defaults to classic.
+	 * Uses the container's Corepack shim for project declarations, falling back to PATH during setup.
+	 * Otherwise checks .yarnrc.yml and the lockfile format before defaulting to Classic.
 	 * @param {string} manifestPath - Path to package.json
 	 * @param {Object} [opts={}] - Options, including TRUSTIFY_DA_WORKSPACE_DIR
 	 * @param {Manifest} [manifest] - Manifest already loaded during setup
@@ -163,28 +164,31 @@ export default class Javascript_yarn extends Base_javascript {
 			return null;
 		}
 
-		// Check packageManager field in package.json
+		// Let Corepack resolve project declarations instead of forcing a bundled version.
 		try {
 			const rootManifestPath = path.join(manifestDir, 'package.json');
-			const packageManager = manifest && path.resolve(manifest.manifestPath) === rootManifestPath
-				? manifest.packageManager
-				: JSON.parse(fs.readFileSync(rootManifestPath, 'utf-8')).packageManager;
+			const rootManifest = manifest && path.resolve(manifest.manifestPath) === rootManifestPath
+				? manifest
+				: JSON.parse(fs.readFileSync(rootManifestPath, 'utf-8'));
+			const packageManager = rootManifest.packageManager;
+			const devPackageManager = rootManifest.devEngines?.packageManager;
 
-			// A present packageManager field is authoritative: if it names a non-Yarn
-			// (or malformed) manager, don't guess a Yarn variant from a stale yarn.lock.
-			if (packageManager != null) {
-				if (typeof packageManager === 'string' && /^yarn@\d+\./.test(packageManager)) {
-					return this._cmdName();
-				}
-				return null;
+			// The top-level declaration takes precedence; non-Yarn declarations prevent guessing.
+			if (packageManager != null || devPackageManager != null) {
+				const isYarn = packageManager != null
+					? typeof packageManager === 'string' && packageManager.startsWith('yarn@')
+					: devPackageManager.name === 'yarn';
+				// An absolute shim prevents node_modules/.bin/yarn from shadowing Corepack.
+				return isYarn ? '/usr/local/corepack/bin/yarn' : null;
 			}
 		} catch (err) {
 			// If we can't read package.json, fall through to file-based detection
 		}
 
-		// Fall back to .yarnrc.yml presence
+		// Berry's rc file is optional; its lockfile contains a __metadata entry.
 		const yarnrcPath = path.join(manifestDir, '.yarnrc.yml');
-		if (fs.existsSync(yarnrcPath)) {
+		if (fs.existsSync(yarnrcPath) ||
+			parseSyml(fs.readFileSync(path.join(manifestDir, this._lockFileName()), 'utf-8')).__metadata) {
 			return '/usr/local/bin/yarn-berry';
 		}
 
