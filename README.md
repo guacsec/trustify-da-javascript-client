@@ -113,7 +113,7 @@ Commands:
   trustify-da-javascript-client validate-token <token-provider> [--token-value <value>]   validate input token if authentic and authorized
   trustify-da-javascript-client license </path/to/manifest>               display project license information from manifest and LICENSE file in JSON format
   trustify-da-javascript-client sbom </path/to/manifest> [--output <file>]               generate a CycloneDX SBOM from a manifest file
-  trustify-da-javascript-client remediate <path> [--dry-run] [--providers <list>] [--sources <list>] [--group-by <strategy>]   scan and apply vulnerability remediations
+  trustify-da-javascript-client remediate <path> [--dry-run] [--providers <list>] [--sources <list>] [--group-by <strategy>] [--exclude <purl>...]   scan and apply vulnerability remediations
 
 Options:
   --help  Show help                                                    [boolean]
@@ -184,6 +184,10 @@ $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --pr
 
 # group report output by bundle instead of per-dependency
 $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
+
+# exclude specific dependencies or groups from remediation (repeat --exclude per entry)
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --exclude pkg:maven/com.example/legacy-lib
+$ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --exclude 'pkg:maven/com.example/*' --exclude 'pkg:npm/**'
 ```
 </li>
 
@@ -258,6 +262,10 @@ $ trustify-da-javascript-client remediate /path/to/pom.xml --providers provider1
 
 # group report output by bundle instead of per-dependency
 $ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
+
+# exclude specific dependencies or groups from remediation (repeat --exclude per entry)
+$ trustify-da-javascript-client remediate /path/to/pom.xml --exclude pkg:maven/com.example/legacy-lib
+$ trustify-da-javascript-client remediate /path/to/pom.xml --exclude 'pkg:maven/com.example/*' --exclude 'pkg:npm/**'
 ```
 </li>
 </ul>
@@ -818,6 +826,13 @@ The <code>remediate</code> command scans manifest files for known vulnerabilitie
 <td>string</td>
 <td><code>dependency</code></td>
 <td>Report grouping strategy (<code>dependency</code> or <code>bundle</code>)</td>
+</tr>
+<tr>
+<td><code>--exclude</code></td>
+<td>—</td>
+<td>string[]</td>
+<td>—</td>
+<td>Version-less purl glob patterns to exclude from remediation. <code>*</code> matches within a segment, <code>**</code> crosses segments. Repeat flag per entry.</td>
 </tr>
 </table>
 

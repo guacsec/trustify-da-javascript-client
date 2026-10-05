@@ -144,7 +144,7 @@ function normalizeExcludePattern(pattern) {
  * share the `pkg:<type>/<namespace>/<name>` shape and use standard glob semantics: `*` matches
  * within a `/`-delimited segment (e.g. `pkg:maven/com.example/*` excludes every artifact in that
  * group) and `**` crosses segments (e.g. `pkg:maven/**` excludes the whole ecosystem). Brace
- * expansion and negation are therefore available too. A pattern without wildcards is an exact
+ * expansion is therefore available too. A pattern without wildcards is an exact
  * (normalized) match.
  * @param {string} pattern
  * @returns {(canonicalPurl: string) => boolean}
