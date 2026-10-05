@@ -598,6 +598,10 @@ const remediate = {
 				process.exit(result.exitCode)
 			}
 
+			for (const s of result.skipped) {
+				console.warn(`Warning: skipped ${s.groupId}:${s.artifactId} → ${s.newVersion}: ${s.reason}`)
+			}
+
 			if (!args['dry-run'] && result.appliedFiles.length > 0) {
 				console.log(`Updated ${result.appliedFiles.length} file(s):`)
 				for (const file of result.appliedFiles) {

@@ -234,12 +234,13 @@ export function findManifests(targetPath) {
  *   case-insensitively and components are percent-decoded, so `pkg:npm/@scope/*` and `pkg:npm/%40scope/*` both
  *   match `pkg:npm/@scope/x`. Matching remediations are filtered out before being applied or returned. Wired
  *   from `.trustify-da.yml`'s `remediation.exclude` via the CLI `--exclude` flag.
- * @returns {Promise<{exitCode: number, remediations: AppliedRemediation[], manifests: string[], appliedFiles: string[]}>}
+ * @returns {Promise<{exitCode: number, remediations: AppliedRemediation[], manifests: string[], appliedFiles: string[], skipped: Array<{groupId: string, artifactId: string, newVersion: string, reason: string}>}>}
  *   exitCode is 2 for a dry-run that found remediations (nothing written), 0 otherwise. `remediations`
  *   is the structured, per-manifest list of applicable updates — each entry carries the originating
  *   manifest path(s) in `files` so callers can group and create per-dependency changes. `appliedFiles`
  *   lists only the manifests actually written to disk (empty on a dry-run), so callers can report a
- *   truthful "updated N files" count without conflating "had remediations" with "was written".
+ *   truthful "updated N files" count without conflating "had remediations" with "was written". `skipped`
+ *   lists remediations that were dropped because they share a version edit site with an excluded dependency.
  */
 export async function runRemediation(targetPath, options = {}) {
 	const { dryRun = false, providers, sources, perDependencyChanges = false, backendUrl, exclude = [] } = options
@@ -250,7 +251,7 @@ export async function runRemediation(targetPath, options = {}) {
 
 	const manifestPaths = findManifests(targetPath)
 	if (manifestPaths.length === 0) {
-		return { exitCode: 0, remediations: [], manifests: manifestPaths, appliedFiles: [] }
+		return { exitCode: 0, remediations: [], manifests: manifestPaths, appliedFiles: [], skipped: [] }
 	}
 
 	const opts = {}
@@ -267,6 +268,8 @@ export async function runRemediation(targetPath, options = {}) {
 	const url = selectTrustifyDABackend(opts)
 	const allRemediations = []
 	const appliedFiles = []
+	/** @type {Array<{groupId: string, artifactId: string, newVersion: string, reason: string}>} */
+	const allSkipped = []
 
 	for (const manifestPath of manifestPaths) {
 		const basename = path.basename(manifestPath)
@@ -290,7 +293,7 @@ export async function runRemediation(targetPath, options = {}) {
 		// Drop remediations whose dependency purl matches an exclude pattern, so callers
 		// (and .trustify-da.yml via the CLI) can opt specific dependencies — or whole
 		// groups via `*` wildcards — out of remediation entirely.
-		const remediations = excludeMatchers.length === 0
+		let remediations = excludeMatchers.length === 0
 			? extracted
 			: extracted.filter(r => {
 				const canonical = canonicalDepPurl(r.purl)
@@ -301,16 +304,59 @@ export async function runRemediation(targetPath, options = {}) {
 			continue
 		}
 
+		const excludedRemediations = extracted.filter(r => !remediations.includes(r))
+		const needsContent = excludedRemediations.length > 0 || perDependencyChanges || !dryRun
+		const originalContent = needsContent ? fs.readFileSync(manifestPath, 'utf-8') : null
+
+		// Block retained remediations that share a changeKey (Maven ${property},
+		// Gradle version.ref) with an excluded one — bumping the shared edit site
+		// would also upgrade the excluded dependency.
+		if (excludedRemediations.length > 0) {
+			/** @type {Map<string, string>} changeKey → "groupId:artifactId" of the excluded dep */
+			const excludedKeyToCoords = new Map()
+			for (const r of excludedRemediations) {
+				const result = manifestType.updater(originalContent, [{
+					groupId: r.groupId, artifactId: r.artifactId, newVersion: r.fixedInVersion,
+				}])
+				for (const a of result.applied) {
+					excludedKeyToCoords.set(
+						manifestType.changeKey(manifestPath, a),
+						`${r.groupId}:${r.artifactId}`
+					)
+				}
+			}
+			if (excludedKeyToCoords.size > 0) {
+				const kept = []
+				for (const r of remediations) {
+					const result = manifestType.updater(originalContent, [{
+						groupId: r.groupId, artifactId: r.artifactId, newVersion: r.fixedInVersion,
+					}])
+					const sharedApplied = result.applied.find(a => excludedKeyToCoords.has(manifestType.changeKey(manifestPath, a)))
+					if (sharedApplied) {
+						const excludedCoords = excludedKeyToCoords.get(manifestType.changeKey(manifestPath, sharedApplied))
+						const editType = manifestType.label === 'maven' ? 'Maven property' : 'Gradle version.ref'
+						allSkipped.push({
+							groupId: r.groupId,
+							artifactId: r.artifactId,
+							newVersion: r.fixedInVersion,
+							reason: `Shares a ${editType} with excluded dependency ${excludedCoords}`,
+						})
+					} else {
+						kept.push(r)
+					}
+				}
+				remediations = kept
+				if (remediations.length === 0) {
+					continue
+				}
+			}
+		}
+
 		// Tag each remediation with the manifest it came from so callers can group
 		// changes per dependency across a multi-manifest workspace.
 		for (const remediation of /** @type {AppliedRemediation[]} */ (remediations)) {
 			remediation.files = [manifestPath]
 		}
-
-		// Read the pristine manifest once. Both the atomic apply and the per-dependency
-		// change computation must diff against the *original* content.
-		const needsContent = perDependencyChanges || !dryRun
-		const originalContent = needsContent ? fs.readFileSync(manifestPath, 'utf-8') : null
 
 		if (perDependencyChanges) {
 			// With per-dependency changes every returned remediation must carry an isolated
@@ -357,9 +403,9 @@ export async function runRemediation(targetPath, options = {}) {
 	}
 
 	if (allRemediations.length === 0) {
-		return { exitCode: 0, remediations: [], manifests: manifestPaths, appliedFiles }
+		return { exitCode: 0, remediations: [], manifests: manifestPaths, appliedFiles, skipped: allSkipped }
 	}
 
 	// Dry-run signals "changes available but not written" via exit code 2.
-	return { exitCode: dryRun ? 2 : 0, remediations: allRemediations, manifests: manifestPaths, appliedFiles }
+	return { exitCode: dryRun ? 2 : 0, remediations: allRemediations, manifests: manifestPaths, appliedFiles, skipped: allSkipped }
 }

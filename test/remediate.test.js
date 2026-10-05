@@ -753,6 +753,104 @@ suite('remediate — runRemediation', () => {
 			}
 		})
 
+		/** Excluding one dep that shares a Maven ${property} with a retained dep also blocks the retained one. */
+		test('shared Maven property blocks retained dep when the co-dependent is excluded', async () => {
+			const SHARED_PROP_POM = `<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <properties>
+    <commons.version>1.9</commons.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>\${commons.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>\${commons.version}</version>
+    </dependency>
+  </dependencies>
+</project>`
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SHARED_PROP_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([
+					COMMONS_TEXT,
+					{ depRef: 'pkg:maven/org.apache.commons/commons-lang3@1.9', fixedIn: ['pkg:maven/org.apache.commons/commons-lang3@1.10.0'], issueId: 'CVE-2021-2000' },
+				]))
+
+				const result = await runRemediation(pomPath, {
+					dryRun: true,
+					exclude: ['pkg:maven/org.apache.commons/commons-text'],
+				})
+
+				// commons-lang3 shares ${commons.version} with the excluded commons-text,
+				// so it must also be blocked — bumping the property would upgrade both.
+				expect(result.remediations).to.have.lengthOf(0)
+				expect(result.skipped).to.have.lengthOf(1)
+				expect(result.skipped[0].artifactId).to.equal('commons-lang3')
+				expect(result.skipped[0].reason).to.equal('Shares a Maven property with excluded dependency org.apache.commons:commons-text')
+				expect(fs.readFileSync(pomPath, 'utf-8')).to.equal(SHARED_PROP_POM)
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** Excluding one dep that shares a Maven ${property} blocks that property but not independent deps. */
+		test('shared property blocks co-dependents but not independent deps', async () => {
+			const MIXED_POM = `<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <properties>
+    <commons.version>1.9</commons.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>\${commons.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>\${commons.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <version>2.14.0</version>
+    </dependency>
+  </dependencies>
+</project>`
+			const { dir, cleanup } = createTempDir({ 'pom.xml': MIXED_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				requestStackStub.resolves(buildExcludeReport([
+					COMMONS_TEXT,
+					{ depRef: 'pkg:maven/org.apache.commons/commons-lang3@1.9', fixedIn: ['pkg:maven/org.apache.commons/commons-lang3@1.10.0'], issueId: 'CVE-2021-2000' },
+					JACKSON_CORE,
+				]))
+
+				const result = await runRemediation(pomPath, {
+					dryRun: true,
+					exclude: ['pkg:maven/org.apache.commons/commons-text'],
+				})
+
+				// commons-lang3 is blocked (shared property), but jackson-core is independent
+				const artifacts = result.remediations.map(r => r.artifactId)
+				expect(artifacts).to.not.include('commons-text')
+				expect(artifacts).to.not.include('commons-lang3')
+				expect(artifacts).to.deep.equal(['jackson-core'])
+				expect(result.skipped).to.have.lengthOf(1)
+				expect(result.skipped[0].artifactId).to.equal('commons-lang3')
+			} finally {
+				cleanup()
+			}
+		})
+
 		/** An npm scope matches whether written `@scope` or percent-encoded `%40scope`. */
 		test('npm scope matches regardless of percent-encoding', async () => {
 			const { dir, cleanup } = createTempDir({ 'pom.xml': SAMPLE_POM })
