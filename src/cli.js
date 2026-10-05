@@ -48,6 +48,11 @@ function configMiddleware(pathKey, options = {}) {
 		if (options.groupBy) {
 			args['group-by'] = merged.groupBy
 		}
+		const fileExclude = merged.remediation?.exclude
+		if (Array.isArray(fileExclude) && fileExclude.length > 0) {
+			const cliExclude = Array.isArray(args.exclude) ? args.exclude : []
+			args.exclude = [...new Set([...cliExclude, ...fileExclude])]
+		}
 		return args
 	}
 }
