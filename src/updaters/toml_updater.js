@@ -30,6 +30,48 @@ export function tomlChangeKey(manifestPath, applied) {
 }
 
 /**
+ * Maps every edit-site key to the canonical, version-less purls of the dependencies that
+ * share it, without mutating content. Used to detect whether bumping a retained remediation
+ * would also affect an excluded dep.
+ * @param {string} tomlContent
+ * @param {string} manifestPath
+ * @returns {Map<string, string[]>} editSiteKey → canonical purls
+ */
+export function tomlDepsForEditSite(tomlContent, manifestPath) {
+	let parsed
+	try {
+		parsed = parseToml(tomlContent)
+	} catch {
+		return new Map()
+	}
+
+	const libraries = parsed.libraries || {}
+	/** @type {Map<string, string[]>} */
+	const siteMap = new Map()
+
+	for (const [alias, entry] of Object.entries(libraries)) {
+		const module = getModule(entry)
+		if (!module) { continue }
+		const [groupId, artifactId] = module.split(':')
+		if (!groupId || !artifactId) { continue }
+
+		const versionRef = getVersionRef(entry)
+		const key = versionRef
+			? `toml:ref:${manifestPath}:${versionRef}`
+			: `toml:inline:${manifestPath}:${alias}`
+
+		let purls = siteMap.get(key)
+		if (!purls) {
+			purls = []
+			siteMap.set(key, purls)
+		}
+		purls.push(`pkg:maven/${groupId}/${artifactId}`)
+	}
+
+	return siteMap
+}
+
+/**
  * Updates dependency versions in a Gradle version catalog (libs.versions.toml) file.
  *
  * Supports two version declaration patterns:

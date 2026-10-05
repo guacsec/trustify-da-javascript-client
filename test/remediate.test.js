@@ -792,7 +792,7 @@ suite('remediate — runRemediation', () => {
 				expect(result.remediations).to.have.lengthOf(0)
 				expect(result.skipped).to.have.lengthOf(1)
 				expect(result.skipped[0].artifactId).to.equal('commons-lang3')
-				expect(result.skipped[0].reason).to.equal('Shares a Maven property with excluded dependency org.apache.commons:commons-text')
+				expect(result.skipped[0].reason).to.equal('Shares a Maven property with excluded dependency pkg:maven/org.apache.commons/commons-text')
 				expect(fs.readFileSync(pomPath, 'utf-8')).to.equal(SHARED_PROP_POM)
 			} finally {
 				cleanup()
@@ -846,6 +846,50 @@ suite('remediate — runRemediation', () => {
 				expect(artifacts).to.deep.equal(['jackson-core'])
 				expect(result.skipped).to.have.lengthOf(1)
 				expect(result.skipped[0].artifactId).to.equal('commons-lang3')
+			} finally {
+				cleanup()
+			}
+		})
+
+		/** Excluded dep with no remediation still blocks a co-located retained dep. */
+		test('shared property blocks retained dep even when excluded dep has no remediation', async () => {
+			const SHARED_PROP_POM = `<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <properties>
+    <commons.version>1.9</commons.version>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>\${commons.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>\${commons.version}</version>
+    </dependency>
+  </dependencies>
+</project>`
+			const { dir, cleanup } = createTempDir({ 'pom.xml': SHARED_PROP_POM })
+			try {
+				const pomPath = path.join(dir, 'pom.xml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'maven' }) })
+				// Only commons-text has a remediation; commons-lang3 has no vulnerability at all.
+				requestStackStub.resolves(buildExcludeReport([COMMONS_TEXT]))
+
+				const result = await runRemediation(pomPath, {
+					dryRun: true,
+					exclude: ['pkg:maven/org.apache.commons/commons-lang3'],
+				})
+
+				// commons-text's fix would bump ${commons.version}, also upgrading
+				// the excluded commons-lang3. Must be blocked.
+				expect(result.remediations).to.have.lengthOf(0)
+				expect(result.skipped).to.have.lengthOf(1)
+				expect(result.skipped[0].artifactId).to.equal('commons-text')
+				expect(result.skipped[0].reason).to.include('commons-lang3')
+				expect(fs.readFileSync(pomPath, 'utf-8')).to.equal(SHARED_PROP_POM)
 			} finally {
 				cleanup()
 			}

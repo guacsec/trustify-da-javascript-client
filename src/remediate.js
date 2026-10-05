@@ -7,8 +7,8 @@ import { PackageURL } from 'packageurl-js'
 import analysis from './analysis.js'
 import { availableProviders, match } from './provider.js'
 import { extractRemediations } from './remediation.js'
-import { mavenChangeKey, updateMavenVersions } from './updaters/maven_updater.js'
-import { tomlChangeKey, updateTomlVersions } from './updaters/toml_updater.js'
+import { mavenChangeKey, mavenDepsForEditSite, updateMavenVersions } from './updaters/maven_updater.js'
+import { tomlChangeKey, tomlDepsForEditSite, updateTomlVersions } from './updaters/toml_updater.js'
 
 import { selectTrustifyDABackend } from './index.js'
 
@@ -43,7 +43,8 @@ const SKIP_DIRS = new Set(['node_modules', '.git'])
  *   test: (basename: string) => boolean,
  *   updater: (content: string, versionChanges: VersionChangeRequest[]) => UpdaterResult,
  *   label: ('maven'|'toml'),
- *   changeKey: (manifestPath: string, applied: AppliedChange) => string
+ *   changeKey: (manifestPath: string, applied: AppliedChange) => string,
+ *   depsForEditSite: (content: string, manifestPath: string) => Map<string, string[]>
  * }} ManifestType
  */
 
@@ -75,13 +76,15 @@ const MANIFEST_TYPES = [
 		test: (basename) => basename === 'pom.xml',
 		updater: updateMavenVersions,
 		label: 'maven',
-		changeKey: mavenChangeKey
+		changeKey: mavenChangeKey,
+		depsForEditSite: mavenDepsForEditSite
 	},
 	{
 		test: (basename) => basename.endsWith('.versions.toml') || basename === 'libs.versions.toml',
 		updater: updateTomlVersions,
 		label: 'toml',
-		changeKey: tomlChangeKey
+		changeKey: tomlChangeKey,
+		depsForEditSite: tomlDepsForEditSite
 	},
 ]
 
@@ -304,51 +307,49 @@ export async function runRemediation(targetPath, options = {}) {
 			continue
 		}
 
-		const excludedRemediations = extracted.filter(r => !remediations.includes(r))
-		const needsContent = excludedRemediations.length > 0 || perDependencyChanges || !dryRun
+		const needsContent = excludeMatchers.length > 0 || perDependencyChanges || !dryRun
 		const originalContent = needsContent ? fs.readFileSync(manifestPath, 'utf-8') : null
 
-		// Block retained remediations that share a changeKey (Maven ${property},
-		// Gradle version.ref) with an excluded one — bumping the shared edit site
-		// would also upgrade the excluded dependency.
-		if (excludedRemediations.length > 0) {
-			/** @type {Map<string, string>} changeKey → "groupId:artifactId" of the excluded dep */
-			const excludedKeyToCoords = new Map()
-			for (const r of excludedRemediations) {
+		// Block retained remediations whose edit site (Maven ${property}, Gradle
+		// version.ref) also contains a dependency matching an exclude pattern —
+		// bumping the shared site would upgrade the excluded dep as a side effect.
+		if (excludeMatchers.length > 0 && originalContent) {
+			const editSiteMap = manifestType.depsForEditSite(originalContent, manifestPath)
+			const kept = []
+			for (const r of remediations) {
 				const result = manifestType.updater(originalContent, [{
 					groupId: r.groupId, artifactId: r.artifactId, newVersion: r.fixedInVersion,
 				}])
-				for (const a of result.applied) {
-					excludedKeyToCoords.set(
-						manifestType.changeKey(manifestPath, a),
-						`${r.groupId}:${r.artifactId}`
-					)
-				}
-			}
-			if (excludedKeyToCoords.size > 0) {
-				const kept = []
-				for (const r of remediations) {
-					const result = manifestType.updater(originalContent, [{
-						groupId: r.groupId, artifactId: r.artifactId, newVersion: r.fixedInVersion,
-					}])
-					const sharedApplied = result.applied.find(a => excludedKeyToCoords.has(manifestType.changeKey(manifestPath, a)))
-					if (sharedApplied) {
-						const excludedCoords = excludedKeyToCoords.get(manifestType.changeKey(manifestPath, sharedApplied))
-						const editType = manifestType.label === 'maven' ? 'Maven property' : 'Gradle version.ref'
-						allSkipped.push({
-							groupId: r.groupId,
-							artifactId: r.artifactId,
-							newVersion: r.fixedInVersion,
-							reason: `Shares a ${editType} with excluded dependency ${excludedCoords}`,
-						})
-					} else {
-						kept.push(r)
-					}
-				}
-				remediations = kept
-				if (remediations.length === 0) {
+				if (result.applied.length === 0) {
+					kept.push(r)
 					continue
 				}
+				const key = manifestType.changeKey(manifestPath, result.applied[0])
+				// Find any *other* dep at this edit site that matches an exclude pattern.
+				const selfPurl = canonicalDepPurl(r.purl)
+				const coLocated = editSiteMap.get(key) || []
+				const excludedPurl = coLocated.find(purl => {
+					const canonical = canonicalDepPurl(purl)
+					if (canonical === selfPurl) {
+						return false
+					}
+					return excludeMatchers.some(matches => matches(canonical))
+				})
+				if (excludedPurl) {
+					const editType = manifestType.label === 'maven' ? 'Maven property' : 'Gradle version.ref'
+					allSkipped.push({
+						groupId: r.groupId,
+						artifactId: r.artifactId,
+						newVersion: r.fixedInVersion,
+						reason: `Shares a ${editType} with excluded dependency ${canonicalDepPurl(excludedPurl)}`,
+					})
+				} else {
+					kept.push(r)
+				}
+			}
+			remediations = kept
+			if (remediations.length === 0) {
+				continue
 			}
 		}
 

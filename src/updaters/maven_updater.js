@@ -214,6 +214,74 @@ export function mavenChangeKey(manifestPath, applied) {
 }
 
 /**
+ * Maps every edit-site key to the canonical, version-less purls of the dependencies that
+ * share it, without mutating content. Used to detect whether bumping a retained remediation
+ * would also affect an excluded dep.
+ * @param {string} pomContent
+ * @param {string} manifestPath
+ * @returns {Map<string, string[]>} editSiteKey → canonical purls
+ */
+export function mavenDepsForEditSite(pomContent, manifestPath) {
+	const parser = new XMLParser({ parseTagValue: false, commentPropName: '#comment' })
+	let parsed
+	try {
+		parsed = parser.parse(pomContent)
+	} catch {
+		return new Map()
+	}
+
+	const project = parsed?.project
+	if (!project) {
+		return new Map()
+	}
+
+	const properties = project.properties || {}
+	/** @type {Map<string, string[]>} */
+	const siteMap = new Map()
+
+	const allDeps = [
+		...normalizeDeps(project.dependencies?.dependency),
+		...normalizeDeps(project.dependencyManagement?.dependencies?.dependency),
+	]
+
+	for (const dep of allDeps) {
+		const groupId = typeof dep.groupId === 'string' ? dep.groupId.trim() : null
+		const artifactId = typeof dep.artifactId === 'string' ? dep.artifactId.trim() : null
+		const version = typeof dep.version === 'string' ? dep.version.trim() : null
+		if (!groupId || !artifactId || !version) {
+			continue
+		}
+
+		const propMatch = version.match(/^\$\{(.+)\}$/)
+		let key
+		if (propMatch) {
+			const resolved = resolvePropertyChain(propMatch[1], properties)
+			if (resolved.error) {
+				continue
+			}
+			key = `mvn:prop:${manifestPath}:${resolved.terminalPropName}`
+		} else {
+			key = `mvn:direct:${manifestPath}:${groupId}:${artifactId}`
+		}
+
+		let purls = siteMap.get(key)
+		if (!purls) {
+			purls = []
+			siteMap.set(key, purls)
+		}
+		purls.push(`pkg:maven/${groupId}/${artifactId}`)
+	}
+
+	return siteMap
+}
+
+/** @param {object|object[]|undefined} deps */
+function normalizeDeps(deps) {
+	if (!deps) { return [] }
+	return Array.isArray(deps) ? deps : [deps]
+}
+
+/**
  * Updates dependency versions in a Maven pom.xml while preserving file formatting.
  *
  * Uses `fast-xml-parser` to understand the XML structure (dependencies and properties),
