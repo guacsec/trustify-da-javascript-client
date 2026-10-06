@@ -43,3 +43,12 @@ jobs:
 
       - name: Validate PR commits with commitlint
         run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  dependabot-config:
+    name: Verify dependabot config
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check dependabot.yml covers all test fixture manifests
+        run: bash scripts/sync-dependabot-config.sh --check

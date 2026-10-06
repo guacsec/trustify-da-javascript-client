@@ -102,7 +102,7 @@ Two things that are not obvious from reading siblings:
 
 ## Test Fixtures
 
-- **Dependabot suppression**: Test fixture directories contain intentionally pinned (sometimes vulnerable) dependencies. When adding a new test fixture directory with a manifest file, review `.github/dependabot.yml` to ensure the new path is covered. Non-npm ecosystems are suppressed via root-level `ignore: [{dependency-name: "*"}]` entries. npm fixtures use per-directory entries with `/**` globs; add the parent directory if a new npm/pnpm/yarn fixture tree is introduced.
+- **Dependabot suppression**: Test fixture directories contain intentionally pinned (sometimes vulnerable) dependencies. Every directory containing a manifest file must be explicitly listed in `.github/dependabot.yml` with `ignore: [{dependency-name: "*"}]` to suppress both version and security update PRs. Run `scripts/sync-dependabot-config.sh` to regenerate the fixture entries automatically. CI enforces this via `--check` mode in the PR validation workflow.
 
 ## Dependencies
 
