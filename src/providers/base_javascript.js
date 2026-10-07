@@ -8,7 +8,7 @@ import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } fro
 
 import Manifest from './manifest.js';
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 

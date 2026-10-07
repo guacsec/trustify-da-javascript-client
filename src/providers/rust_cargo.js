@@ -10,7 +10,7 @@ import { getCustom, getCustomPath, invokeCommand } from '../tools.js'
 
 export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest, packageManagerName() { return 'cargo' } }
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 

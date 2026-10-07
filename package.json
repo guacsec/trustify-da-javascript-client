@@ -86,7 +86,7 @@
 		"msw": "^2.12.7",
 		"sinon": "^22.0.0",
 		"sinon-chai": "^4.0.1",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"which": "^7.0.0"
 	},
 	"mocha": {
