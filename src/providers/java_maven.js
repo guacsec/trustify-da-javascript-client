@@ -14,7 +14,7 @@ import { filterManifestPathsByDiscoveryIgnore, resolveWorkspaceDiscoveryIgnore }
 import Base_java, { ecosystem_maven } from "./base_java.js";
 
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 
