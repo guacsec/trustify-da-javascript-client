@@ -44,7 +44,6 @@ RUN curl -kL https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux64 
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY dist ./dist
-COPY config ./config
 RUN npm install --production \
     && mkdir -p /app/node_modules/.bin \
     && ln -s /app/dist/src/cli.js /app/node_modules/.bin/trustify-da
