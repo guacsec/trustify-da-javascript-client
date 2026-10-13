@@ -13,31 +13,31 @@ export default { requestComponent, requestStack, requestStackBatch, requestImage
 
 /**
  * @overload
- * @param {import('./provider').Provider} provider
+ * @param {import('./provider.js').Provider} provider
  * @param {string} manifest
  * @param {string} url
  * @param {true} [html]
- * @param {import("index.js").Options} [opts={}]
+ * @param {import('./index.js').Options} [opts={}]
  * @returns {Promise<string>}
  */
 
 /**
  * @overload
- * @param {import('./provider').Provider} provider
+ * @param {import('./provider.js').Provider} provider
  * @param {string} manifest
  * @param {string} url
  * @param {false} [html]
- * @param {import("index.js").Options} [opts={}]
+ * @param {import('./index.js').Options} [opts={}]
  * @returns {Promise<import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>>}
  */
 
 /**
  * Send a stack analysis request and get the report as 'text/html' or 'application/json'.
- * @param {import('./provider').Provider} provider - the provided data for constructing the request
+ * @param {import('./provider.js').Provider} provider - the provided data for constructing the request
  * @param {string} manifest - path for the manifest
  * @param {string} url - the backend url to send the request to
  * @param {boolean} [html=false] - true will return 'text/html', false will return 'application/json'
- * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
+ * @param {import('./index.js').Options} [opts={}] - optional various options to pass along the application
  * @returns {Promise<string|import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>}
  */
 async function requestStack(provider, manifest, url, html = false, opts = {}) {
@@ -99,10 +99,10 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
 
 /**
  * Send a component analysis request and get the report as 'application/json'.
- * @param {import('./provider').Provider} provider - the provided data for constructing the request
+ * @param {import('./provider.js').Provider} provider - the provided data for constructing the request
  * @param {string} manifest - path for the manifest
  * @param {string} url - the backend url to send the request to
- * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
+ * @param {import('./index.js').Options} [opts={}] - optional various options to pass along the application
  * @returns {Promise<import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>}
  */
 async function requestComponent(provider, manifest, url, opts = {}) {
@@ -152,7 +152,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
 			: getCustom('TRUSTIFY_DA_LICENSE_CHECK', 'true', opts) !== 'false'
 		if (licenseCheckEnabled) {
 			try {
-				result.licenseSummary = await runLicenseCheck(provided.content, manifest, url, opts, result)
+				result.licenseSummary = await runLicenseCheck(provided.content, provided.manifestPath || manifest, url, opts, result)
 			} catch (licenseErr) {
 				result.licenseSummary = { error: licenseErr.message }
 			}
@@ -169,7 +169,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  * @param {Object.<string, object>} sbomByPurl
  * @param {string} url
  * @param {true} [html=false]
- * @param {import("index.js").Options} [opts={}]
+ * @param {import('./index.js').Options} [opts={}]
  * @returns {Promise<string>}
  */
 
@@ -178,7 +178,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  * @param {Object.<string, object>} sbomByPurl
  * @param {string} url
  * @param {false} [html=false]
- * @param {import("index.js").Options} [opts={}]
+ * @param {import('./index.js').Options} [opts={}]
  * @returns {Promise<Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>>}
  */
 
@@ -187,7 +187,7 @@ async function requestComponent(provider, manifest, url, opts = {}) {
  * @param {Object.<string, object>} sbomByPurl - Map of root purl to CycloneDX SBOM object
  * @param {string} url - the backend url
  * @param {boolean} [html=false] - true returns HTML, false returns JSON
- * @param {import("index.js").Options} [opts={}]
+ * @param {import('./index.js').Options} [opts={}]
  * @returns {Promise<string|Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>>}
  */
 async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
@@ -232,7 +232,7 @@ async function requestStackBatch(sbomByPurl, url, html = false, opts = {}) {
  *
  * @param {Array<string>} imageRefs
  * @param {string} url
- * @param {import("index.js").Options} [opts={}] - optional various options to pass along the application
+ * @param {import('./index.js').Options} [opts={}] - optional various options to pass along the application
  * @returns {Promise<string|Object.<string, import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>>}
  */
 async function requestImages(imageRefs, url, html = false, opts = {}) {
@@ -282,7 +282,7 @@ async function requestImages(imageRefs, url, html = false, opts = {}) {
 /**
  * Append common analysis query parameters (recommend, providers, sources) to a URL.
  * @param {URL} url - the URL object to append query parameters to
- * @param {import("index.js").Options} [opts={}] - options containing parameter overrides
+ * @param {import('./index.js').Options} [opts={}] - options containing parameter overrides
  */
 function appendAnalysisQueryParams(url, opts = {}) {
 	if (getCustom('TRUSTIFY_DA_RECOMMEND', 'true', opts) === 'false') {
@@ -301,7 +301,7 @@ function appendAnalysisQueryParams(url, opts = {}) {
 /**
  *
  * @param url the backend url to send the request to
- * @param {import("index.js").Options} [opts={}] - optional various options to pass headers for t he validateToken Request
+ * @param {import('./index.js').Options} [opts={}] - optional various options to pass headers for t he validateToken Request
  * @return {Promise<number>} return the HTTP status Code of the response from the validate token request.
  */
 async function validateToken(url, opts = {}) {

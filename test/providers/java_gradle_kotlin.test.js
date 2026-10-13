@@ -29,6 +29,7 @@ suite('testing the java-gradle-kotlin data provider', () => {
 
 	[
 		{ name: 'build.gradle.kts', expected: true },
+		{ name: 'libs.versions.toml', expected: true },
 		{ name: 'some_other.file', expected: false }
 	].forEach(testCase => {
 		test(`verify isSupported returns ${testCase.expected} for ${testCase.name}`, () => {
@@ -75,6 +76,68 @@ suite('testing the java-gradle-kotlin data provider', () => {
 			// these test cases takes ~1400-2000 ms each pr >10000 in CI (for the first test-case)
 		}).timeout(process.env.GITHUB_ACTIONS ? 15000 : 5000)
 	});
+
+	suite('TOML version catalog resolution', () => {
+		const tomlTestCase = 'deps_with_no_ignore_common_paths'
+		const tomlDir = `test/providers/tst_manifests/gradle/${tomlTestCase}`
+
+		/** Verifies that provideStack resolves a TOML path to its parent build.gradle.kts. */
+		test('provideStack with TOML path produces same SBOM as build.gradle.kts path', async () => {
+			let expectedSbom = fs.readFileSync(`${tomlDir}/expected_stack_sbom.json`).toString().trim()
+			let depTree = fs.readFileSync(`${tomlDir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${tomlDir}/gradle.properties`).toString()
+			let provider = new Java_gradle_kotlin()
+			mockInvokeCommand(provider, depTree, props)
+
+			let result = await provider.provideStack(`${tomlDir}/gradle/libs.versions.toml`)
+
+			expect(JSON.parse(result.content)).to.deep.equal(JSON.parse(expectedSbom))
+		}).timeout(process.env.GITHUB_ACTIONS ? 40000 : 10000)
+
+		/** Verifies that provideStack throws for a TOML file with no parent build.gradle.kts. */
+		test('provideStack throws when TOML has no parent build file', async () => {
+			let provider = new Java_gradle_kotlin()
+			try {
+				await provider.provideStack('nonexistent/gradle/libs.versions.toml')
+				expect.fail('should have thrown')
+			} catch (err) {
+				expect(err.message).to.include('No parent build.gradle found')
+			}
+		})
+
+		test('provideStack with TOML path sets manifestPath to the resolved build file', async () => {
+			let depTree = fs.readFileSync(`${tomlDir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${tomlDir}/gradle.properties`).toString()
+			let provider = new Java_gradle_kotlin()
+			mockInvokeCommand(provider, depTree, props)
+
+			let result = await provider.provideStack(`${tomlDir}/gradle/libs.versions.toml`)
+
+			expect(result.manifestPath).to.equal(`${tomlDir}/build.gradle.kts`)
+		}).timeout(process.env.GITHUB_ACTIONS ? 40000 : 10000)
+
+		test('provideStack with build.gradle.kts path does not set manifestPath', async () => {
+			let depTree = fs.readFileSync(`${tomlDir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${tomlDir}/gradle.properties`).toString()
+			let provider = new Java_gradle_kotlin()
+			mockInvokeCommand(provider, depTree, props)
+
+			let result = await provider.provideStack(`${tomlDir}/build.gradle.kts`)
+
+			expect(result.manifestPath).to.be.undefined
+		}).timeout(process.env.GITHUB_ACTIONS ? 40000 : 10000)
+
+		test('provideComponent with TOML path sets manifestPath to the resolved build file', async () => {
+			let depTree = fs.readFileSync(`${tomlDir}/depTree.txt`).toString()
+			let props = fs.readFileSync(`${tomlDir}/gradle.properties`).toString()
+			let provider = new Java_gradle_kotlin()
+			mockInvokeCommand(provider, depTree, props)
+
+			let result = await provider.provideComponent(`${tomlDir}/gradle/libs.versions.toml`)
+
+			expect(result.manifestPath).to.equal(`${tomlDir}/build.gradle.kts`)
+		}).timeout(process.env.GITHUB_ACTIONS ? 40000 : 10000)
+	})
 
 	suite('artifact hash computation', () => {
 		const testCase = 'deps_with_no_ignore_common_paths'
