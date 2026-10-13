@@ -11,6 +11,7 @@ export default class Manifest {
 		}
 		this.manifestPath = manifestPath;
 		const content = this.loadManifest();
+		this.content = content;
 		this.dependencies = this.loadDependencies(content);
 		this.peerDependencies = content.peerDependencies || {};
 		this.optionalDependencies = content.optionalDependencies || {};

@@ -1,2 +1,43 @@
-__metadata:
-  version: 8
+{
+  "__metadata": {
+    "version": 8
+  },
+  "test-workspace-root@workspace:.": {
+    "version": "0.0.0-use.local",
+    "resolution": "test-workspace-root@workspace:.",
+    "languageName": "unknown",
+    "linkType": "soft"
+  },
+  "member-a@workspace:packages/member-a": {
+    "version": "0.0.0-use.local",
+    "resolution": "member-a@workspace:packages/member-a",
+    "dependencies": {
+      "axios": "npm:0.21.1"
+    },
+    "languageName": "unknown",
+    "linkType": "soft"
+  },
+  "axios@npm:0.21.1": {
+    "version": "0.21.1",
+    "resolution": "axios@npm:0.21.1",
+    "dependencies": {
+      "follow-redirects": "npm:1.16.0"
+    },
+    "languageName": "node",
+    "linkType": "hard"
+  },
+  "follow-redirects@npm:1.16.0": {
+    "version": "1.16.0",
+    "resolution": "follow-redirects@npm:1.16.0",
+    "peerDependencies": {
+      "debug": "*"
+    },
+    "peerDependenciesMeta": {
+      "debug": {
+        "optional": true
+      }
+    },
+    "languageName": "node",
+    "linkType": "hard"
+  }
+}

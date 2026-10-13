@@ -61,6 +61,7 @@
 		"node-fetch": "^3.3.2",
 		"p-limit": "^7.3.0",
 		"packageurl-js": "~1.0.2",
+		"semver": "^7.8.5",
 		"smol-toml": "^1.6.0",
 		"tree-sitter-containerfile": "^0.8.1",
 		"tree-sitter-gomod": "github:strum355/tree-sitter-go-mod#56326f2ad478892ace58ff247a97d492a3cbcdda",

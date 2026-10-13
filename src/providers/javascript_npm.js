@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import Base_javascript, { sriToHash } from './base_javascript.js';
+import { readNpmGraph } from './javascript_lockfile.js';
 
 export default class Javascript_npm extends Base_javascript {
 
@@ -20,7 +21,7 @@ export default class Javascript_npm extends Base_javascript {
 	 */
 	_parseLockFileHashes(lockDir) {
 		const map = new Map();
-		const lockPath = path.join(lockDir, this._lockFileName());
+		const lockPath = path.join(lockDir, this._lockFileNames().find(name => fs.existsSync(path.join(lockDir, name))) || this._lockFileName());
 		if (!fs.existsSync(lockPath)) {
 			return map;
 		}
@@ -37,7 +38,7 @@ export default class Javascript_npm extends Base_javascript {
 			}
 			const marker = 'node_modules/';
 			const idx = pkgPath.lastIndexOf(marker);
-			const name = idx < 0 ? pkgPath : pkgPath.slice(idx + marker.length);
+			const name = entry.name || (idx < 0 ? pkgPath : pkgPath.slice(idx + marker.length));
 			const hash = sriToHash(entry.integrity);
 			if (name && hash) {
 				map.set(`${name}@${entry.version}`, [hash]);
@@ -50,33 +51,22 @@ export default class Javascript_npm extends Base_javascript {
 		return "npm";
 	}
 
-	_listCmdArgs(includeTransitive) {
-		return ['ls', includeTransitive ? '--all' : '--depth=0', '--package-lock-only', '--omit=dev', '--json'];
+	_lockFileNames() {
+		return ['npm-shrinkwrap.json', this._lockFileName()];
 	}
 
-	_updateLockFileCmdArgs() {
-		return ['install', '--package-lock-only'];
+	_setUp(manifestPath) {
+		this._setUpManifest(manifestPath);
 	}
 
-	_buildDependencyTree(includeTransitive, opts = {}) {
-		// npm ls --json returns a single tree rooted at the workspace root.
-		// When analyzing a workspace member, its deps are nested under the
-		// root's dependencies keyed by the member name — extract that subtree
-		// so downstream analysis sees only the member's dependencies.
-		const tree = super._buildDependencyTree(includeTransitive, opts);
-		const memberName = this._getManifest().name;
-		if (tree.name === memberName) {
-			return tree;
+	_buildDependencyTree(_includeTransitive, opts = {}) {
+		const manifest = this._getManifest();
+		const lockDir = this._findLockFileDir(path.dirname(manifest.manifestPath), opts);
+		if (!lockDir) {
+			throw new Error('npm analysis requires a lockfile. Generate package-lock.json before scanning.');
 		}
-		const memberEntry = tree.dependencies?.[memberName];
-		if (memberEntry) {
-			return {
-				name: memberName,
-				version: memberEntry.version || this._getManifest().version,
-				dependencies: memberEntry.dependencies,
-				optionalDependencies: memberEntry.optionalDependencies,
-			};
-		}
-		return tree;
+		const graph = readNpmGraph(lockDir, manifest.manifestPath, manifest.content);
+		this._loadHashes(lockDir);
+		return graph;
 	}
 }

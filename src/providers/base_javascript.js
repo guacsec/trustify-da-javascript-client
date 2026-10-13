@@ -6,6 +6,7 @@ import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
 import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } from '../tools.js'
 
+import { addGraphToSbom, graphRootDependencies } from './javascript_lockfile.js';
 import Manifest from './manifest.js';
 
 /** @typedef {import('../provider').Provider} */
@@ -91,6 +92,11 @@ export default class Base_javascript {
    */
 	_setUp(manifestPath, opts, manifest) {
 		this.#cmd = getCustomPath(this._cmdName(), opts);
+		this._setUpManifest(manifestPath, manifest);
+	}
+
+	/** Initializes read-only providers without resolving an executable. */
+	_setUpManifest(manifestPath, manifest) {
 		this.#manifest = manifest ?? new Manifest(manifestPath);
 		this.#ecosystem = purlType;
 	}
@@ -121,6 +127,10 @@ export default class Base_javascript {
    */
 	_lockFileName() {
 		throw new TypeError("_lockFileName must be implemented");
+	}
+
+	_lockFileNames() {
+		return [this._lockFileName()];
 	}
 
 	/**
@@ -260,7 +270,7 @@ export default class Base_javascript {
 		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts)
 		if (workspaceDir) {
 			const dir = path.resolve(workspaceDir)
-			return fs.existsSync(path.join(dir, this._lockFileName())) ? dir : null
+			return this._lockFileNames().some(name => fs.existsSync(path.join(dir, name))) ? dir : null
 		}
 
 		let dir = path.resolve(manifestDir)
@@ -269,7 +279,7 @@ export default class Base_javascript {
 		do {
 			dir = parent
 
-			if (fs.existsSync(path.join(dir, this._lockFileName()))) {
+			if (this._lockFileNames().some(name => fs.existsSync(path.join(dir, name)))) {
 				return dir
 			}
 
@@ -379,7 +389,7 @@ export default class Base_javascript {
 		sbom.addRoot(mainComponent, license);
 
 		this._addDependenciesToSbom(sbom, depsObject);
-		this.#ensurePeerAndOptionalDeps(sbom);
+		this.#ensurePeerAndOptionalDeps(sbom, depsObject);
 		sbom.filterIgnoredDeps(this.#manifest.ignored);
 		return sbom.getAsJsonString(opts);
 	}
@@ -391,11 +401,14 @@ export default class Base_javascript {
 	 * @param {Sbom} sbom - The SBOM to supplement
 	 * @private
 	 */
-	#ensurePeerAndOptionalDeps(sbom) {
+	#ensurePeerAndOptionalDeps(sbom, graph) {
 		const rootPurl = toPurl(purlType, this.#manifest.name, this.#manifest.version);
 		const depSources = [this.#manifest.peerDependencies, this.#manifest.optionalDependencies];
 		for (const source of depSources) {
 			for (const [name, version] of Object.entries(source)) {
+				if (graph?.nodes && graph.nodes.get(graph.rootId).dependencies.has(name)) {
+					continue;
+				}
 				// Build the purl prefix for exact matching (e.g. "pkg:npm/minimist@"
 				// or "pkg:npm/%40hapi/joi@") to avoid substring false positives
 				const probe = toPurl(purlType, name, version);
@@ -414,6 +427,10 @@ export default class Base_javascript {
    * @protected
    */
 	_addDependenciesToSbom(sbom, depTree) {
+		if (depTree.nodes) {
+			addGraphToSbom(sbom, depTree);
+			return;
+		}
 		const dependencies = {
 			...depTree["dependencies"],
 			...depTree["optionalDependencies"],
@@ -473,7 +490,7 @@ export default class Base_javascript {
 			const targetPurl = rootDeps.get(key);
 			sbom.addDependency(rootPurl, targetPurl, undefined, this._hashesForPurl(targetPurl));
 		}
-		this.#ensurePeerAndOptionalDeps(sbom);
+		this.#ensurePeerAndOptionalDeps(sbom, depTree);
 		sbom.filterIgnoredDeps(this.#manifest.ignored);
 		return sbom.getAsJsonString(opts);
 	}
@@ -485,6 +502,9 @@ export default class Base_javascript {
    * @protected
    */
 	_getRootDependencies(depTree) {
+		if (depTree.nodes) {
+			return graphRootDependencies(depTree);
+		}
 		const allDeps = {
 			...depTree.dependencies,
 			...depTree.optionalDependencies,

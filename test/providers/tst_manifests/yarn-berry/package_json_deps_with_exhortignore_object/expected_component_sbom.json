@@ -1,0 +1,203 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-08-07T00:00:00.000Z",
+    "component": {
+      "name": "backend",
+      "version": "1.0.0",
+      "purl": "pkg:npm/backend@1.0.0",
+      "type": "application",
+      "bom-ref": "pkg:npm/backend@1.0.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ]
+    },
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "trustify-da-javascript-client",
+          "version": "0.3.0"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "group": "@hapi",
+      "name": "joi",
+      "version": "17.1.1",
+      "purl": "pkg:npm/%40hapi/joi@17.1.1",
+      "type": "library",
+      "bom-ref": "pkg:npm/%40hapi/joi@17.1.1",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0c9fc1e8d26909b0bd1458728d10071170c5112980d455b865fca17964f65befe8b4c30a3d362d423ec60be77afd2d811d2e40a028d3b099adaba80b960db297"
+        }
+      ]
+    },
+    {
+      "name": "axios",
+      "version": "0.19.2",
+      "purl": "pkg:npm/axios@0.19.2",
+      "type": "library",
+      "bom-ref": "pkg:npm/axios@0.19.2",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b775abf2db44ea4f182f4c2bfa4bf84a723b86f5aa001f222f12193fa45ba243b7e3f27b66289c6afa51d696402b05c82715fd621a34add5b538e850adcdbce1"
+        }
+      ]
+    },
+    {
+      "name": "backend",
+      "version": "0.0.0",
+      "purl": "pkg:npm/backend@0.0.0",
+      "type": "library",
+      "bom-ref": "pkg:npm/backend@0.0.0",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "686c7b54482f3dfd3991e596fab4681d2d7a5940a8b00578fc78f565a0804b57fe9f5c1eeebca5c67b17b61f43e8fb92563ccaf77e4c8551058f5be391831bab"
+        }
+      ]
+    },
+    {
+      "name": "bcryptjs",
+      "version": "2.4.3",
+      "purl": "pkg:npm/bcryptjs@2.4.3",
+      "type": "library",
+      "bom-ref": "pkg:npm/bcryptjs@2.4.3",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b969467087ed7a01ff905a1c6a0c45014ec586248a448ea08370c8ed8bb314bda16a870ca23e0961d7d23bdce1a04c76fa70a9d680be814fa9ac7d8fc61870a3"
+        }
+      ]
+    },
+    {
+      "name": "dotenv",
+      "version": "8.6.0",
+      "purl": "pkg:npm/dotenv@8.6.0",
+      "type": "library",
+      "bom-ref": "pkg:npm/dotenv@8.6.0",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6750431dea8efbd54b9f2d9681b04e1ccc7989486461dcf058bb708d9e3d63b04115fcdf8840e38ad1e24a4a2e1e7c1560626c5e3ac7bc09371b127c49e2d45f"
+        }
+      ]
+    },
+    {
+      "name": "express",
+      "version": "4.21.2",
+      "purl": "pkg:npm/express@4.21.2",
+      "type": "library",
+      "bom-ref": "pkg:npm/express@4.21.2",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "38168fd0a32756600b56e6214afecf4fc79ec28eca7f7a91c2ab8d50df4f47562ca3f9dee412da7f5cea6b1a1544b33b40f9f8586dbacfbdada0fe90dbb10a1f"
+        }
+      ]
+    },
+    {
+      "name": "jsdom",
+      "version": "19.0.0",
+      "purl": "pkg:npm/jsdom@19.0.0",
+      "type": "library",
+      "bom-ref": "pkg:npm/jsdom@19.0.0",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c39c71aa64df60f2b609adfc61fa4406c1a710da3278c730b0093181d1d09c1e6ba5551e32d78259a21800e10c2984c571777d6f7080249a5d21287be4f17bd9"
+        }
+      ]
+    },
+    {
+      "name": "mongoose",
+      "version": "5.13.23",
+      "purl": "pkg:npm/mongoose@5.13.23",
+      "type": "library",
+      "bom-ref": "pkg:npm/mongoose@5.13.23",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d2babdffb27676a370e2dd3cfba487ec32e21fe760ec67490ee56e6cee283ce364d11f8c1d0725779720eef85cac81760a9146ddc311e6f61add17b7a705b9d5"
+        }
+      ]
+    },
+    {
+      "name": "nodemon",
+      "version": "2.0.22",
+      "purl": "pkg:npm/nodemon@2.0.22",
+      "type": "library",
+      "bom-ref": "pkg:npm/nodemon@2.0.22",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "37e960b995b66e6d9e3b0e435ecc07a45200c4c566c4820a4deb6e7cc234b305e076a8ff0b4dc9c01ee690c663ae82a217d60c591dcbbcd4af1e3a7d0ad2b2c6"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:npm/%40hapi/joi@17.1.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/axios@0.19.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/backend@0.0.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/backend@1.0.0",
+      "dependsOn": [
+        "pkg:npm/%40hapi/joi@17.1.1",
+        "pkg:npm/axios@0.19.2",
+        "pkg:npm/backend@0.0.0",
+        "pkg:npm/bcryptjs@2.4.3",
+        "pkg:npm/dotenv@8.6.0",
+        "pkg:npm/express@4.21.2",
+        "pkg:npm/jsdom@19.0.0",
+        "pkg:npm/mongoose@5.13.23",
+        "pkg:npm/nodemon@2.0.22"
+      ]
+    },
+    {
+      "ref": "pkg:npm/bcryptjs@2.4.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/dotenv@8.6.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/express@4.21.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/jsdom@19.0.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/mongoose@5.13.23",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:npm/nodemon@2.0.22",
+      "dependsOn": []
+    }
+  ]
+}

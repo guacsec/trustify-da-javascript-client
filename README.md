@@ -553,6 +553,20 @@ Use <code>stackAnalysisBatch(workspaceRoot, html, opts)</code> to analyze all pa
 See <a href="./docs/vscode-extension-integration-requirements.md">VS Code Extension Integration Requirements</a> for integration details.
 </p>
 
+<h4>JavaScript Lockfile Analysis</h4>
+<p>
+npm and Yarn component/stack analysis reads package manifests and lockfiles directly. It does not run npm, Yarn, or Corepack, install dependencies, access package registries, or generate project files. Installed <code>node_modules</code> and Yarn installation state are not required.
+</p>
+<p>
+npm supports lockfile versions 2 and 3, including <code>npm-shrinkwrap.json</code> (which takes precedence over <code>package-lock.json</code>). Yarn Classic and Berry are selected from the lockfile format, so a <code>packageManager</code> declaration is not required. Missing, stale, unsupported, or incomplete required dependency metadata produces an error; synchronize or regenerate the lockfile with the project's package manager before scanning. npm version 1 lockfiles must be upgraded first. Peer and optional dependencies that have no locked resolution retain the existing manifest-only SBOM entries.
+</p>
+<p>
+Workspaces and package-aware local dependencies use their manifests and recorded dependency metadata. Unsupported custom resolution protocols, package-bearing <code>link:</code> dependencies, and Classic dependency cycles with path-dependent <code>resolutions</code> produce explicit errors. Yarn plugins are not executed. Validation covers declarations and resolutions recorded in these files; it does not replace package-manager installation or validate package contents.
+</p>
+<p>
+<code>TRUSTIFY_DA_NPM_PATH</code> and <code>TRUSTIFY_DA_YARN_PATH</code> are retained for compatibility but are not used for dependency analysis. pnpm, Bun, and other ecosystems retain their existing tool requirements. Lockfile hashes are reported when available; analysis does not download archives to verify them.
+</p>
+
 <h4>Proxy Configuration</h4>
 <p>
 You can configure a proxy for all HTTP/HTTPS requests made by the API. This is useful when your environment requires going through a proxy to access external services.
@@ -607,7 +621,7 @@ following keys for setting custom paths for the said executables.
 <tr>
 <td><a href="https://www.npmjs.com/">NPM</a></td>
 <td><em>npm</em></td>
-<td>TRUSTIFY_DA_NPM_PATH</td>
+<td>TRUSTIFY_DA_NPM_PATH (retained for compatibility; dependency analysis does not invoke npm)</td>
 </tr>
 <tr>
 <td><a href="https://pnpm.io/">PNPM</a></td>
@@ -617,7 +631,7 @@ following keys for setting custom paths for the said executables.
 <tr>
 <td><a href="https://classic.yarnpkg.com/">Yarn Classic</a> / <a href="https://yarnpkg.com/">Yarn Berry</a></td>
 <td><em>yarn</em></td>
-<td>TRUSTIFY_DA_YARN_PATH</td>
+<td>TRUSTIFY_DA_YARN_PATH (retained for compatibility; dependency analysis does not invoke Yarn)</td>
 </tr>
 <tr>
 <td><a href="https://go.dev/blog/using-go-modules/">Go Modules</a></td>
