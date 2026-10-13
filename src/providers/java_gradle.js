@@ -15,7 +15,7 @@ import Base_java, { ecosystem_gradle } from "./base_java.js";
 
 
 
-/** @typedef {import('../provider.js').Provider} */
+/** @typedef {import('../provider.js').Provider} Provider */
 
 /** @typedef {import('../provider.js').Provided} Provided */
 

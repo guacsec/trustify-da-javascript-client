@@ -1,7 +1,7 @@
 # Trustify Dependency Analytics Javascript Client Container Images
 
-These dockerfiles provides all nessesary components to generate images for Trustify Dependency Analytics.
-These images can be used as base images to set up the necessary environment and dependencies for running the Trustify Dependency Analytics.
+These Dockerfiles provide the components needed to generate images for Trustify Dependency Analytics CLI commands.
+The images use `trustify-da` as their entrypoint and are not general-purpose base images. Derived images that need to run another command must replace the entrypoint.
 
 ## Prerequisites
 Before getting started, ensure that you have one of the following prerequisites installed on your system:
@@ -18,7 +18,7 @@ ghcr.io/guacsec/trustify-da-javascript-client
 See the [GitHub Container Registry](https://github.com/guacsec/trustify-da-javascript-client/pkgs/container/trustify-da-javascript-client)
 
 Ecosystem                     | Version                                                            |
-------------------------------| ------------------------------------------------------------------ | 
+------------------------------| ------------------------------------------------------------------ |
 Maven | 3.9.12 |
 Gradle | 9.2.1 |
 Go | 1.25.5 |
@@ -27,6 +27,37 @@ PNPM | 10.1.0 |
 Yarn Classic | 1.22.22 |
 Yarn Berry | 4.9.1 |
 Python | n/a |
+
+## Usage
+
+The image uses the `trustify-da` CLI as its entrypoint, so subcommands are passed
+directly as `docker run <image> <command> [args]`:
+
+``` shell
+# Show CLI usage and all available subcommands
+docker run ghcr.io/guacsec/trustify-da-javascript-client --help
+
+# Stack analysis (mount the project so the manifest is reachable in the container)
+docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client stack /src/pom.xml
+
+# Remediation
+docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client remediate /src --dry-run
+
+# SBOM generation
+docker run -v "$PWD":/src ghcr.io/guacsec/trustify-da-javascript-client sbom /src/pom.xml
+```
+
+In `--dry-run` mode, exit code `2` means remediations are available. Treat it as a successful scan result in CI.
+
+Run `docker run <image> <command> --help` (e.g. `stack --help`) for per-subcommand options.
+
+For Yarn projects, set `TRUSTIFY_DA_YARN_PATH` to select the Yarn version — the image
+ships `/usr/local/bin/yarn-classic` (1.22.22) and `/usr/local/bin/yarn-berry` (4.9.1):
+
+``` shell
+docker run -v "$PWD":/src -e TRUSTIFY_DA_YARN_PATH=/usr/local/bin/yarn-berry \
+  ghcr.io/guacsec/trustify-da-javascript-client stack /src/package.json
+```
 
 ### Note for Python users
 

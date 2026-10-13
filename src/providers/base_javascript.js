@@ -9,7 +9,7 @@ import { getCustom, getCustomPath, invokeCommand, toPurl, toPurlFromString } fro
 import { addGraphToSbom, graphRootDependencies } from './javascript_lockfile.js';
 import Manifest from './manifest.js';
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 

@@ -471,19 +471,19 @@ function execSkopeoInspect(imageRef, raw, opts = {}) {
 }
 
 /**
- * @typedef SyftImageSource
- * @type {object}
- * @property {function(): string} getOs
- * @property {function(): string} getArch
- * @property {function(): string} getVariant
+ * @typedef {{
+ *   getOs: () => string,
+ *   getArch: () => string,
+ *   getVariant: () => string
+ * }} SyftImageSource
  */
 
 /**
- * @typedef SyftImageSourceType
- * @type {object}
- * @property {function(Object): string} getOs
- * @property {function(Object): string} getArch
- * @property {function(Object): string} getVariant
+ * @typedef {{
+ *   getOs: (opts: Object) => string,
+ *   getArch: (opts: Object) => string,
+ *   getVariant: (opts: Object) => string
+ * }} SyftImageSourceType
  */
 
 /** @type {function(string): SyftImageSourceType} */

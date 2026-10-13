@@ -4,7 +4,7 @@ import { PackageURL } from 'packageurl-js'
 
 import { getCustomPath, getWrapperPreference, invokeCommand, traverseForWrapper } from "../tools.js"
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 

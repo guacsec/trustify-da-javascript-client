@@ -3,31 +3,13 @@ import path from 'node:path'
 
 import { load as yamlLoad } from 'js-yaml'
 
-/**
- * @typedef {{
- *   'group-by'?: 'dependency' | 'bundle',
- *   exclude?: string[],
- *   labels?: string[],
- *   'branch-prefix'?: string,
- *   [key: string]: unknown
- * }} RemediationConfig
- */
+/** @typedef {{'group-by'?: 'dependency' | 'bundle', exclude?: string[], labels?: string[], 'branch-prefix'?: string, [key: string]: unknown}} RemediationConfig */
 
 /** @typedef {{ critical?: number, high?: number, 'license-conflicts'?: number, [key: string]: unknown }} FailOnConfig */
 /** @typedef {{ 'fail-on'?: FailOnConfig, [key: string]: unknown }} CheckConfig */
 /** @typedef {{ format?: string, targets?: string[], [key: string]: unknown }} SbomConfig */
 
-/**
- * @typedef {{
- *   'backend-url'?: string,
- *   providers?: string[] | string,
- *   sources?: string[] | string,
- *   remediation?: RemediationConfig,
- *   check?: CheckConfig,
- *   sbom?: SbomConfig,
- *   [key: string]: unknown
- * }} FileConfig
- */
+/** @typedef {{'backend-url'?: string, providers?: string[] | string, sources?: string[] | string, remediation?: RemediationConfig, check?: CheckConfig, sbom?: SbomConfig, [key: string]: unknown}} FileConfig */
 
 /**
  * @typedef {{

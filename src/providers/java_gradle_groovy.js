@@ -1,6 +1,6 @@
 import Java_gradle from './java_gradle.js';
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 

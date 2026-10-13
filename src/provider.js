@@ -16,7 +16,7 @@ import Python_uv from './providers/python_uv.js'
 import rustCargoProvider from './providers/rust_cargo.js'
 
 /** @typedef {{ecosystem: string, contentType: string, content: string}} Provided */
-/** @typedef {{isSupported: function(string): boolean, validateLockFile: function(string, Object): void, provideComponent: function(string, {}): Provided | Promise<Provided>, provideStack: function(string, {}): Provided | Promise<Provided>, readLicenseFromManifest: function(string, Object=): string | null, packageManagerName: function(): string}} Provider */
+/** @typedef {{isSupported: (manifest: string) => boolean, validateLockFile: (manifest: string, opts: Object) => void, provideComponent: (manifest: string, opts: {}) => Provided | Promise<Provided>, provideStack: (manifest: string, opts: {}) => Provided | Promise<Provided>, readLicenseFromManifest: (manifest: string, opts?: Object) => string | null, packageManagerName: () => string}} Provider */
 
 /**
  * MUST include all providers here.

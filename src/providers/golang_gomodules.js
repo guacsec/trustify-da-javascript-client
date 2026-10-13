@@ -12,7 +12,7 @@ import { getParser, getRequireQuery } from './gomod_parser.js'
 
 export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest, packageManagerName() { return 'go' } }
 
-/** @typedef {import('../provider').Provider} */
+/** @typedef {import('../provider').Provider} Provider */
 
 /** @typedef {import('../provider').Provided} Provided */
 
