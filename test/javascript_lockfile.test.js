@@ -6,6 +6,7 @@ import { expect } from 'chai';
 import esmock from 'esmock';
 import { useFakeTimers } from 'sinon';
 
+import { getPackageVersion } from '../src/package_version.js';
 import Npm from '../src/providers/javascript_npm.js';
 import Yarn from '../src/providers/javascript_yarn.js';
 
@@ -471,7 +472,8 @@ suite('complete JavaScript SBOM reference comparisons', () => {
 					const manifest = `${dir}/${fixture === 'workspace_member' ? 'packages/member-a/package.json' : 'package.json'}`;
 					const provider = manager === 'npm' ? new Npm() : new Yarn();
 					const actual = provider[method](manifest);
-					const expected = fs.readFileSync(`${dir}/expected_${type}_sbom.json`, 'utf8');
+					const expected = JSON.parse(fs.readFileSync(`${dir}/expected_${type}_sbom.json`, 'utf8'));
+					expected.metadata.tools.components[0].version = getPackageVersion();
 					expect(actual.contentType).to.equal('application/vnd.cyclonedx+json');
 					expect(canonical(actual.content)).to.deep.equal(canonical(expected));
 				});
