@@ -194,78 +194,80 @@ $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml --ex
 <li>
 Use as Global Binary
 
+Installing globally puts the `trustify-da` binary on your `PATH`:
+
 ```shell
 npm install --global @trustify-da/trustify-da-javascript-client
 ```
 
 ```shell
 # get stack analysis in json format
-$ trustify-da-javascript-client stack /path/to/pom.xml
+$ trustify-da stack /path/to/pom.xml
 
 # get stack analysis in json format (summary only)
-$ trustify-da-javascript-client stack /path/to/pom.xml --summary
+$ trustify-da stack /path/to/pom.xml --summary
 
 # get stack analysis in html format format
-$ trustify-da-javascript-client stack /path/to/pom.xml --html
+$ trustify-da stack /path/to/pom.xml --html
 
 # get stack analysis for monorepo (lock file at workspace root)
-$ trustify-da-javascript-client stack /path/to/package.json --workspace-dir /path/to/workspace-root
+$ trustify-da stack /path/to/package.json --workspace-dir /path/to/workspace-root
 
 # get component analysis
-$ trustify-da-javascript-client component /path/to/pom.xml
+$ trustify-da component /path/to/pom.xml
 
 # get component analysis for monorepo
-$ trustify-da-javascript-client component /path/to/package.json -w /path/to/workspace-root
+$ trustify-da component /path/to/package.json -w /path/to/workspace-root
 
 # batch stack analysis for entire workspace
-$ trustify-da-javascript-client stack-batch /path/to/workspace-root
+$ trustify-da stack-batch /path/to/workspace-root
 
 # with extra discovery excludes
-$ trustify-da-javascript-client stack-batch /path/to/workspace-root -i '**/vendor/**'
+$ trustify-da stack-batch /path/to/workspace-root -i '**/vendor/**'
 
 # get image analysis in json format
-$ trustify-da-javascript-client image docker.io/library/node:18
+$ trustify-da image docker.io/library/node:18
 
 # get image analysis in json format (summary only)
 # Note: summary returns an object with imageRef as key
-$ trustify-da-javascript-client image docker.io/library/node:18 --summary
+$ trustify-da image docker.io/library/node:18 --summary
 
 # get image analysis in html format
-$ trustify-da-javascript-client image docker.io/library/node:18 --html
+$ trustify-da image docker.io/library/node:18 --html
 
 # analyze multiple images
-$ trustify-da-javascript-client image docker.io/library/node:18 docker.io/library/python:3.9
+$ trustify-da image docker.io/library/node:18 docker.io/library/python:3.9
 
 # specify architecture using ^^ notation (e.g., httpd:2.4.49^^amd64)
-$ trustify-da-javascript-client image httpd:2.4.49^^amd64
+$ trustify-da image httpd:2.4.49^^amd64
 
 # get project license information
-$ trustify-da-javascript-client license /path/to/package.json
+$ trustify-da license /path/to/package.json
 
 # generate a CycloneDX SBOM from a manifest file
-$ trustify-da-javascript-client sbom /path/to/pom.xml
+$ trustify-da sbom /path/to/pom.xml
 
 # generate SBOM and write to a file
-$ trustify-da-javascript-client sbom /path/to/pom.xml --output sbom.json
+$ trustify-da sbom /path/to/pom.xml --output sbom.json
 
 # scan a manifest and apply vulnerability remediations
-$ trustify-da-javascript-client remediate /path/to/pom.xml
+$ trustify-da remediate /path/to/pom.xml
 
 # preview remediations without modifying files
-$ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run
+$ trustify-da remediate /path/to/pom.xml --dry-run
 
 # scan a directory for all supported manifests
-$ trustify-da-javascript-client remediate /path/to/project/
+$ trustify-da remediate /path/to/project/
 
 # filter by vulnerability providers (order determines priority)
-$ trustify-da-javascript-client remediate /path/to/pom.xml --providers provider1,provider2
+$ trustify-da remediate /path/to/pom.xml --providers provider1,provider2
 
 # group report output by bundle instead of per-dependency
-$ trustify-da-javascript-client remediate /path/to/pom.xml --dry-run --group-by bundle
+$ trustify-da remediate /path/to/pom.xml --dry-run --group-by bundle
 
 # exclude specific dependencies or groups from remediation (repeat --exclude per entry)
-$ trustify-da-javascript-client remediate /path/to/pom.xml --exclude pkg:maven/com.example/legacy-lib
-$ trustify-da-javascript-client remediate /path/to/pom.xml --exclude 'pkg:maven/com.example/*' --exclude 'pkg:npm/**'
+$ trustify-da remediate /path/to/pom.xml --exclude pkg:maven/com.example/legacy-lib
+$ trustify-da remediate /path/to/pom.xml --exclude 'pkg:maven/com.example/*' --exclude 'pkg:npm/**'
 ```
 </li>
 </ul>
@@ -772,6 +774,55 @@ For some ecosystems we support passing additional CLI arguments to the underlyin
 |Maven    |TRUSTIFY_DA_MVN_ARGS|
 
 
+<h3>Configuration File</h3>
+<p>
+CLI commands read an optional <code>.trustify-da.yml</code> (or <code>.trustify-da.yaml</code>) file so you can keep project defaults in version control instead of repeating flags. Discovery walks up the directory tree from the command's target path (like <code>.eslintrc</code>); within a directory <code>.yml</code> takes precedence over <code>.yaml</code>. A missing file is not an error.
+</p>
+<p>
+Values resolve with the precedence <strong>CLI flag &gt; environment variable (<code>TRUSTIFY_DA_*</code>) &gt; config file &gt; built-in default</strong>. <code>providers</code> and <code>sources</code> accept either a YAML array or a comma-separated string.
+</p>
+
+```yaml
+# .trustify-da.yml
+
+# Backend URL (overridden by --backend-url / TRUSTIFY_DA_BACKEND_URL).
+# Note: TRUSTIFY_DA_TOKEN is refused when the backend URL comes from this file —
+# pass --backend-url or TRUSTIFY_DA_BACKEND_URL to explicitly trust the backend.
+backend-url: https://trustify-da.example.com
+
+# Vulnerability providers and sources (array or comma-separated string).
+# Provider order determines priority (first = highest).
+providers: [redhat, osv]
+sources: redhat,osv
+
+# Remediation command defaults.
+remediation:
+  group-by: dependency          # dependency | bundle
+  exclude:                      # version-less purl glob patterns, merged with --exclude
+    - pkg:maven/com.example/legacy-lib
+    - 'pkg:npm/**'
+  labels:                      # labels applied to opened pull requests
+    - security
+  branch-prefix: trustify-da/  # prefix for remediation branch names
+
+# Vulnerability gating thresholds (finite numbers).
+check:
+  fail-on:
+    critical: 0
+    high: 5
+    license-conflicts: 0
+
+# SBOM generation defaults.
+sbom:
+  format: cyclonedx
+  targets:
+    - pom.xml
+```
+
+<p>
+The CLI currently applies <code>backend-url</code>, <code>providers</code>, <code>sources</code>, <code>remediation.group-by</code>, and <code>remediation.exclude</code>. The <code>check</code> and <code>sbom</code> sections and <code>remediation.labels</code>/<code>branch-prefix</code> are validated and consumed by the <a href="https://github.com/guacsec/trustify-da-action">Trustify DA GitHub Action</a>. Unknown keys are preserved and ignored.
+</p>
+
 <h3>Remediation</h3>
 <p>
 The <code>remediate</code> command scans manifest files for known vulnerabilities and applies version upgrades to resolve them. By default, it modifies manifest files in place. Use <code>--dry-run</code> to preview changes without modifying any files.
@@ -825,7 +876,7 @@ The <code>remediate</code> command scans manifest files for known vulnerabilitie
 <td>—</td>
 <td>string</td>
 <td><code>dependency</code></td>
-<td>Report grouping strategy (<code>dependency</code> or <code>bundle</code>)</td>
+<td>Report grouping strategy (<code>dependency</code> or <code>bundle</code>) (env: <code>TRUSTIFY_DA_GROUP_BY</code>)</td>
 </tr>
 <tr>
 <td><code>--exclude</code></td>
@@ -866,7 +917,7 @@ When multiple vulnerability providers suggest different remediation versions for
 
 <h4>Example: GitHub Action Workflow</h4>
 <p>
-The following workflow runs a scheduled remediation scan using the container image and opens a pull request with any version updates. Save this as <code>.github/workflows/trustify-da-remediation.yml</code> in your repository:
+For a ready-made integration, use the <a href="https://github.com/guacsec/trustify-da-action">Trustify DA GitHub Action</a> (<code>guacsec/trustify-da-action</code>), which wraps this CLI and opens remediation pull requests for you. The workflow below shows an equivalent do-it-yourself setup that runs a scheduled remediation scan using the container image directly and opens a pull request with any version updates. Save this as <code>.github/workflows/trustify-da-remediation.yml</code> in your repository:
 </p>
 
 ```yaml
