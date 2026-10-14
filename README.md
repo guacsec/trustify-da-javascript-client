@@ -112,7 +112,7 @@ Commands:
   trustify-da-javascript-client image <image-refs..> [--html|--summary]               produce image analysis report for OCI image references
   trustify-da-javascript-client validate-token <token-provider> [--token-value <value>]   validate input token if authentic and authorized
   trustify-da-javascript-client license </path/to/manifest>               display project license information from manifest and LICENSE file in JSON format
-  trustify-da-javascript-client sbom </path/to/manifest> [--output <file>]               generate a CycloneDX SBOM from a manifest file
+  trustify-da-javascript-client sbom </path/to/manifest> [--output <file>] [--name <name>]  generate a CycloneDX SBOM from a manifest file
   trustify-da-javascript-client remediate <path> [--dry-run] [--providers <list>] [--sources <list>] [--group-by <strategy>] [--exclude <purl>...]   scan and apply vulnerability remediations
 
 Options:
@@ -169,6 +169,9 @@ $ npx @trustify-da/trustify-da-javascript-client sbom /path/to/pom.xml
 
 # generate SBOM and write to a file
 $ npx @trustify-da/trustify-da-javascript-client sbom /path/to/pom.xml --output sbom.json
+
+# generate SBOM with explicit root component name (for manifests without a name field)
+$ npx @trustify-da/trustify-da-javascript-client sbom /path/to/package.json --name @myorg/mypackage
 
 # scan a manifest and apply vulnerability remediations
 $ npx @trustify-da/trustify-da-javascript-client remediate /path/to/pom.xml
@@ -249,6 +252,9 @@ $ trustify-da sbom /path/to/pom.xml
 
 # generate SBOM and write to a file
 $ trustify-da sbom /path/to/pom.xml --output sbom.json
+
+# generate SBOM with explicit root component name (for manifests without a name field)
+$ trustify-da-javascript-client sbom /path/to/package.json --name @myorg/mypackage
 
 # scan a manifest and apply vulnerability remediations
 $ trustify-da remediate /path/to/pom.xml
@@ -675,6 +681,11 @@ following keys for setting custom paths for the said executables.
 <td>Workspace root (monorepos)</td>
 <td>—</td>
 <td>workspaceDir / TRUSTIFY_DA_WORKSPACE_DIR</td>
+</tr>
+<tr>
+<td>SBOM root component name</td>
+<td>—</td>
+<td>--name (-n) / TRUSTIFY_DA_SBOM_NAME</td>
 </tr>
 </table>
 
