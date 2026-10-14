@@ -1,5 +1,7 @@
 import { fail } from 'assert';
-import fs from 'fs'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 import { expect } from 'chai'
 import esmock from 'esmock';
@@ -294,6 +296,33 @@ suite('testing the javascript-npm data provider', async () => {
 		const testCase = 'wrong_folder';
 		const manifestPath = `test/providers/tst_manifests/npm/${testCase}/package.json`;
 		expect(() => new Manifest(manifestPath)).to.throw(Error);
+	});
+
+	/// Verifies that a manifest without a name field derives its name from the directory.
+	test('derives name from directory when package.json has no name field', () => {
+		// Given a temporary directory with a package.json that has no name field
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tc6923-'));
+		fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({
+			dependencies: { 'swagger-ui-dist': '^5.32.6' }
+		}));
+
+		try {
+			// When loading the manifest
+			const m = new Manifest(path.join(tmpDir, 'package.json'));
+
+			// Then the name should be derived from the directory
+			expect(m.name).to.equal(path.basename(tmpDir));
+			expect(m.version).to.equal('v0.0.0');
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	/// Verifies that a declared name takes precedence over the directory fallback.
+	test('uses declared name when present in package.json', () => {
+		const manifestPath = 'test/providers/tst_manifests/npm/package_json_deps_without_exhortignore_object/package.json';
+		const m = new Manifest(manifestPath);
+		expect(m.name).to.equal('backend');
 	});
 
 	test('verify match with opts.TRUSTIFY_DA_WORKSPACE_DIR finds npm provider when lock is at workspace root', () => {
