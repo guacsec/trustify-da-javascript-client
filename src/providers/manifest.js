@@ -16,7 +16,7 @@ export default class Manifest {
 		this.peerDependencies = content.peerDependencies || {};
 		this.optionalDependencies = content.optionalDependencies || {};
 		this.hasExplicitName = !!content.name;
-		this.name = content.name || path.basename(path.dirname(manifestPath));
+		this.name = content.name || path.basename(path.dirname(path.resolve(manifestPath)));
 		this.version = content.version || DEFAULT_VERSION;
 		this.packageManager = content.packageManager;
 		this.devEngines = content.devEngines;
