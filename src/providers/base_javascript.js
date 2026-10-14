@@ -372,7 +372,8 @@ export default class Base_javascript {
 	#getSBOM(opts = {}) {
 		const depsObject = this._buildDependencyTree(true, opts);
 
-		let mainComponent = toPurl(purlType, this.#manifest.name, this.#manifest.version);
+		const name = getCustom('TRUSTIFY_DA_SBOM_NAME', null, opts) || this.#manifest.name;
+		let mainComponent = toPurl(purlType, name, this.#manifest.version);
 		const license = this.readLicenseFromManifest(this.#manifest.manifestPath);
 
 		let sbom = new Sbom();

@@ -516,11 +516,32 @@ const sbom = {
 			desc: 'Workspace root directory (for monorepos; lock file is expected here)',
 			type: 'string',
 			normalize: true,
-		}
+		},
+		name: {
+			alias: 'n',
+			desc: 'Root component name for the SBOM (overrides the manifest name field)',
+			type: 'string',
+		},
 	}),
 	handler: async args => {
 		let manifest = args['/path/to/manifest']
+		if (!args.name) {
+			try {
+				const pkg = JSON.parse(fs.readFileSync(manifest, 'utf-8'))
+				if (!pkg.name) {
+					console.error(JSON.stringify({
+						error: 'package.json has no "name" field. Use --name to specify the SBOM root component name.'
+					}, null, 2))
+					process.exit(1)
+				}
+			} catch (_) {
+				// loadManifest in the provider will handle parse/read errors
+			}
+		}
 		const opts = args.workspaceDir ? { TRUSTIFY_DA_WORKSPACE_DIR: args.workspaceDir } : {}
+		if (args.name) {
+			opts.TRUSTIFY_DA_SBOM_NAME = args.name
+		}
 		let result
 		try {
 			result = await generateSbom(manifest, opts)
