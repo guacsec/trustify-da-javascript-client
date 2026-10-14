@@ -1,9 +1,11 @@
 import { fail } from 'assert';
-import fs from 'fs'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 import { expect } from 'chai'
 import esmock from 'esmock';
-import { useFakeTimers } from "sinon";
+import { spy, useFakeTimers } from "sinon";
 
 import { availableProviders, match } from '../../src/provider.js';
 import { sriToHash } from '../../src/providers/base_javascript.js';
@@ -486,4 +488,56 @@ suite('lock-file hash extraction (TC-5548)', () => {
 			expect(map.size).to.equal(0);
 		});
 	});
+});
+
+suite('lock file regeneration skip (TC-6922)', () => {
+	let lockClock;
+	suiteSetup(() => lockClock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z')));
+	suiteTeardown(() => lockClock.restore());
+
+	/// Verifies that _createLockFile is not called when a lock file already exists.
+	test('skips _createLockFile when lock file already exists', async () => {
+		// Given an npm fixture that already has a package-lock.json
+		const listing = fs.readFileSync(
+			'test/providers/tst_manifests/npm/package_json_deps_without_exhortignore_object/listing_stack.json'
+		).toString();
+		const provider = await createMockProvider('npm', listing);
+		const createLockFileSpy = spy(provider, '_createLockFile');
+		const manifestPath = 'test/providers/tst_manifests/npm/package_json_deps_without_exhortignore_object/package.json';
+
+		// When generating SBOM data
+		provider.provideStack(manifestPath);
+
+		// Then lock file regeneration should be skipped
+		expect(createLockFileSpy.called).to.be.false;
+		createLockFileSpy.restore();
+	}).timeout(15000);
+
+	/// Verifies that _createLockFile is called when no lock file exists.
+	test('calls _createLockFile when lock file does not exist', async () => {
+		// Given a temporary directory with only a package.json (no lock file)
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tc6922-'));
+		fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({
+			name: 'test-no-lock',
+			version: '1.0.0',
+			dependencies: {}
+		}));
+		const minimalListing = JSON.stringify({
+			version: '1.0.0', name: 'test-no-lock', dependencies: {}
+		});
+		const provider = await createMockProvider('npm', minimalListing);
+		const createLockFileSpy = spy(provider, '_createLockFile');
+		const manifestPath = path.join(tmpDir, 'package.json');
+
+		try {
+			// When generating SBOM data without a lock file present
+			provider.provideStack(manifestPath);
+
+			// Then _createLockFile should have been called to generate one
+			expect(createLockFileSpy.called).to.be.true;
+		} finally {
+			createLockFileSpy.restore();
+			fs.rmSync(tmpDir, { recursive: true, force: true });
+		}
+	}).timeout(15000);
 });

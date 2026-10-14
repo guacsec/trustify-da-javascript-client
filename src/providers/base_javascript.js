@@ -355,7 +355,9 @@ export default class Base_javascript {
 		const manifestDir = path.dirname(this.#manifest.manifestPath);
 		const cmdDir = this._findLockFileDir(manifestDir, opts) || manifestDir;
 		this._version({ cwd: cmdDir });
-		this._createLockFile(cmdDir);
+		if (!fs.existsSync(path.join(cmdDir, this._lockFileName()))) {
+			this._createLockFile(cmdDir);
+		}
 		this._loadHashes(cmdDir);
 
 		let output = this.#executeListCmd(includeTransitive, cmdDir);
