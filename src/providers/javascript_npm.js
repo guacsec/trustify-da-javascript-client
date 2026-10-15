@@ -13,8 +13,9 @@ export default class Javascript_npm extends Base_javascript {
 	/**
 	 * Parses `package-lock.json` (lockfileVersion 2/3) into a hash map keyed by
 	 * `name@version`. Each `packages` entry is keyed by its install path
-	 * (e.g. `node_modules/@hapi/joi`); the package name is the segment after the
-	 * final `node_modules/`. The `integrity` field holds an SRI string.
+	 * (e.g. `node_modules/@hapi/joi`). The package name comes from `entry.name`,
+	 * falling back to the install path after the final `node_modules/` when present.
+	 * The `integrity` field holds an SRI string.
 	 * @param {string} lockDir - Directory containing package-lock.json
 	 * @returns {Map<string, Array<{alg: string, content: string}>>} Hash map
 	 * @protected

@@ -399,6 +399,7 @@ export default class Base_javascript {
 	 * present in the SBOM, even when the package manager does not resolve them
 	 * (e.g. yarn does not include peer deps in its dependency listing).
 	 * @param {Sbom} sbom - The SBOM to supplement
+	 * @param {Object} graph - The resolved dependency graph or dependency tree
 	 * @private
 	 */
 	#ensurePeerAndOptionalDeps(sbom, graph) {
@@ -421,9 +422,9 @@ export default class Base_javascript {
 	}
 
 	/**
-   * Recursively builds the Sbom from the JSON that npm listing returns
+   * Builds the SBOM from a lockfile dependency graph or dependency tree
    * @param {Sbom} sbom - The SBOM object to add dependencies to
-   * @param {Object} depTree - The current dependency tree
+   * @param {Object} depTree - The lockfile dependency graph or dependency tree
    * @protected
    */
 	_addDependenciesToSbom(sbom, depTree) {
