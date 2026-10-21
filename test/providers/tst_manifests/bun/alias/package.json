@@ -1,0 +1,7 @@
+{
+	"name": "alias-app",
+	"version": "1.0.0",
+	"dependencies": {
+		"myalias": "npm:is-number@7.0.0"
+	}
+}

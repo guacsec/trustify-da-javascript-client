@@ -1,0 +1,20 @@
+{
+  "lockfileVersion": 0,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "versioned-app-v0",
+      "dependencies": {
+        "leaf": "1.0.0"
+      }
+    }
+  },
+  "packages": {
+    "leaf": [
+      "leaf@1.0.0",
+      "",
+      {},
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ]
+  }
+}

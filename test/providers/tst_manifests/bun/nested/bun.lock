@@ -1,0 +1,47 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "nested-app",
+      "dependencies": {
+        "alpha": "1.0.0",
+        "beta": "1.0.0"
+      }
+    }
+  },
+  "packages": {
+    "alpha": [
+      "alpha@1.0.0",
+      "",
+      {
+        "dependencies": {
+          "shared": "^1.0.0"
+        }
+      },
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ],
+    "beta": [
+      "beta@1.0.0",
+      "",
+      {
+        "dependencies": {
+          "shared": "^2.0.0"
+        }
+      },
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ],
+    "shared": [
+      "shared@1.0.0",
+      "",
+      {},
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ],
+    "beta/shared": [
+      "shared@2.0.0",
+      "",
+      {},
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ]
+  }
+}

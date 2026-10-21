@@ -1,0 +1,27 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "ws-root"
+    },
+    "packages/member": {
+      "name": "member",
+      "version": "2.0.0",
+      "dependencies": {
+        "alpha": "1.0.0"
+      }
+    }
+  },
+  "packages": {
+    "alpha": [
+      "alpha@1.0.0",
+      "",
+      {},
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ],
+    "member": [
+      "member@workspace:packages/member"
+    ]
+  }
+}

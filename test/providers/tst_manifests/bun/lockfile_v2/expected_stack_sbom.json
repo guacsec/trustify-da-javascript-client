@@ -1,0 +1,51 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.6",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-08-07T00:00:00.000Z",
+		"component": {
+			"name": "versioned-app-v2",
+			"version": "1.0.0",
+			"purl": "pkg:npm/versioned-app-v2@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:npm/versioned-app-v2@1.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.4.0"
+				}
+			]
+		}
+	},
+	"components": [
+		{
+			"name": "leaf",
+			"version": "1.0.0",
+			"purl": "pkg:npm/leaf@1.0.0",
+			"type": "library",
+			"bom-ref": "pkg:npm/leaf@1.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "e350a27e483a7bc4f2952a5db53a5e2d532abd20445734edb47bc4443ef8d7ea6767c00dbf4d34e0c44be3740a3c394af5c1af369e8d6566540656c65d8c719e"
+				}
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:npm/versioned-app-v2@1.0.0",
+			"dependsOn": [
+				"pkg:npm/leaf@1.0.0"
+			]
+		},
+		{
+			"ref": "pkg:npm/leaf@1.0.0",
+			"dependsOn": []
+		}
+	]
+}

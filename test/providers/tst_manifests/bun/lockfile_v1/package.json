@@ -1,0 +1,7 @@
+{
+	"name": "versioned-app-v1",
+	"version": "1.0.0",
+	"dependencies": {
+		"leaf": "1.0.0"
+	}
+}
