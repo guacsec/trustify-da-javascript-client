@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { parseResolution, parseSyml } from '@yarnpkg/parsers';
 import glob from 'fast-glob';
+import { parse as parseJsonc } from 'jsonc-parser';
 import micromatch from 'micromatch';
 import semver from 'semver';
 
@@ -463,5 +464,171 @@ export function readYarnGraph(root, manifestPath, manifest, lock) {
 		return context;
 	}
 	graph.rootId = visit(rootId);
+	return graph;
+}
+
+/**
+ * Reads a `bun.lock` document. Bun's text lockfile is JSONC (comments and
+ * trailing commas allowed), so it is parsed leniently; genuine syntax errors
+ * still surface as a read failure. Returns the parsed lockfile mapping.
+ * @param {string} file - Absolute path to bun.lock
+ * @returns {Object} The parsed lockfile mapping
+ */
+export function readBunLock(file) {
+	let lock;
+	try {
+		const errors = [];
+		lock = parseJsonc(fs.readFileSync(file, 'utf8'), errors, { allowTrailingComma: true });
+		if (errors.length > 0) { throw new Error('invalid JSONC syntax'); }
+		if (!object(lock)) { throw new Error('expected a lockfile mapping'); }
+	} catch (cause) {
+		throw new Error(`Cannot read ${file}: ${cause.message}`, { cause });
+	}
+	return lock;
+}
+
+/**
+ * Parses a single `bun.lock` `packages` tuple. Bun uses several shapes:
+ * npm `["name@version", registry, info, integrity]`, hosted/git
+ * `["name@url", info, resolvedName, integrity]` (the info object shifts to
+ * index 1), and a workspace pointer `["name@workspace:path"]` with no info.
+ * The info object is located positionally and the integrity is the trailing
+ * string, so all shapes parse through one code path.
+ * @param {Array} tuple - A `bun.lock` packages entry
+ * @returns {{id: string, name: string, range: string, version: string, info: Object, integrity: (string|undefined), workspace: boolean}}
+ */
+export function parseBunEntry(tuple) {
+	const id = tuple[0];
+	const { name, range } = descriptor(id);
+	const info = tuple.slice(1).find(object) ?? {};
+	const last = tuple.length > 1 ? tuple[tuple.length - 1] : undefined;
+	const integrity = typeof last === 'string' ? last : undefined;
+	const workspace = range.startsWith('workspace:');
+	// For registry packages the range is the resolved version; for hosted/git
+	// packages it is the URL/ref, which is preserved as the reported version.
+	return { id, name, range, version: workspace ? undefined : range, info, integrity, workspace };
+}
+
+/**
+ * Reads Bun's resolved graph from a text `bun.lock` without invoking Bun.
+ * Supports lockfileVersion 0, 1 and 2. Package identities come from each
+ * tuple's resolved `name@version` (so npm aliases report their real target),
+ * nested resolutions are keyed by their `parent/child` install path (so
+ * conflicting versions stay distinct), workspace members resolve to their
+ * on-disk manifest identity, and optional branches are preserved while missing
+ * required resolutions are rejected.
+ * @param {string} root - Workspace root (directory holding bun.lock)
+ * @param {string} manifestPath - Path to the analyzed package.json
+ * @param {Object} manifest - Parsed package.json content
+ * @param {Object} lock - Parsed lockfile (see {@link readBunLock})
+ * @returns {LockGraph} The resolved dependency graph
+ */
+export function readBunGraph(root, manifestPath, manifest, lock) {
+	const file = path.join(root, 'bun.lock');
+	if (![0, 1, 2].includes(Number(lock.lockfileVersion))) {
+		throw new Error(`Unsupported bun lockfile version ${lock.lockfileVersion} in ${file}. Regenerate a version 0, 1, or 2 bun.lock before scanning.`);
+	}
+	if (!object(lock.workspaces)) { unsupported(file, 'workspaces', 'missing workspaces table'); }
+	const workspaces = lock.workspaces;
+	const packages = object(lock.packages) ? lock.packages : {};
+
+	const manifests = projectManifests(root, manifestPath, manifest);
+	const locals = new Map();
+	for (const [manifestFile, data] of manifests) {
+		const location = path.relative(root, path.dirname(manifestFile)).split(path.sep).join('/') || '.';
+		const entry = workspaces[location === '.' ? '' : location];
+		if (!object(entry)) { stale(manifestFile, data.name, 'is missing from the lockfile'); }
+		if (entry.name != null && data.name !== entry.name) { stale(manifestFile, data.name, 'has a different locked identity'); }
+		validateSnapshot(manifestFile, data, entry, ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']);
+		locals.set(location, { data, file: manifestFile });
+	}
+	const rootLocation = path.relative(root, path.dirname(path.resolve(manifestPath))).split(path.sep).join('/') || '.';
+	if (!locals.has(rootLocation)) { unsupported(file, manifest.name, 'manifest is not in the workspace'); }
+
+	// Resolves a dependency to its `packages` key using Bun's node_modules
+	// hoisting: a `parent/child` nested entry wins over a hoisted top-level one,
+	// walking up the owner's install path before falling back to the root.
+	function resolveKey(ownerPath, name) {
+		let prefix = ownerPath;
+		while (true) {
+			const candidate = prefix ? `${prefix}/${name}` : name;
+			if (packages[candidate] !== undefined) { return candidate; }
+			if (!prefix) { return undefined; }
+			const slash = prefix.lastIndexOf('/');
+			prefix = slash === -1 ? '' : prefix.slice(0, slash);
+		}
+	}
+
+	const graph = { rootId: `ws:${rootLocation}`, nodes: new Map() };
+
+	// Resolves one dependency edge to a node id. Returns undefined for an absent
+	// optional edge; throws for an absent required edge. Workspace pointers
+	// redirect to the member's importer node.
+	function childId(ownerPath, name, spec, source, optional) {
+		const key = resolveKey(ownerPath, name);
+		if (key === undefined) {
+			if (optional) { return undefined; }
+			stale(source, name, 'has no locked resolution');
+		}
+		const entry = packages[key];
+		if (!Array.isArray(entry) || typeof entry[0] !== 'string') { unsupported(file, key, 'malformed package entry'); }
+		const parsed = parseBunEntry(entry);
+		if (parsed.workspace) {
+			const location = parsed.range.slice('workspace:'.length) || '.';
+			if (!locals.has(location)) { unsupported(file, key, 'workspace package missing from the lockfile'); }
+			return `ws:${location}`;
+		}
+		if (spec != null) { validateRange(source, name, spec, { name: parsed.name, version: parsed.version }); }
+		return key;
+	}
+
+	// An explicit stack avoids call-stack overflow on deep dependency chains.
+	function visit(startId) {
+		const stack = [startId];
+		while (stack.length > 0) {
+			const id = stack.pop();
+			if (graph.nodes.has(id)) { continue; }
+			const children = [];
+			if (id.startsWith('ws:')) {
+				const local = locals.get(id.slice(3));
+				const node = { name: local.data.name ?? path.basename(path.dirname(local.file)), version: local.data.version ?? 'v0.0.0', dependencies: new Map(), hashes: undefined };
+				graph.nodes.set(id, node);
+				const optionalDeps = local.data.optionalDependencies ?? {};
+				for (const [name, spec] of Object.entries(manifestDependencies(local.data, local.file))) {
+					const cid = childId('', name, spec, local.file, Object.hasOwn(optionalDeps, name));
+					if (cid == null) { continue; }
+					node.dependencies.set(name, cid);
+					children.push(cid);
+				}
+			} else {
+				const parsed = parseBunEntry(packages[id]);
+				if (typeof parsed.name !== 'string' || !parsed.name || typeof parsed.version !== 'string' || !parsed.version) { unsupported(file, id, 'missing package name or version'); }
+				const node = { name: parsed.name, version: parsed.version, dependencies: new Map(), hashes: hashes({ integrity: parsed.integrity }) };
+				graph.nodes.set(id, node);
+				const required = object(parsed.info.dependencies) ? parsed.info.dependencies : {};
+				const optionalDeps = object(parsed.info.optionalDependencies) ? parsed.info.optionalDependencies : {};
+				// ponytail: transitive peerDependencies are omitted (as the prior
+				// reader did); direct peers are supplemented by the SBOM builder. Add
+				// peer-edge resolution here if a fixture ever needs transitive peers.
+				for (const [name, spec] of Object.entries(required)) {
+					const cid = childId(id, name, spec, file, false);
+					if (cid == null) { continue; }
+					node.dependencies.set(name, cid);
+					children.push(cid);
+				}
+				for (const [name, spec] of Object.entries(optionalDeps)) {
+					if (node.dependencies.has(name)) { continue; }
+					const cid = childId(id, name, spec, file, true);
+					if (cid == null) { continue; }
+					node.dependencies.set(name, cid);
+					children.push(cid);
+				}
+			}
+			// Push in reverse to visit dependencies in their original declaration order.
+			for (let i = children.length - 1; i >= 0; i--) { stack.push(children[i]); }
+		}
+	}
+
+	visit(graph.rootId);
 	return graph;
 }

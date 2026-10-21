@@ -1,0 +1,7 @@
+{
+	"name": "optional-app",
+	"version": "1.0.0",
+	"dependencies": {
+		"host": "1.0.0"
+	}
+}

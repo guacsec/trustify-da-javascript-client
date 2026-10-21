@@ -7,12 +7,35 @@ import { expect } from 'chai'
 import esmock from 'esmock';
 import { useFakeTimers } from "sinon";
 
+import { getPackageVersion } from '../../src/package_version.js';
 import { availableProviders, match } from '../../src/provider.js';
 import { sriToHash } from '../../src/providers/base_javascript.js';
+import Bun from '../../src/providers/javascript_bun.js';
 import Manifest from '../../src/providers/manifest.js';
 import { compareSboms } from '../utils/sbom_utils.js';
 
 let clock
+
+/** A valid SHA-512 SRI (is-number@7.0.0) reused across bun lockfile fixtures. */
+const BUN_SRI = 'sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==';
+const BUN_SRI_HEX = Buffer.from(BUN_SRI.slice('sha512-'.length), 'base64').toString('hex');
+
+/** Sorts components and dependency edges so two SBOMs compare order-independently. */
+function canonical(sbom) {
+	const data = typeof sbom === 'string' ? JSON.parse(sbom) : structuredClone(sbom);
+	data.components.sort((a, b) => a.purl.localeCompare(b.purl));
+	data.dependencies?.forEach(dep => dep.dependsOn.sort());
+	data.dependencies?.sort((a, b) => a.ref.localeCompare(b.ref));
+	return data;
+}
+
+/** Captures a directory's file contents so a run can be shown to leave it untouched. */
+function snapshot(dir) {
+	return fs.readdirSync(dir, { recursive: true }).sort().map(file => {
+		const full = path.join(dir, file);
+		return [file, fs.statSync(full).isDirectory() ? null : fs.readFileSync(full).toString('base64')];
+	});
+}
 
 async function mockProvider(providerName, listingOutput, version) {
 	if (providerName === 'npm' || providerName === 'yarn') {
@@ -52,8 +75,8 @@ async function createMockProvider(providerName, listingOutput) {
 		return new Javascript_yarn();
 	}
 	case 'bun': {
-		const Javascript_bun = await mockProvider(providerName, listingOutput);
-		return new Javascript_bun();
+		// Bun analysis is lockfile-only, so no subprocess mock is needed.
+		return new Bun();
 	}
 	default: { fail('Not implemented'); }
 	}
@@ -484,4 +507,203 @@ suite('lock-file hash extraction (TC-5548)', () => {
 			expect(map.size).to.equal(0);
 		});
 	});
+});
+
+suite('bun lockfile-only analysis (TC-7014)', () => {
+	let root;
+	setup(() => { root = fs.mkdtempSync(path.join(os.tmpdir(), 'bun-lockfile-')); });
+	teardown(() => { fs.rmSync(root, { recursive: true, force: true }); });
+
+	/** Writes a package.json, a bun.lock and any extra manifests, returning the manifest path. */
+	function project(manifest, lock, { manifestPath = 'package.json', extra = {} } = {}) {
+		for (const [rel, content] of Object.entries(extra)) {
+			const p = path.join(root, rel);
+			fs.mkdirSync(path.dirname(p), { recursive: true });
+			fs.writeFileSync(p, JSON.stringify(content));
+		}
+		fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(manifest));
+		fs.writeFileSync(path.join(root, 'bun.lock'), typeof lock === 'string' ? lock : JSON.stringify(lock));
+		return path.join(root, manifestPath);
+	}
+	const stack = mp => JSON.parse(new Bun().provideStack(mp).content);
+	const component = mp => JSON.parse(new Bun().provideComponent(mp).content);
+	const edge = (sbom, from, to) => sbom.dependencies.find(dep => dep.ref === `pkg:npm/${from}`)?.dependsOn.includes(`pkg:npm/${to}`);
+
+	for (const method of ['provideStack', 'provideComponent']) {
+		/// Verifies bun analysis reads the graph without any subprocess or file writes (mirrors TC-6762).
+		test(`bun ${method} makes no subprocess calls and changes no project files`, async () => {
+			// Given a project with a bun.lock and a stale node_modules copy
+			const lock = { lockfileVersion: 2, configVersion: 1,
+				workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0' } } },
+				packages: { alpha: ['alpha@1.0.0', '', { dependencies: { shared: '^1.0.0' } }, BUN_SRI], shared: ['shared@1.0.0', '', {}, BUN_SRI] } };
+			const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0' } }, lock);
+			fs.mkdirSync(path.join(root, 'node_modules', 'alpha'), { recursive: true });
+			fs.writeFileSync(path.join(root, 'node_modules', 'alpha', 'package.json'), '{"version":"99.0.0"}');
+			const before = snapshot(root);
+
+			// When analyzing with every subprocess path wired to throw
+			const fail = () => { throw new Error('Unexpected subprocess invocation'); };
+			const Provider = await esmock('../../src/providers/javascript_bun.js', {}, {
+				'../../src/tools.js': { invokeCommand: fail },
+				child_process: { execFileSync: fail, spawnSync: fail },
+			});
+			const provided = new Provider()[method](mp);
+
+			// Then the SBOM comes from the lockfile and the project tree is untouched
+			expect(JSON.parse(provided.content).components.some(c => c.purl === 'pkg:npm/alpha@1.0.0')).to.be.true;
+			expect(provided.ecosystem).to.equal('npm');
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	/// Regression: aliases must report the npm-target identity, not the alias name.
+	test('reports the npm-target identity and hash for aliases, not the alias name', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { myalias: 'npm:is-number@7.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { myalias: 'npm:is-number@7.0.0' } } },
+				packages: { myalias: ['is-number@7.0.0', '', {}, BUN_SRI] } });
+		for (const read of [stack, component]) {
+			const sbom = read(mp);
+			expect(sbom.components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+			expect(sbom.components[0].hashes).to.deep.equal([{ alg: 'SHA-512', content: BUN_SRI_HEX }]);
+		}
+	});
+
+	/// Regression: a nested resolution must keep its own version instead of collapsing onto the root.
+	test('resolves nested versions distinctly instead of collapsing onto the top-level entry', () => {
+		// Given two parents that need conflicting versions of a shared dependency
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0', beta: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0', beta: '1.0.0' } } },
+				packages: {
+					alpha: ['alpha@1.0.0', '', { dependencies: { shared: '^1.0.0' } }, BUN_SRI],
+					beta: ['beta@1.0.0', '', { dependencies: { shared: '^2.0.0' } }, BUN_SRI],
+					shared: ['shared@1.0.0', '', {}, BUN_SRI],
+					'beta/shared': ['shared@2.0.0', '', {}, BUN_SRI],
+				} });
+
+		// When building the SBOM
+		const sbom = stack(mp);
+
+		// Then each parent keeps its own resolved version of the shared dependency
+		expect(edge(sbom, 'alpha@1.0.0', 'shared@1.0.0')).to.be.true;
+		expect(edge(sbom, 'beta@1.0.0', 'shared@2.0.0')).to.be.true;
+		expect(sbom.components.filter(c => c.name === 'shared').map(c => c.version).sort()).to.deep.equal(['1.0.0', '2.0.0']);
+	});
+
+	/// Regression: a workspace member reports its real version and dependencies, not a `workspace:` pseudo-version.
+	test('reports a workspace member\'s real identity and dependencies', () => {
+		const mp = project({ name: 'ws-root', private: true, workspaces: ['packages/member'] },
+			{ lockfileVersion: 2, configVersion: 1,
+				workspaces: { '': { name: 'ws-root' }, 'packages/member': { name: 'member', version: '2.0.0', dependencies: { alpha: '1.0.0' } } },
+				packages: { alpha: ['alpha@1.0.0', '', {}, BUN_SRI], member: ['member@workspace:packages/member'] } },
+			{ manifestPath: 'packages/member/package.json', extra: { 'packages/member/package.json': { name: 'member', version: '2.0.0', dependencies: { alpha: '1.0.0' } } } });
+		const sbom = stack(mp);
+		expect(sbom.metadata.component.purl).to.equal('pkg:npm/member@2.0.0');
+		expect(edge(sbom, 'member@2.0.0', 'alpha@1.0.0')).to.be.true;
+	});
+
+	/// Preserves resolvable optional branches while skipping absent optional dependencies.
+	test('preserves resolvable optional branches and skips absent ones', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { host: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { host: '1.0.0' } } },
+				packages: {
+					host: ['host@1.0.0', '', { optionalDependencies: { 'present-opt': '^1.0.0', 'absent-opt': '^1.0.0' } }, BUN_SRI],
+					'present-opt': ['present-opt@1.0.0', '', {}, BUN_SRI],
+				} });
+		const sbom = stack(mp);
+		expect(edge(sbom, 'host@1.0.0', 'present-opt@1.0.0')).to.be.true;
+		expect(sbom.components.some(c => c.name === 'absent-opt')).to.be.false;
+	});
+
+	/// Regression: a missing required resolution is an error, not a silent omission.
+	test('rejects a missing required resolution instead of silently dropping it', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0' } } },
+				packages: { alpha: ['alpha@1.0.0', '', { dependencies: { missing: '^1.0.0' } }, BUN_SRI] } });
+		expect(() => stack(mp)).to.throw(/out of date.*missing/);
+	});
+
+	/// Rejects a changed manifest declaration now that bun no longer re-syncs the lockfile.
+	test('rejects a changed manifest declaration without writing files', () => {
+		const lock = { lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0' } } },
+			packages: { alpha: ['alpha@1.0.0', '', {}, BUN_SRI] } };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0' } }, lock);
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: { alpha: '^2.0.0' } }));
+		const before = snapshot(root);
+		expect(() => stack(mp)).to.throw(/out of date.*alpha/);
+		expect(snapshot(root)).to.deep.equal(before);
+	});
+
+	for (const version of [0, 1, 2]) {
+		/// Verifies every real lockfileVersion (0, 1, 2) is supported.
+		test(`supports lockfileVersion ${version}`, () => {
+			const mp = project({ name: 'app', version: '1.0.0', dependencies: { leaf: '1.0.0' } },
+				{ lockfileVersion: version, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { leaf: '1.0.0' } } },
+					packages: { leaf: ['leaf@1.0.0', '', {}, BUN_SRI] } });
+			expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/leaf@1.0.0']);
+		});
+	}
+
+	/// Verifies an unsupported lockfileVersion fails closed with an actionable error.
+	test('rejects an unsupported lockfile version', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: {} },
+			{ lockfileVersion: 3, configVersion: 1, workspaces: { '': { name: 'app' } }, packages: {} });
+		expect(() => stack(mp)).to.throw(/Unsupported bun lockfile version 3/);
+	});
+
+	/// Verifies hosted 3-tuple entries, empty-registry entries and SHA-1 integrity are all handled.
+	test('handles hosted 3-tuple entries, empty-registry entries and SHA-1 integrity', () => {
+		const sha1 = `sha1-${Buffer.from('ab'.repeat(20), 'hex').toString('base64')}`;
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { hosted: 'github:o/r#abc', reg: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { hosted: 'github:o/r#abc', reg: '1.0.0' } } },
+				packages: {
+					hosted: ['hosted@github:o/r#abc', {}, sha1],
+					reg: ['reg@1.0.0', '', {}, BUN_SRI],
+				} });
+		const sbom = stack(mp);
+		expect(sbom.components.some(c => c.name === 'hosted')).to.be.true;
+		expect(sbom.components.find(c => c.name === 'hosted').hashes).to.deep.equal([{ alg: 'SHA-1', content: 'ab'.repeat(20) }]);
+		expect(sbom.components.find(c => c.name === 'reg').hashes).to.deep.equal([{ alg: 'SHA-512', content: BUN_SRI_HEX }]);
+	});
+
+	/// Verifies a malformed bun.lock is rejected rather than silently yielding an empty graph.
+	test('rejects a malformed bun.lock', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: {} }, '{ invalid');
+		expect(() => stack(mp)).to.throw(/Cannot read/);
+	});
+
+	/// Verifies analysis requires a text lockfile when none is present.
+	test('requires a bun.lock when none is present', () => {
+		const mp = path.join(root, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
+		expect(() => stack(mp)).to.throw(/requires a lockfile/);
+	});
+
+	/// Verifies a binary bun.lockb (without a text bun.lock) yields an actionable migrate diagnostic.
+	test('rejects a binary bun.lockb with a migrate-to-bun.lock diagnostic', () => {
+		const mp = path.join(root, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
+		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
+		expect(() => stack(mp)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+	});
+});
+
+suite('bun complete SBOM reference comparisons (TC-7014)', () => {
+	let refClock;
+	suiteSetup(() => { refClock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z')); });
+	suiteTeardown(() => { refClock.restore(); });
+	const base = 'test/providers/tst_manifests/bun';
+	const fixtures = ['alias', 'nested', 'optional', 'workspace', 'lockfile_v0', 'lockfile_v1', 'lockfile_v2'];
+	for (const fixture of fixtures) {
+		for (const { method, type } of [{ method: 'provideStack', type: 'stack' }, { method: 'provideComponent', type: 'component' }]) {
+			test(`bun ${fixture} ${type} matches every SBOM field`, () => {
+				const dir = `${base}/${fixture}`;
+				const manifest = `${dir}/${fixture === 'workspace' ? 'packages/member/package.json' : 'package.json'}`;
+				const actual = new Bun()[method](manifest);
+				const expected = JSON.parse(fs.readFileSync(`${dir}/expected_${type}_sbom.json`, 'utf8'));
+				expected.metadata.tools.components[0].version = getPackageVersion();
+				expect(actual.contentType).to.equal('application/vnd.cyclonedx+json');
+				expect(canonical(actual.content)).to.deep.equal(canonical(expected));
+			});
+		}
+	}
 });
