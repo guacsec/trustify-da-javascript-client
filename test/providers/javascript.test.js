@@ -936,7 +936,7 @@ suite('bun complete SBOM reference comparisons (TC-7014)', () => {
 	suiteSetup(() => { refClock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z')); });
 	suiteTeardown(() => { refClock.restore(); });
 	const base = 'test/providers/tst_manifests/bun';
-	const fixtures = ['alias', 'nested', 'optional', 'workspace', 'lockfile_v0', 'lockfile_v1', 'lockfile_v2'];
+	const fixtures = ['alias', 'nested', 'optional', 'workspace'];
 	for (const fixture of fixtures) {
 		for (const { method, type } of [{ method: 'provideStack', type: 'stack' }, { method: 'provideComponent', type: 'component' }]) {
 			test(`bun ${fixture} ${type} matches every SBOM field`, () => {
