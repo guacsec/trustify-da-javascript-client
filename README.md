@@ -284,6 +284,7 @@ $ trustify-da remediate /path/to/pom.xml --exclude 'pkg:maven/com.example/*' --e
 <li><a href="https://www.javascript.com/">JavaScript</a> - <a href="https://www.npmjs.com/">Npm</a></li>
 <li><a href="https://www.javascript.com/">JavaScript</a> - <a href="https://pnpm.io/">pnpm</a></li>
 <li><a href="https://www.javascript.com/">JavaScript</a> - <a href="https://classic.yarnpkg.com/">Yarn Classic</a> /  <a href="https://yarnpkg.com/">Yarn Berry</a></li>
+<li><a href="https://www.javascript.com/">JavaScript</a> - <a href="https://bun.com/">Bun</a></li>
 <li><a href="https://go.dev/">Golang</a> - <a href="https://go.dev/blog/using-go-modules/">Go Modules</a></li>
 <li><a href="https://www.python.org/">Python</a> - <a href="https://pypi.org/project/pip/">pip Installer</a> (<code>requirements.txt</code>)</li>
 <li><a href="https://www.python.org/">Python</a> - <a href="https://python-poetry.org/">Poetry</a> / <a href="https://docs.astral.sh/uv/">uv</a> (<code>pyproject.toml</code>)</li>
@@ -522,7 +523,7 @@ let options = {
   'TRUSTIFY_DA_POETRY_PATH' : '/path/to/poetry',
   'TRUSTIFY_DA_GRADLE_PATH' : '/path/to/gradle',
   'TRUSTIFY_DA_CARGO_PATH' : '/path/to/cargo',
-  // Workspace root for monorepos (Cargo, npm/pnpm/yarn); lock file expected here
+  // Workspace root for monorepos (Cargo, npm/pnpm/yarn/Bun); lock file expected here
   'workspaceDir': '/path/to/workspace-root',
   // Configure proxy for all requests
   'TRUSTIFY_DA_PROXY_URL': 'http://proxy.example.com:8080'
@@ -548,14 +549,14 @@ let imageAnalysisWithArch = await client.imageAnalysis(['httpd:2.4.49^^amd64'], 
 
 <h4>Monorepo / Workspace Support</h4>
 <p>
-For monorepos (Cargo workspaces, npm/pnpm/yarn workspaces) where the lock file lives at the workspace root rather than next to the manifest, pass the workspace root via <code>workspaceDir</code> or <code>TRUSTIFY_DA_WORKSPACE_DIR</code>:
+For monorepos (Cargo workspaces, npm/pnpm/yarn/Bun workspaces) where the lock file lives at the workspace root rather than next to the manifest, pass the workspace root via <code>workspaceDir</code> or <code>TRUSTIFY_DA_WORKSPACE_DIR</code>:
 </p>
 <ul>
 <li><strong>Cargo:</strong> When set, the client checks only the given directory for <code>Cargo.lock</code> instead of walking up from the manifest.</li>
-<li><strong>JavaScript (npm, pnpm, yarn):</strong> When set, the client looks for the lock file (<code>package-lock.json</code>, <code>pnpm-lock.yaml</code>, <code>yarn.lock</code>) at the workspace root.</li>
+<li><strong>JavaScript (npm, pnpm, yarn, Bun):</strong> When set, the client looks for the lock file (<code>package-lock.json</code>, <code>pnpm-lock.yaml</code>, <code>yarn.lock</code>, <code>bun.lock</code>) at the workspace root.</li>
 </ul>
 <p>
-Use <code>stackAnalysisBatch(workspaceRoot, html, opts)</code> to analyze all packages/crates in a workspace in one request. Supports Cargo workspaces and JS/TS workspaces (pnpm, npm, yarn). Optional <code>batchConcurrency</code> (or <code>TRUSTIFY_DA_BATCH_CONCURRENCY</code>) limits parallel SBOM generation (default 10). For JS/TS, each <code>package.json</code> must have non-empty <code>name</code> and <code>version</code>; invalid manifests are skipped (warnings). Per-manifest SBOM failures are skipped if at least one SBOM succeeds (unless <code>continueOnError: false</code>). Set <code>batchMetadata: true</code> (or <code>TRUSTIFY_DA_BATCH_METADATA</code>) to receive <code>{ analysis, metadata }</code> with <code>errors[]</code>. CLI: <code>stack-batch --metadata</code>, <code>--fail-fast</code>. See <a href="./docs/monorepo-implementation-plan.md">monorepo implementation plan</a> §2.3 and §3.5.
+Use <code>stackAnalysisBatch(workspaceRoot, html, opts)</code> to analyze all packages/crates in a workspace in one request. Supports Cargo workspaces and JS/TS workspaces (pnpm, npm, yarn, Bun). Optional <code>batchConcurrency</code> (or <code>TRUSTIFY_DA_BATCH_CONCURRENCY</code>) limits parallel SBOM generation (default 10). For JS/TS, each <code>package.json</code> must have non-empty <code>name</code> and <code>version</code>; invalid manifests are skipped (warnings). Per-manifest SBOM failures are skipped if at least one SBOM succeeds (unless <code>continueOnError: false</code>). Set <code>batchMetadata: true</code> (or <code>TRUSTIFY_DA_BATCH_METADATA</code>) to receive <code>{ analysis, metadata }</code> with <code>errors[]</code>. CLI: <code>stack-batch --metadata</code>, <code>--fail-fast</code>. See <a href="./docs/monorepo-implementation-plan.md">monorepo implementation plan</a> §2.3 and §3.5.
 </p>
 <p>
 See <a href="./docs/vscode-extension-integration-requirements.md">VS Code Extension Integration Requirements</a> for integration details.
@@ -563,16 +564,19 @@ See <a href="./docs/vscode-extension-integration-requirements.md">VS Code Extens
 
 <h4>JavaScript Lockfile Analysis</h4>
 <p>
-npm and Yarn component/stack analysis reads package manifests and lockfiles directly. It does not run npm, Yarn, or Corepack, install dependencies, access package registries, or generate project files. Installed <code>node_modules</code> and Yarn installation state are not required.
+npm, Yarn, and Bun component/stack analysis reads package manifests and lockfiles directly. It does not run npm, Yarn, Bun, or Corepack, install dependencies, access package registries, or generate or update project files. These package managers do not need to be installed for scanning. Installed <code>node_modules</code> and Yarn installation state are not required.
 </p>
 <p>
 npm supports lockfile versions 2 and 3, including <code>npm-shrinkwrap.json</code> (which takes precedence over <code>package-lock.json</code>). Yarn Classic and Berry are selected from the lockfile format, so a <code>packageManager</code> declaration is not required. Missing, stale, unsupported, or incomplete required dependency metadata produces an error; synchronize or regenerate the lockfile with the project's package manager before scanning. npm version 1 lockfiles must be upgraded first. Peer and optional dependencies that have no locked resolution retain the existing manifest-only SBOM entries.
 </p>
 <p>
+Bun requires a pre-existing text <code>bun.lock</code> with numeric <code>lockfileVersion</code> 0, 1, or 2. Binary <code>bun.lockb</code> files are unsupported; migrate them before scanning using Bun 1.2 or later: <code>bun install --save-text-lockfile --frozen-lockfile --lockfile-only</code>.
+</p>
+<p>
 Workspaces and package-aware local dependencies use their manifests and recorded dependency metadata. Unsupported custom resolution protocols, package-bearing <code>link:</code> dependencies, and Classic dependency cycles with path-dependent <code>resolutions</code> produce explicit errors. Yarn plugins are not executed. Validation covers declarations and resolutions recorded in these files; it does not replace package-manager installation or validate package contents.
 </p>
 <p>
-<code>TRUSTIFY_DA_NPM_PATH</code> and <code>TRUSTIFY_DA_YARN_PATH</code> are retained for compatibility but are not used for dependency analysis. pnpm, Bun, and other ecosystems retain their existing tool requirements. Lockfile hashes are reported when available; analysis does not download archives to verify them.
+<code>TRUSTIFY_DA_NPM_PATH</code>, <code>TRUSTIFY_DA_YARN_PATH</code>, and <code>TRUSTIFY_DA_BUN_PATH</code> are retained for compatibility but are not used for dependency analysis. pnpm and other ecosystems retain their existing tool requirements. Lockfile hashes are reported when available; analysis does not download archives to verify them.
 </p>
 
 <h4>Proxy Configuration</h4>
@@ -605,9 +609,7 @@ The client can resolve the <strong>project license</strong> from the manifest (e
 
 <h4>Customizing Executables</h4>
 <p>
-This project uses each ecosystem's executable for creating dependency trees. These executables are expected to be
-present on the system's PATH environment. If they are not, or perhaps you want to use custom ones. Use can use the
-following keys for setting custom paths for the said executables.
+For ecosystems that require external tools, executables must be available on the system's <code>PATH</code> or configured using the keys below.
 </p>
 
 <table>
@@ -640,6 +642,11 @@ following keys for setting custom paths for the said executables.
 <td><a href="https://classic.yarnpkg.com/">Yarn Classic</a> / <a href="https://yarnpkg.com/">Yarn Berry</a></td>
 <td><em>yarn</em></td>
 <td>TRUSTIFY_DA_YARN_PATH (retained for compatibility; dependency analysis does not invoke Yarn)</td>
+</tr>
+<tr>
+<td><a href="https://bun.com/">Bun</a></td>
+<td><em>bun</em></td>
+<td>TRUSTIFY_DA_BUN_PATH (retained for compatibility; dependency analysis does not invoke Bun)</td>
 </tr>
 <tr>
 <td><a href="https://go.dev/blog/using-go-modules/">Go Modules</a></td>
