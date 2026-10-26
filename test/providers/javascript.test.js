@@ -486,6 +486,23 @@ suite('bun lockfile-only analysis (TC-7014)', () => {
 		}
 	});
 
+	/// Regression: one malformed/unreachable packages entry must not wipe all component-SBOM hashes.
+	test('keeps a valid dependency hash when another packages entry is malformed/unreachable', () => {
+		// Given a lockfile with a valid direct dependency plus an unreachable entry whose id has no `@`
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { leaf: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { leaf: '1.0.0' } } },
+				packages: { leaf: ['leaf@1.0.0', '', {}, BUN_SRI], junknoatsign: ['junknoatsign', '', {}, BUN_SRI] } });
+
+		// When building both SBOMs
+		const componentSbom = component(mp);
+		const stackSbom = stack(mp);
+		const leafHashes = sbom => sbom.components.find(c => c.purl === 'pkg:npm/leaf@1.0.0')?.hashes;
+
+		// Then the component path still reports leaf's hash and agrees with the stack path
+		expect(leafHashes(componentSbom)).to.deep.equal([{ alg: 'SHA-512', content: BUN_SRI_HEX }]);
+		expect(leafHashes(componentSbom)).to.deep.equal(leafHashes(stackSbom));
+	});
+
 	/// Regression: a nested resolution must keep its own version instead of collapsing onto the root.
 	test('resolves nested versions distinctly instead of collapsing onto the top-level entry', () => {
 		// Given two parents that need conflicting versions of a shared dependency

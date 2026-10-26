@@ -45,7 +45,17 @@ export default class Javascript_bun extends Base_javascript {
 			if (!Array.isArray(entry) || typeof entry[0] !== 'string') {
 				continue;
 			}
-			const { name, version, integrity } = parseBunEntry(entry);
+			// Skip a malformed/unreachable entry (e.g. an id without `@`, which
+			// makes parseBunEntry throw) rather than aborting the whole scan and
+			// dropping valid direct-dependency hashes. Entries reachable from the
+			// manifest are still validated by readBunGraph (the stack path).
+			let parsed;
+			try {
+				parsed = parseBunEntry(entry);
+			} catch (_) {
+				continue;
+			}
+			const { name, version, integrity } = parsed;
 			const hash = integrity ? sriToHash(integrity) : null;
 			if (name && version && hash) {
 				map.set(`${name}@${version}`, [hash]);
