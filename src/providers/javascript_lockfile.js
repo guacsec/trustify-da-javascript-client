@@ -782,7 +782,8 @@ export function readBunLock(file) {
  * The info object is located positionally and the integrity is the trailing
  * string, so all shapes parse through one code path.
  * @param {Array} tuple - A `bun.lock` packages entry
- * @returns {{id: string, name: string, range: string, version: string, info: Object, integrity: (string|undefined), workspace: boolean}}
+ * @returns {{id: string, name: string, range: string, version: string,
+ *   info: Object, integrity: (string|undefined), workspace: boolean}}
  */
 export function parseBunEntry(tuple) {
 	const id = tuple[0];
@@ -813,7 +814,10 @@ export function parseBunEntry(tuple) {
 export function readBunGraph(root, manifestPath, manifest, lock) {
 	const file = path.join(root, 'bun.lock');
 	if (![0, 1, 2].includes(lock.lockfileVersion)) {
-		throw new Error(`Unsupported bun lockfile version ${lock.lockfileVersion} in ${file}. Regenerate a version 0, 1, or 2 bun.lock before scanning.`);
+		throw new Error(
+			`Unsupported bun lockfile version ${lock.lockfileVersion} in ${file}. `
+			+ `Regenerate a version 0, 1, or 2 bun.lock before scanning.`
+		);
 	}
 	if (!object(lock.workspaces)) { unsupported(file, 'workspaces', 'missing workspaces table'); }
 	const workspaces = lock.workspaces;
@@ -823,22 +827,31 @@ export function readBunGraph(root, manifestPath, manifest, lock) {
 	const rootFile = path.join(root, 'package.json');
 	const rootData = manifests.get(rootFile);
 	const overrideField = Object.hasOwn(rootData, 'overrides') ? 'overrides' : 'resolutions';
-	const overrides = Object.fromEntries(Object.entries(dependencyMap(rootData, overrideField, rootFile)).map(([name, spec]) => {
+	const overrideEntries = Object.entries(dependencyMap(rootData, overrideField, rootFile));
+	const overrides = Object.fromEntries(overrideEntries.map(([name, spec]) => {
 		if (overrideField === 'resolutions') { name = name.replace(/^\*\*\//, ''); }
 		if (spec.startsWith('$')) {
-			const dependencies = { ...dependencyMap(rootData, 'peerDependencies', rootFile), ...manifestDependencies(rootData, rootFile, true) };
+			const dependencies = {
+				...dependencyMap(rootData, 'peerDependencies', rootFile),
+				...manifestDependencies(rootData, rootFile, true),
+			};
 			spec = dependencies[spec.slice(1)];
-			if (typeof spec !== 'string' || !spec) { unsupported(rootFile, name, 'override reference has no declared dependency'); }
+			if (typeof spec !== 'string' || !spec) {
+				unsupported(rootFile, name, 'override reference has no declared dependency');
+			}
 		}
 		return [name, spec];
 	}));
 	validateSnapshot(rootFile, { overrides }, lock, ['overrides']);
 	const locals = new Map();
 	for (const [manifestFile, data] of manifests) {
-		const location = path.relative(root, path.dirname(manifestFile)).split(path.sep).join('/') || '.';
+		const location = path.relative(root, path.dirname(manifestFile))
+			.split(path.sep).join('/') || '.';
 		const entry = workspaces[location === '.' ? '' : location];
 		if (!object(entry)) { stale(manifestFile, data.name, 'is missing from the lockfile'); }
-		if (entry.name != null && data.name !== entry.name) { stale(manifestFile, data.name, 'has a different locked identity'); }
+		if (entry.name != null && data.name !== entry.name) {
+			stale(manifestFile, data.name, 'has a different locked identity');
+		}
 		const snapshot = {
 			dependencies: { ...dependencyMap(data, 'dependencies', manifestFile) },
 			devDependencies: { ...dependencyMap(data, 'devDependencies', manifestFile) },
@@ -850,11 +863,19 @@ export function readBunGraph(root, manifestPath, manifest, lock) {
 			if (Object.hasOwn(snapshot.dependencies, name)) { delete snapshot.dependencies[name]; }
 			else { delete snapshot.devDependencies[name]; }
 		}
-		validateSnapshot(manifestFile, snapshot, entry, ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']);
-		locals.set(location, { data, file: manifestFile, packageKey: location === '.' ? '' : data.name, devDependencies: snapshot.devDependencies });
+		validateSnapshot(manifestFile, snapshot, entry, [
+			'dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies',
+		]);
+		locals.set(location, {
+			data, file: manifestFile, packageKey: location === '.' ? '' : data.name,
+			devDependencies: snapshot.devDependencies,
+		});
 	}
-	const rootLocation = path.relative(root, path.dirname(path.resolve(manifestPath))).split(path.sep).join('/') || '.';
-	if (!locals.has(rootLocation)) { unsupported(file, manifest.name, 'manifest is not in the workspace'); }
+	const rootLocation = path.relative(root, path.dirname(path.resolve(manifestPath)))
+		.split(path.sep).join('/') || '.';
+	if (!locals.has(rootLocation)) {
+		unsupported(file, manifest.name, 'manifest is not in the workspace');
+	}
 
 	// Resolves a dependency to its `packages` key using Bun's node_modules
 	// hoisting: a `parent/child` nested entry wins over a hoisted top-level one,
@@ -883,20 +904,26 @@ export function readBunGraph(root, manifestPath, manifest, lock) {
 			stale(source, name, 'has no locked resolution');
 		}
 		const entry = packages[key];
-		if (!Array.isArray(entry) || typeof entry[0] !== 'string') { unsupported(file, key, 'malformed package entry'); }
+		if (!Array.isArray(entry) || typeof entry[0] !== 'string') {
+			unsupported(file, key, 'malformed package entry');
+		}
 		const parsed = parseBunEntry(entry);
 		if (parsed.workspace) {
 			const location = parsed.range.slice('workspace:'.length) || '.';
 			const local = locals.get(location);
 			if (!local) { unsupported(file, key, 'workspace package missing from the lockfile'); }
 			if (spec != null && !['workspace:*', 'workspace:^', 'workspace:~'].includes(spec)) {
-				validateRange(source, name, spec, { name: local.data.name, version: local.data.version ?? 'v0.0.0' });
+				validateRange(source, name, spec, {
+					name: local.data.name, version: local.data.version ?? 'v0.0.0',
+				});
 			}
 			return `ws:${location}`;
 		}
 		const aliased = spec?.startsWith('npm:') && !semver.validRange(spec.slice(4));
 		const effective = !aliased && Object.hasOwn(overrides, name) ? overrides[name] : spec;
-		if (effective != null) { validateRange(source, name, effective, { name: parsed.name, version: parsed.version }); }
+		if (effective != null) {
+			validateRange(source, name, effective, { name: parsed.name, version: parsed.version });
+		}
 		return key;
 	}
 
@@ -909,30 +936,52 @@ export function readBunGraph(root, manifestPath, manifest, lock) {
 			const children = [];
 			if (id.startsWith('ws:')) {
 				const local = locals.get(id.slice(3));
-				const node = { name: local.data.name ?? path.basename(path.dirname(local.file)), version: local.data.version ?? 'v0.0.0', dependencies: new Map(), hashes: undefined };
+				const node = {
+					name: local.data.name ?? path.basename(path.dirname(local.file)),
+					version: local.data.version ?? 'v0.0.0',
+					dependencies: new Map(),
+					hashes: undefined,
+				};
 				graph.nodes.set(id, node);
 				const optionalDeps = local.data.optionalDependencies ?? {};
-				for (const [name, spec] of Object.entries(manifestDependencies(local.data, local.file))) {
+				for (const [name, spec] of Object.entries(
+					manifestDependencies(local.data, local.file)
+				)) {
 					const devSpec = local.devDependencies[name];
-					// Bun may lock either range when it retains both declarations for the same name.
-					const effective = typeof devSpec === 'string' && semver.validRange(spec) && semver.validRange(devSpec) ? `${spec} || ${devSpec}` : spec;
-					const cid = childId(local.packageKey, name, effective, local.file, Object.hasOwn(optionalDeps, name));
+					// Bun may lock either range when it retains both declarations for
+					// the same name.
+					const bothRanges = typeof devSpec === 'string'
+						&& semver.validRange(spec) && semver.validRange(devSpec);
+					const effective = bothRanges ? `${spec} || ${devSpec}` : spec;
+					const cid = childId(local.packageKey, name, effective, local.file,
+						Object.hasOwn(optionalDeps, name));
 					if (cid == null) { continue; }
 					node.dependencies.set(name, cid);
 					children.push(cid);
 				}
 			} else {
 				const parsed = parseBunEntry(packages[id]);
-				if (typeof parsed.name !== 'string' || !parsed.name || typeof parsed.version !== 'string' || !parsed.version) { unsupported(file, id, 'missing package name or version'); }
-				const node = { name: parsed.name, version: parsed.version, dependencies: new Map(), hashes: hashes({ integrity: parsed.integrity }) };
+				const validId = typeof parsed.name === 'string' && parsed.name
+					&& typeof parsed.version === 'string' && parsed.version;
+				if (!validId) {
+					unsupported(file, id, 'missing package name or version');
+				}
+				const node = {
+					name: parsed.name, version: parsed.version,
+					dependencies: new Map(), hashes: hashes({ integrity: parsed.integrity }),
+				};
 				graph.nodes.set(id, node);
 				for (const field of ['dependencies', 'optionalDependencies']) {
 					if (Object.hasOwn(parsed.info, field) && !object(parsed.info[field])) {
-						throw new Error(`Invalid ${field} in ${file} for ${id}: expected a dependency mapping.`);
+						throw new Error(
+							`Invalid ${field} in ${file} for ${id}: `
+							+ `expected a dependency mapping.`
+						);
 					}
 				}
 				const required = dependencyMap(parsed.info, 'dependencies', `${file} for ${id}`);
-				const optionalDeps = dependencyMap(parsed.info, 'optionalDependencies', `${file} for ${id}`);
+				const optionalDeps =
+					dependencyMap(parsed.info, 'optionalDependencies', `${file} for ${id}`);
 				// ponytail: transitive peerDependencies are omitted (as the prior
 				// reader did); direct peers are supplemented by the SBOM builder. Add
 				// peer-edge resolution here if a fixture ever needs transitive peers.
