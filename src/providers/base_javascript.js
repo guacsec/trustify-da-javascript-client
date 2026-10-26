@@ -134,6 +134,17 @@ export default class Base_javascript {
 	}
 
 	/**
+	 * Returns the name of a binary lock file the provider cannot analyze but
+	 * should still recognize during matching so it can surface an actionable
+	 * migrate diagnostic (e.g. Bun's `bun.lockb`). Null means none.
+	 * @returns {string|null} The binary lock file name, or null
+	 * @protected
+	 */
+	_binaryLockFileName() {
+		return null;
+	}
+
+	/**
    * Returns the command name to use for the specific JS package manager
    * @returns {string} The command name
    * @abstract
@@ -266,11 +277,11 @@ export default class Base_javascript {
 		return false
 	}
 
-	_findLockFileDir(manifestDir, opts = {}) {
+	_findLockFileDir(manifestDir, opts = {}, names = this._lockFileNames()) {
 		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts)
 		if (workspaceDir) {
 			const dir = path.resolve(workspaceDir)
-			return this._lockFileNames().some(name => fs.existsSync(path.join(dir, name))) ? dir : null
+			return names.some(name => fs.existsSync(path.join(dir, name))) ? dir : null
 		}
 
 		let dir = path.resolve(manifestDir)
@@ -279,7 +290,7 @@ export default class Base_javascript {
 		do {
 			dir = parent
 
-			if (this._lockFileNames().some(name => fs.existsSync(path.join(dir, name)))) {
+			if (names.some(name => fs.existsSync(path.join(dir, name)))) {
 				return dir
 			}
 
@@ -299,7 +310,14 @@ export default class Base_javascript {
    * @returns {boolean} True if the lock file exists
    */
 	validateLockFile(manifestDir, opts = {}) {
-		return this._findLockFileDir(manifestDir, opts) !== null
+		if (this._findLockFileDir(manifestDir, opts) !== null) {
+			return true
+		}
+		// Also match on a binary lock file (e.g. bun.lockb) so the provider is
+		// selected and can raise its own actionable migrate diagnostic instead of
+		// the generic "requires a lock file" error from match().
+		const binary = this._binaryLockFileName()
+		return binary !== null && this._findLockFileDir(manifestDir, opts, [binary]) !== null
 	}
 
 	/**

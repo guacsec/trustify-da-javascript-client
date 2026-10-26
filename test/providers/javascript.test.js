@@ -939,12 +939,51 @@ suite('bun lockfile-only analysis (TC-7014)', () => {
 		expect(() => stack(mp)).to.throw(/requires a lockfile/);
 	});
 
-	/// Verifies a binary bun.lockb (without a text bun.lock) yields an actionable migrate diagnostic.
-	test('rejects a binary bun.lockb with a migrate-to-bun.lock diagnostic', () => {
+	/// Verifies a binary bun.lockb reaches the migrate diagnostic through the public match()
+	/// path real callers use (stack/componentAnalysis), not only a direct provider call.
+	test('rejects a binary bun.lockb with a migrate diagnostic through match()', () => {
+		// Given a project whose only lockfile is a binary bun.lockb (no text bun.lock)
 		const mp = path.join(root, 'package.json');
 		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
 		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
-		expect(() => stack(mp)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+
+		// When selecting a provider the way the public entry points do
+		const provider = match(mp, availableProviders);
+
+		// Then match() picks Bun instead of failing with the generic "requires a lock file"
+		// error, and both analyses surface the actionable migrate diagnostic
+		expect(provider).to.be.instanceOf(Bun);
+		expect(() => provider.provideStack(mp)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+		expect(() => provider.provideComponent(mp)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+	});
+
+	/// Verifies the suggested migrate command matches the README so the fix is copy-pasteable.
+	test('suggests the README migrate command for a binary bun.lockb', () => {
+		const mp = path.join(root, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
+		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
+		expect(() => match(mp, availableProviders).provideStack(mp))
+			.to.throw('bun install --save-text-lockfile --frozen-lockfile --lockfile-only');
+	});
+
+	/// Regression: the bun.lockb diagnostic must honor TRUSTIFY_DA_WORKSPACE_DIR (the old
+	/// #binaryLockFileDir walked from manifestDir and ignored opts entirely).
+	test('honors TRUSTIFY_DA_WORKSPACE_DIR for a binary bun.lockb at the workspace root', () => {
+		// Given a workspace member whose only lockfile is a binary bun.lockb at the workspace root
+		const memberDir = path.join(root, 'packages', 'module-a');
+		fs.mkdirSync(memberDir, { recursive: true });
+		const mp = path.join(memberDir, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'member', version: '1.0.0', dependencies: {} }));
+		fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'root', workspaces: ['packages/*'] }));
+		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: root };
+
+		// When selecting and analyzing through match() with the workspace dir configured
+		const provider = match(mp, availableProviders, opts);
+
+		// Then Bun is selected and the migrate diagnostic fires from the workspace root
+		expect(provider).to.be.instanceOf(Bun);
+		expect(() => provider.provideStack(mp, opts)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
 	});
 });
 

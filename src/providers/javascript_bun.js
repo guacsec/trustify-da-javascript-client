@@ -10,6 +10,11 @@ export default class Javascript_bun extends Base_javascript {
 		return "bun.lock";
 	}
 
+	/** The binary lock file Bun cannot analyze but recognizes to drive a migrate diagnostic. */
+	_binaryLockFileName() {
+		return "bun.lockb";
+	}
+
 	_cmdName() {
 		return "bun";
 	}
@@ -78,8 +83,12 @@ export default class Javascript_bun extends Base_javascript {
 		const manifestDir = path.dirname(manifest.manifestPath);
 		const lockDir = this._findLockFileDir(manifestDir, opts);
 		if (!lockDir) {
-			if (this.#binaryLockFileDir(manifestDir)) {
-				throw new Error("Bun analysis found a binary 'bun.lockb' but no text 'bun.lock'. Migrate it with 'bun install --save-text-lockfile' (Bun >= 1.2) before scanning.");
+			if (this._findLockFileDir(manifestDir, opts, [this._binaryLockFileName()])) {
+				throw new Error(
+					"Bun analysis found a binary 'bun.lockb' but no text 'bun.lock'. " +
+					"Migrate it with 'bun install --save-text-lockfile --frozen-lockfile " +
+					"--lockfile-only' (Bun >= 1.2) before scanning."
+				);
 			}
 			throw new Error('Bun analysis requires a lockfile. Generate bun.lock before scanning.');
 		}
@@ -87,29 +96,5 @@ export default class Javascript_bun extends Base_javascript {
 		const graph = readBunGraph(lockDir, manifest.manifestPath, manifest.content, lock);
 		this._loadHashes(lockDir);
 		return graph;
-	}
-
-	/**
-	 * Walks up from the manifest directory looking for a binary `bun.lockb`,
-	 * stopping at the workspace root, to drive an actionable migrate diagnostic.
-	 * @param {string} manifestDir - Directory containing the manifest file
-	 * @returns {string|null} The directory containing bun.lockb, or null
-	 * @private
-	 */
-	#binaryLockFileDir(manifestDir) {
-		let dir = path.resolve(manifestDir);
-		while (true) {
-			if (fs.existsSync(path.join(dir, 'bun.lockb'))) {
-				return dir;
-			}
-			if (this._isWorkspaceRoot(dir)) {
-				return null;
-			}
-			const parent = path.dirname(dir);
-			if (parent === dir) {
-				return null;
-			}
-			dir = parent;
-		}
 	}
 }
