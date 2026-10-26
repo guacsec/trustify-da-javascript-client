@@ -8,6 +8,8 @@ import { load as yamlLoad } from 'js-yaml';
 import { useFakeTimers } from 'sinon';
 
 import { getPackageVersion } from '../src/package_version.js';
+import { availableProviders, match } from '../src/provider.js';
+import Bun from '../src/providers/javascript_bun.js';
 import Npm from '../src/providers/javascript_npm.js';
 import Pnpm from '../src/providers/javascript_pnpm.js';
 import Yarn from '../src/providers/javascript_yarn.js';
@@ -17,6 +19,10 @@ const SBOM_CASES = [
 	{ method: 'provideStack', type: 'stack' },
 	{ method: 'provideComponent', type: 'component' },
 ];
+
+/** A valid SHA-512 SRI (is-number@7.0.0) reused across bun lockfile fixtures. */
+const BUN_SRI = 'sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==';
+const BUN_SRI_HEX = Buffer.from(BUN_SRI.slice('sha512-'.length), 'base64').toString('hex');
 
 function canonical(sbom) {
 	const data = typeof sbom === 'string' ? JSON.parse(sbom) : structuredClone(sbom);
@@ -960,4 +966,585 @@ suite('pnpm lockfile specifics', () => {
 		});
 		expect(() => stack(manifestPath)).to.throw(/link protocol does not provide package dependency metadata/);
 	});
+});
+
+suite('bun lockfile-only analysis (TC-7014)', () => {
+	let root;
+	setup(() => { root = fs.mkdtempSync(path.join(os.tmpdir(), 'bun-lockfile-')); });
+	teardown(() => { fs.rmSync(root, { recursive: true, force: true }); });
+
+	/** Writes a package.json, a bun.lock and any extra manifests, returning the manifest path. */
+	function project(manifest, lock, { manifestPath = 'package.json', extra = {} } = {}) {
+		for (const [rel, content] of Object.entries(extra)) {
+			const p = path.join(root, rel);
+			fs.mkdirSync(path.dirname(p), { recursive: true });
+			fs.writeFileSync(p, JSON.stringify(content));
+		}
+		fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(manifest));
+		fs.writeFileSync(path.join(root, 'bun.lock'), typeof lock === 'string' ? lock : JSON.stringify(lock));
+		return path.join(root, manifestPath);
+	}
+	const stack = mp => JSON.parse(new Bun().provideStack(mp).content);
+	const component = mp => JSON.parse(new Bun().provideComponent(mp).content);
+	const edge = (sbom, from, to) => sbom.dependencies.find(dep => dep.ref === `pkg:npm/${from}`)?.dependsOn.includes(`pkg:npm/${to}`);
+
+	for (const method of ['provideStack', 'provideComponent']) {
+		/// Verifies bun analysis reads the graph without any subprocess or file writes (mirrors TC-6762).
+		test(`bun ${method} makes no subprocess calls and changes no project files`, async () => {
+			// Given a project with a bun.lock and a stale node_modules copy
+			const lock = { lockfileVersion: 2, configVersion: 1,
+				workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0' } } },
+				packages: { alpha: ['alpha@1.0.0', '', { dependencies: { shared: '^1.0.0' } }, BUN_SRI], shared: ['shared@1.0.0', '', {}, BUN_SRI] } };
+			const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0' } }, lock);
+			fs.mkdirSync(path.join(root, 'node_modules', 'alpha'), { recursive: true });
+			fs.writeFileSync(path.join(root, 'node_modules', 'alpha', 'package.json'), '{"version":"99.0.0"}');
+			const before = snapshot(root);
+
+			// When analyzing with every subprocess path wired to throw
+			const fail = () => { throw new Error('Unexpected subprocess invocation'); };
+			const Provider = await esmock('../src/providers/javascript_bun.js', {}, {
+				'../src/tools.js': { invokeCommand: fail },
+				child_process: { execFileSync: fail, spawnSync: fail },
+			});
+			const provided = new Provider()[method](mp);
+
+			// Then the SBOM comes from the lockfile and the project tree is untouched
+			expect(JSON.parse(provided.content).components.some(c => c.purl === 'pkg:npm/alpha@1.0.0')).to.be.true;
+			expect(provided.ecosystem).to.equal('npm');
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	/// Regression: aliases must report the npm-target identity, not the alias name.
+	test('reports the npm-target identity and hash for aliases, not the alias name', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { myalias: 'npm:is-number@7.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { myalias: 'npm:is-number@7.0.0' } } },
+				packages: { myalias: ['is-number@7.0.0', '', {}, BUN_SRI] } });
+		for (const read of [stack, component]) {
+			const sbom = read(mp);
+			expect(sbom.components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+			expect(sbom.components[0].hashes).to.deep.equal([{ alg: 'SHA-512', content: BUN_SRI_HEX }]);
+		}
+	});
+
+	/// Regression: one malformed/unreachable packages entry must not wipe all component-SBOM hashes.
+	test('keeps a valid dependency hash when another packages entry is malformed/unreachable', () => {
+		// Given a lockfile with a valid direct dependency plus an unreachable entry whose id has no `@`
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { leaf: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { leaf: '1.0.0' } } },
+				packages: { leaf: ['leaf@1.0.0', '', {}, BUN_SRI], junknoatsign: ['junknoatsign', '', {}, BUN_SRI] } });
+
+		// When building both SBOMs
+		const componentSbom = component(mp);
+		const stackSbom = stack(mp);
+		const leafHashes = sbom => sbom.components.find(c => c.purl === 'pkg:npm/leaf@1.0.0')?.hashes;
+
+		// Then the component path still reports leaf's hash and agrees with the stack path
+		expect(leafHashes(componentSbom)).to.deep.equal([{ alg: 'SHA-512', content: BUN_SRI_HEX }]);
+		expect(leafHashes(componentSbom)).to.deep.equal(leafHashes(stackSbom));
+	});
+
+	/// Regression: a nested resolution must keep its own version instead of collapsing onto the root.
+	test('resolves nested versions distinctly instead of collapsing onto the top-level entry', () => {
+		// Given two parents that need conflicting versions of a shared dependency
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0', beta: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0', beta: '1.0.0' } } },
+				packages: {
+					alpha: ['alpha@1.0.0', '', { dependencies: { shared: '^1.0.0' } }, BUN_SRI],
+					beta: ['beta@1.0.0', '', { dependencies: { shared: '^2.0.0' } }, BUN_SRI],
+					shared: ['shared@1.0.0', '', {}, BUN_SRI],
+					'beta/shared': ['shared@2.0.0', '', {}, BUN_SRI],
+				} });
+
+		// When building the SBOM
+		const sbom = stack(mp);
+
+		// Then each parent keeps its own resolved version of the shared dependency
+		expect(edge(sbom, 'alpha@1.0.0', 'shared@1.0.0')).to.be.true;
+		expect(edge(sbom, 'beta@1.0.0', 'shared@2.0.0')).to.be.true;
+		expect(sbom.components.filter(c => c.name === 'shared').map(c => c.version).sort()).to.deep.equal(['1.0.0', '2.0.0']);
+	});
+
+	for (const ancestor of ['', 'ancestor', '@outer/ancestor']) {
+		const prefix = ancestor ? `${ancestor}/` : '';
+		const owner = `${prefix}@scope/parent`;
+		test(`keeps scoped package names intact when resolving dependencies of ${owner}`, () => {
+			const dependencies = ancestor ? { [ancestor]: '1.0.0' } : { '@scope/parent': 'npm:is-odd@3.0.1' };
+			const packages = {
+				[owner]: ['is-odd@3.0.1', '', { dependencies: { 'is-number': '^6.0.0' } }, BUN_SRI],
+				[`${prefix}@scope/is-number`]: ['kind-of@6.0.0', '', {}, BUN_SRI],
+				[`${prefix}is-number`]: ['is-number@6.0.0', '', {}, BUN_SRI],
+			};
+			if (ancestor) {
+				packages[ancestor] = [`${ancestor}@1.0.0`, '', { dependencies: { '@scope/parent': 'npm:is-odd@3.0.1' } }, BUN_SRI];
+				packages['is-number'] = ['is-number@7.0.0', '', {}, BUN_SRI];
+			}
+			const mp = project({ name: 'app', version: '1.0.0', dependencies },
+				{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies } }, packages });
+
+			const sbom = stack(mp);
+
+			expect(edge(sbom, 'is-odd@3.0.1', 'is-number@6.0.0')).to.be.true;
+			expect(sbom.components.some(c => c.name === 'kind-of')).to.be.false;
+		});
+	}
+
+	/// Regression: a workspace member reports its real version and dependencies, not a `workspace:` pseudo-version.
+	test('reports a workspace member\'s real identity and dependencies', () => {
+		const mp = project({ name: 'ws-root', private: true, workspaces: ['packages/member'] },
+			{ lockfileVersion: 2, configVersion: 1,
+				workspaces: { '': { name: 'ws-root' }, 'packages/member': { name: 'member', version: '2.0.0', dependencies: { alpha: '1.0.0' } } },
+				packages: { alpha: ['alpha@1.0.0', '', {}, BUN_SRI], member: ['member@workspace:packages/member'] } },
+			{ manifestPath: 'packages/member/package.json', extra: { 'packages/member/package.json': { name: 'member', version: '2.0.0', dependencies: { alpha: '1.0.0' } } } });
+		const sbom = stack(mp);
+		expect(sbom.metadata.component.purl).to.equal('pkg:npm/member@2.0.0');
+		expect(edge(sbom, 'member@2.0.0', 'alpha@1.0.0')).to.be.true;
+	});
+
+	for (const [memberName, reference] of [['member', 'member'], ['@scope/member', '@scope/member'], ['member', 'alias']]) {
+		for (const nested of [true, false]) {
+			test(`resolves ${nested ? 'nested' : 'shared'} dependencies in workspace context for ${reference}`, () => {
+				const memberVersion = nested ? '7.0.0' : '6.0.0';
+				const dependencies = { 'is-number': '6.0.0', [reference]: 'workspace:*' };
+				const memberDependencies = { 'is-number': memberVersion };
+				const packages = {
+					'is-number': ['is-number@6.0.0', '', {}, BUN_SRI],
+					[memberName]: [`${memberName}@workspace:packages/member`],
+				};
+				if (reference !== memberName) { packages[reference] = packages[memberName]; }
+				if (nested) {
+					packages[`${memberName}/is-number`] = ['is-number@7.0.0', '', {}, BUN_SRI];
+					if (reference !== memberName) { packages[`${reference}/is-number`] = packages[`${memberName}/is-number`]; }
+				}
+				const mp = project({ name: 'app', version: '1.0.0', workspaces: ['packages/member'], dependencies },
+					{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies },
+						'packages/member': { name: memberName, version: '2.0.0', dependencies: memberDependencies } }, packages },
+					{ extra: { 'packages/member/package.json': { name: memberName, version: '2.0.0', dependencies: memberDependencies } } });
+				const before = snapshot(root);
+				const memberId = `${memberName.replace('@', '%40')}@2.0.0`;
+
+				const rootStack = stack(mp);
+				expect(edge(rootStack, 'app@1.0.0', 'is-number@6.0.0')).to.be.true;
+				expect(edge(rootStack, memberId, `is-number@${memberVersion}`)).to.be.true;
+				expect(component(mp).components.map(c => c.purl).sort()).to.deep.equal([`pkg:npm/${memberId}`, 'pkg:npm/is-number@6.0.0'].sort());
+				for (const read of [stack, component]) {
+					const memberSbom = read(path.join(root, 'packages/member/package.json'));
+					expect(memberSbom.components.map(c => c.purl)).to.deep.equal([`pkg:npm/is-number@${memberVersion}`]);
+				}
+				expect(snapshot(root)).to.deep.equal(before);
+			});
+		}
+	}
+
+	for (const [range, version, compatible] of [
+		['^1.0.0', '2.0.0', false],
+		['~1.0.0', '1.1.0', false],
+		['1.0.0', '2.0.0', false],
+		['^1.0.0', '1.1.0', true],
+		['*', '2.0.0', true],
+		['*', '2.0.0-beta.1', false],
+		['workspace:^1.0.0', '2.0.0', false],
+		['workspace:~1.0.0', '1.1.0', false],
+		['workspace:1.0.0', '2.0.0', false],
+		['workspace:^1.0.0', '1.1.0', true],
+		['workspace:*', '2.0.0', true],
+		['workspace:*', '2.0.0-beta.1', true],
+		['workspace:*', undefined, true],
+		['workspace:^', '2.0.0-beta.1', true],
+		['workspace:~', '2.0.0-beta.1', true],
+	]) {
+		test(`${range} ${compatible ? 'accepts' : 'rejects'} local version ${version ?? 'unspecified'}`, () => {
+			const dependencies = { local: range };
+			const localDependencies = { alpha: '1.0.0' };
+			const mp = project({ name: 'app', version: '1.0.0', workspaces: ['packages/local'], dependencies },
+				{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies },
+					'packages/local': { name: 'local', version: '1.0.0', dependencies: localDependencies } },
+				packages: { local: ['local@workspace:packages/local'], alpha: ['alpha@1.0.0', '', {}, BUN_SRI] } },
+				{ extra: { 'packages/local/package.json': { name: 'local', version, dependencies: localDependencies } } });
+			const before = snapshot(root);
+			for (const read of [stack, component]) {
+				if (compatible) {
+					expect(read(mp).components.find(c => c.name === 'local').version).to.equal(version ?? 'v0.0.0');
+				} else {
+					expect(() => read(mp)).to.throw(`requires ${range} but resolves to ${version}`);
+				}
+			}
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	test('rejects stale workspace dependency declarations even with workspace:*', () => {
+		const dependencies = { local: 'workspace:*' };
+		const mp = project({ name: 'app', version: '1.0.0', workspaces: ['packages/local'], dependencies },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies },
+				'packages/local': { name: 'local', version: '1.0.0', dependencies: { alpha: '1.0.0' } } },
+			packages: { local: ['local@workspace:packages/local'], alpha: ['alpha@1.0.0', '', {}, BUN_SRI] } },
+			{ extra: { 'packages/local/package.json': { name: 'local', version: '2.0.0', dependencies: { alpha: '2.0.0' } } } });
+		for (const read of [stack, component]) {
+			expect(() => read(mp)).to.throw(/out of date.*alpha.*dependencies declaration/);
+		}
+	});
+
+	for (const [fields, recordedFields, version] of [
+		[['dependencies', 'optionalDependencies'], ['optionalDependencies'], '7.0.0'],
+		[['devDependencies', 'optionalDependencies'], ['optionalDependencies'], '7.0.0'],
+		[['dependencies', 'devDependencies', 'optionalDependencies'], ['devDependencies', 'optionalDependencies'], '6.0.0'],
+		[['peerDependencies', 'optionalDependencies'], ['peerDependencies', 'optionalDependencies'], '7.0.0'],
+		[['dependencies', 'peerDependencies', 'optionalDependencies'], ['peerDependencies', 'optionalDependencies'], '7.0.0'],
+		[['devDependencies', 'peerDependencies', 'optionalDependencies'], ['peerDependencies', 'optionalDependencies'], '7.0.0'],
+		[['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'], ['devDependencies', 'peerDependencies', 'optionalDependencies'], '6.0.0'],
+		[['dependencies', 'devDependencies'], ['dependencies', 'devDependencies'], '6.0.0'],
+	]) {
+		test(`normalizes Bun optional precedence for ${fields.join(' + ')}`, () => {
+			const declarations = Object.fromEntries(fields.map(field => [field, { 'is-number': field === 'optionalDependencies' ? '7.0.0' : '6.0.0' }]));
+			const recorded = Object.fromEntries(recordedFields.map(field => [field, declarations[field]]));
+			const mp = project({ name: 'app', version: '1.0.0', ...declarations },
+				{ lockfileVersion: 2, workspaces: { '': { name: 'app', ...recorded } },
+					packages: { 'is-number': [`is-number@${version}`, '', {}, BUN_SRI] } });
+			const before = snapshot(root);
+			for (const read of [stack, component]) {
+				expect(read(mp).components.map(c => c.purl)).to.deep.equal([`pkg:npm/is-number@${version}`]);
+			}
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	test('rejects a Bun resolution outside both retained production and development ranges', () => {
+		const declarations = { devDependencies: { 'is-number': '6.0.0' }, optionalDependencies: { 'is-number': '7.0.0' } };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { 'is-number': '6.0.0' }, ...declarations },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', ...declarations } },
+				packages: { 'is-number': ['is-number@5.0.0', '', {}, BUN_SRI] } });
+		for (const read of [stack, component]) {
+			expect(() => read(mp)).to.throw(/requires 7\.0\.0 \|\| 6\.0\.0 but resolves to 5\.0\.0/);
+		}
+	});
+
+	test('normalizes Bun optional precedence in workspace member snapshots', () => {
+		const declarations = { dependencies: { 'is-number': '6.0.0' }, optionalDependencies: { 'is-number': '7.0.0' } };
+		const mp = project({ name: 'app', version: '1.0.0', workspaces: ['packages/member'] },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app' },
+				'packages/member': { name: 'member', version: '1.0.0', optionalDependencies: declarations.optionalDependencies } },
+			packages: { member: ['member@workspace:packages/member'], 'is-number': ['is-number@7.0.0', '', {}, BUN_SRI] } },
+			{ manifestPath: 'packages/member/package.json', extra: { 'packages/member/package.json': { name: 'member', version: '1.0.0', ...declarations } } });
+		for (const read of [stack, component]) {
+			expect(read(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+		}
+	});
+
+	for (const [change, declarations] of [
+		['optional version', { optionalDependencies: { 'is-number': '6.0.0' } }],
+		['optional removal', { optionalDependencies: undefined }],
+		['dependency classification', { dependencies: { 'is-number': '7.0.0' }, optionalDependencies: undefined }],
+		['retained development version', { devDependencies: { 'is-number': '7.0.0' } }],
+		['peer version', { peerDependencies: { 'is-number': '7.0.0' } }],
+	]) {
+		test(`rejects stale Bun dependency snapshots after changing ${change}`, () => {
+			const original = { dependencies: { 'is-number': '6.0.0' }, devDependencies: { 'is-number': '6.0.0' },
+				peerDependencies: { 'is-number': '6.0.0' }, optionalDependencies: { 'is-number': '7.0.0' } };
+			const mp = project({ name: 'app', version: '1.0.0', ...original, ...declarations },
+				{ lockfileVersion: 2, workspaces: { '': { name: 'app', devDependencies: original.devDependencies,
+					peerDependencies: original.peerDependencies, optionalDependencies: original.optionalDependencies } },
+				packages: { 'is-number': ['is-number@6.0.0', '', {}, BUN_SRI] } });
+			const before = snapshot(root);
+			for (const read of [stack, component]) {
+				expect(() => read(mp)).to.throw(/out of date/);
+			}
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	test('accepts changes to a shadowed Bun production dependency declaration', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { 'is-number': '^6.0.0' }, optionalDependencies: { 'is-number': '7.0.0' } },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', optionalDependencies: { 'is-number': '7.0.0' } } },
+				packages: { 'is-number': ['is-number@7.0.0', '', {}, BUN_SRI] } });
+		expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+	});
+
+	test('rejects malformed Bun dependency maps even when an optional dependency overrides them', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { 'is-number': 6 }, optionalDependencies: { 'is-number': '7.0.0' } },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', optionalDependencies: { 'is-number': '7.0.0' } } },
+				packages: { 'is-number': ['is-number@7.0.0', '', {}, BUN_SRI] } });
+		expect(() => stack(mp)).to.throw(/Invalid dependencies/);
+	});
+
+	for (const field of ['dependencies', 'optionalDependencies']) {
+		for (const [label, value] of [
+			['array', ['beta']], ['string', 'beta'], ['number', 1], ['boolean', false], ['null', null],
+			['non-string specification', { beta: 2 }], ['null specification', { beta: null }], ['empty specification', { beta: '' }],
+		]) {
+			test(`rejects Bun transitive ${field} with ${label} metadata`, () => {
+				const dependencies = { alpha: '1.0.0' };
+				const mp = project({ name: 'app', version: '1.0.0', dependencies },
+					{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+						packages: {
+							alpha: ['alpha@1.0.0', '', { [field]: value }, BUN_SRI],
+							beta: ['beta@2.0.0', '', {}, BUN_SRI],
+						} });
+				const before = snapshot(root);
+				for (const read of [stack, component]) {
+					expect(() => read(mp)).to.throw(new RegExp(`Invalid ${field}.*bun\\.lock`));
+				}
+				expect(snapshot(root)).to.deep.equal(before);
+			});
+		}
+	}
+
+	/// Preserves resolvable optional branches while skipping absent optional dependencies.
+	test('preserves resolvable optional branches and skips absent ones', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { host: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { host: '1.0.0' } } },
+				packages: {
+					host: ['host@1.0.0', '', { optionalDependencies: { 'present-opt': '^1.0.0', 'absent-opt': '^1.0.0' } }, BUN_SRI],
+					'present-opt': ['present-opt@1.0.0', '', {}, BUN_SRI],
+				} });
+		const sbom = stack(mp);
+		expect(edge(sbom, 'host@1.0.0', 'present-opt@1.0.0')).to.be.true;
+		expect(sbom.components.some(c => c.name === 'absent-opt')).to.be.false;
+	});
+
+	/// Regression: a missing required resolution is an error, not a silent omission.
+	test('rejects a missing required resolution instead of silently dropping it', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0' } } },
+				packages: { alpha: ['alpha@1.0.0', '', { dependencies: { missing: '^1.0.0' } }, BUN_SRI] } });
+		expect(() => stack(mp)).to.throw(/out of date.*missing/);
+	});
+
+	for (const [field, key] of [['overrides', 'is-number'], ['resolutions', 'is-number'], ['resolutions', '**/is-number']]) {
+		test(`uses the effective Bun override from ${field}.${key}`, () => {
+			const dependencies = { 'is-number': '6.0.0' };
+			const mp = project({ name: 'app', version: '1.0.0', dependencies, [field]: { [key]: '7.0.0' } },
+				{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+					overrides: { 'is-number': '7.0.0' }, packages: { 'is-number': ['is-number@7.0.0', '', {}, BUN_SRI] } });
+			for (const read of [stack, component]) {
+				expect(read(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+			}
+		});
+	}
+
+	for (const [change, declared, recorded] of [
+		['changed', { 'is-number': '7.0.0' }, { 'is-number': '6.0.0' }],
+		['added', { 'is-number': '7.0.0' }, {}],
+		['removed', {}, { 'is-number': '6.0.0' }],
+	]) {
+		test(`rejects ${change} Bun overrides without changing project files`, () => {
+			const dependencies = { 'is-number': '*' };
+			const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides: declared },
+				{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+					overrides: recorded, packages: { 'is-number': ['is-number@6.0.0', '', {}, BUN_SRI] } });
+			const before = snapshot(root);
+			for (const read of [stack, component]) {
+				expect(() => read(mp)).to.throw(/out of date.*overrides/);
+			}
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	test('applies Bun overrides to transitive dependencies and rejects an incompatible locked version', () => {
+		const dependencies = { 'is-odd': '3.0.1' };
+		const lock = { lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+			overrides: { 'is-number': '7.0.0' }, packages: {
+				'is-odd': ['is-odd@3.0.1', '', { dependencies: { 'is-number': '^6.0.0' } }, BUN_SRI],
+				'is-number': ['is-number@7.0.0', '', {}, BUN_SRI],
+			} };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides: lock.overrides }, lock);
+		expect(edge(stack(mp), 'is-odd@3.0.1', 'is-number@7.0.0')).to.be.true;
+
+		lock.packages['is-number'][0] = 'is-number@6.0.0';
+		fs.writeFileSync(path.join(root, 'bun.lock'), JSON.stringify(lock));
+		expect(() => stack(mp)).to.throw(/requires 7\.0\.0 but resolves to 6\.0\.0/);
+	});
+
+	test('normalizes Bun override dependency references to their recorded specifications', () => {
+		const dependencies = { 'is-number': '6.0.0', pin: 'npm:is-number@7.0.0' };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides: { 'is-number': '$pin' } },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+				overrides: { 'is-number': 'npm:is-number@7.0.0' }, packages: {
+					'is-number': ['is-number@7.0.0', '', {}, BUN_SRI], pin: ['is-number@7.0.0', '', {}, BUN_SRI],
+				} });
+		expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+	});
+
+	test('preserves npm aliases when a Bun override names the alias', () => {
+		const dependencies = { pick: 'npm:is-number@7.0.0' };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides: { pick: '6.0.0' } },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+				overrides: { pick: '6.0.0' }, packages: { pick: ['is-number@7.0.0', '', {}, BUN_SRI] } });
+		expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+	});
+
+	test('reports the replacement package identity for a Bun override using an npm alias', () => {
+		const dependencies = { 'is-number': '6.0.0' };
+		const overrides = { 'is-number': 'npm:kind-of@6.0.0' };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } }, overrides,
+				packages: { 'is-number': ['kind-of@6.0.0', '', {}, BUN_SRI] } });
+		for (const read of [stack, component]) {
+			expect(read(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/kind-of@6.0.0']);
+		}
+	});
+
+	test('rejects a Bun override reference to an undeclared dependency', () => {
+		const dependencies = { 'is-number': '*' };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides: { 'is-number': '$missing' } },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+				packages: { 'is-number': ['is-number@6.0.0', '', {}, BUN_SRI] } });
+		expect(() => stack(mp)).to.throw(/override reference has no declared dependency/);
+	});
+
+	test('uses root Bun overrides when analyzing a workspace member', () => {
+		const dependencies = { 'is-number': '6.0.0' };
+		const overrides = { 'is-number': '7.0.0' };
+		const mp = project({ name: 'ws-root', private: true, workspaces: ['packages/member'], overrides },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'ws-root' }, 'packages/member': { name: 'member', version: '1.0.0', dependencies } },
+				overrides, packages: { member: ['member@workspace:packages/member'], 'is-number': ['is-number@7.0.0', '', {}, BUN_SRI] } },
+			{ manifestPath: 'packages/member/package.json', extra: {
+				'packages/member/package.json': { name: 'member', version: '1.0.0', dependencies, overrides: { 'is-number': '6.0.0' } },
+			} });
+		expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@7.0.0']);
+	});
+
+	test('ignores Bun resolutions when an overrides field is present', () => {
+		const dependencies = { 'is-number': '6.0.0' };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies, overrides: {}, resolutions: { 'is-number': '7.0.0' } },
+			{ lockfileVersion: 2, workspaces: { '': { name: 'app', dependencies } },
+				packages: { 'is-number': ['is-number@6.0.0', '', {}, BUN_SRI] } });
+		expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/is-number@6.0.0']);
+	});
+
+	/// Rejects a changed manifest declaration now that bun no longer re-syncs the lockfile.
+	test('rejects a changed manifest declaration without writing files', () => {
+		const lock = { lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { alpha: '1.0.0' } } },
+			packages: { alpha: ['alpha@1.0.0', '', {}, BUN_SRI] } };
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { alpha: '1.0.0' } }, lock);
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: { alpha: '^2.0.0' } }));
+		const before = snapshot(root);
+		expect(() => stack(mp)).to.throw(/out of date.*alpha/);
+		expect(snapshot(root)).to.deep.equal(before);
+	});
+
+	for (const version of [0, 1, 2]) {
+		/// Verifies every real lockfileVersion (0, 1, 2) is supported.
+		test(`supports lockfileVersion ${version}`, () => {
+			const mp = project({ name: 'app', version: '1.0.0', dependencies: { leaf: '1.0.0' } },
+				{ lockfileVersion: version, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { leaf: '1.0.0' } } },
+					packages: { leaf: ['leaf@1.0.0', '', {}, BUN_SRI] } });
+			expect(stack(mp).components.map(c => c.purl)).to.deep.equal(['pkg:npm/leaf@1.0.0']);
+		});
+	}
+
+	for (const version of [null, false, true, '', '0', '1', '2', [], [2], {}, undefined]) {
+		test(`rejects invalid lockfileVersion ${JSON.stringify(version)}`, () => {
+			const mp = project({ name: 'app', version: '1.0.0' },
+				{ lockfileVersion: version, workspaces: { '': { name: 'app' } }, packages: {} });
+			const before = snapshot(root);
+			for (const read of [stack, component]) {
+				expect(() => read(mp)).to.throw(/Unsupported bun lockfile version/);
+			}
+			expect(snapshot(root)).to.deep.equal(before);
+		});
+	}
+
+	/// Verifies an unsupported lockfileVersion fails closed with an actionable error.
+	test('rejects an unsupported lockfile version', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: {} },
+			{ lockfileVersion: 3, configVersion: 1, workspaces: { '': { name: 'app' } }, packages: {} });
+		expect(() => stack(mp)).to.throw(/Unsupported bun lockfile version 3/);
+	});
+
+	/// Verifies hosted 3-tuple entries, empty-registry entries and SHA-1 integrity are all handled.
+	test('handles hosted 3-tuple entries, empty-registry entries and SHA-1 integrity', () => {
+		const sha1 = `sha1-${Buffer.from('ab'.repeat(20), 'hex').toString('base64')}`;
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: { hosted: 'github:o/r#abc', reg: '1.0.0' } },
+			{ lockfileVersion: 2, configVersion: 1, workspaces: { '': { name: 'app', dependencies: { hosted: 'github:o/r#abc', reg: '1.0.0' } } },
+				packages: {
+					hosted: ['hosted@github:o/r#abc', {}, sha1],
+					reg: ['reg@1.0.0', '', {}, BUN_SRI],
+				} });
+		const sbom = stack(mp);
+		expect(sbom.components.some(c => c.name === 'hosted')).to.be.true;
+		expect(sbom.components.find(c => c.name === 'hosted').hashes).to.deep.equal([{ alg: 'SHA-1', content: 'ab'.repeat(20) }]);
+		expect(sbom.components.find(c => c.name === 'reg').hashes).to.deep.equal([{ alg: 'SHA-512', content: BUN_SRI_HEX }]);
+	});
+
+	/// Verifies a malformed bun.lock is rejected rather than silently yielding an empty graph.
+	test('rejects a malformed bun.lock', () => {
+		const mp = project({ name: 'app', version: '1.0.0', dependencies: {} }, '{ invalid');
+		expect(() => stack(mp)).to.throw(/Cannot read/);
+	});
+
+	/// Verifies analysis requires a text lockfile when none is present.
+	test('requires a bun.lock when none is present', () => {
+		const mp = path.join(root, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
+		expect(() => stack(mp)).to.throw(/requires a lockfile/);
+	});
+
+	/// Verifies a binary bun.lockb reaches the migrate diagnostic through the public match()
+	/// path real callers use (stack/componentAnalysis), not only a direct provider call.
+	test('rejects a binary bun.lockb with a migrate diagnostic through match()', () => {
+		// Given a project whose only lockfile is a binary bun.lockb (no text bun.lock)
+		const mp = path.join(root, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
+		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
+
+		// When selecting a provider the way the public entry points do
+		const provider = match(mp, availableProviders);
+
+		// Then match() picks Bun instead of failing with the generic "requires a lock file"
+		// error, and both analyses surface the actionable migrate diagnostic
+		expect(provider).to.be.instanceOf(Bun);
+		expect(() => provider.provideStack(mp)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+		expect(() => provider.provideComponent(mp)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+	});
+
+	/// Verifies the suggested migrate command matches the README so the fix is copy-pasteable.
+	test('suggests the README migrate command for a binary bun.lockb', () => {
+		const mp = path.join(root, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'app', version: '1.0.0', dependencies: {} }));
+		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
+		expect(() => match(mp, availableProviders).provideStack(mp))
+			.to.throw('bun install --save-text-lockfile --frozen-lockfile --lockfile-only');
+	});
+
+	/// Regression: the bun.lockb diagnostic must honor TRUSTIFY_DA_WORKSPACE_DIR (the old
+	/// #binaryLockFileDir walked from manifestDir and ignored opts entirely).
+	test('honors TRUSTIFY_DA_WORKSPACE_DIR for a binary bun.lockb at the workspace root', () => {
+		// Given a workspace member whose only lockfile is a binary bun.lockb at the workspace root
+		const memberDir = path.join(root, 'packages', 'module-a');
+		fs.mkdirSync(memberDir, { recursive: true });
+		const mp = path.join(memberDir, 'package.json');
+		fs.writeFileSync(mp, JSON.stringify({ name: 'member', version: '1.0.0', dependencies: {} }));
+		fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'root', workspaces: ['packages/*'] }));
+		fs.writeFileSync(path.join(root, 'bun.lockb'), Buffer.from([0, 1, 2, 3]));
+		const opts = { TRUSTIFY_DA_WORKSPACE_DIR: root };
+
+		// When selecting and analyzing through match() with the workspace dir configured
+		const provider = match(mp, availableProviders, opts);
+
+		// Then Bun is selected and the migrate diagnostic fires from the workspace root
+		expect(provider).to.be.instanceOf(Bun);
+		expect(() => provider.provideStack(mp, opts)).to.throw(/bun\.lockb[\s\S]*bun\.lock/);
+	});
+});
+
+suite('bun complete SBOM reference comparisons (TC-7014)', () => {
+	let refClock;
+	suiteSetup(() => { refClock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z')); });
+	suiteTeardown(() => { refClock.restore(); });
+	const base = 'test/providers/tst_manifests/bun';
+	const fixtures = ['alias', 'nested', 'optional', 'workspace'];
+	for (const fixture of fixtures) {
+		for (const { method, type } of SBOM_CASES) {
+			test(`bun ${fixture} ${type} matches every SBOM field`, () => {
+				const dir = `${base}/${fixture}`;
+				const manifest = `${dir}/${fixture === 'workspace' ? 'packages/member/package.json' : 'package.json'}`;
+				const actual = new Bun()[method](manifest);
+				const expected = JSON.parse(fs.readFileSync(`${dir}/expected_${type}_sbom.json`, 'utf8'));
+				expected.metadata.tools.components[0].version = getPackageVersion();
+				expect(actual.contentType).to.equal('application/vnd.cyclonedx+json');
+				expect(canonical(actual.content)).to.deep.equal(canonical(expected));
+			});
+		}
+	}
 });
