@@ -75,19 +75,6 @@
 			]
 		},
 		{
-			"name": "zipp",
-			"version": "3.20.2",
-			"purl": "pkg:pypi/zipp@3.20.2",
-			"type": "library",
-			"bom-ref": "pkg:pypi/zipp@3.20.2",
-			"hashes": [
-				{
-					"alg": "SHA-256",
-					"content": "bc9eb26f4506fda01b81bcde0ca78103b6e62f991b381fec825435c836edbc29"
-				}
-			]
-		},
-		{
 			"name": "itsdangerous",
 			"version": "2.2.0",
 			"purl": "pkg:pypi/itsdangerous@2.2.0",
@@ -210,7 +197,6 @@
 			"dependsOn": [
 				"pkg:pypi/blinker@1.8.2",
 				"pkg:pypi/click@8.1.8",
-				"pkg:pypi/zipp@3.20.2",
 				"pkg:pypi/itsdangerous@2.2.0",
 				"pkg:pypi/jinja2@3.1.6",
 				"pkg:pypi/werkzeug@3.0.6"
@@ -227,10 +213,6 @@
 		},
 		{
 			"ref": "pkg:pypi/blinker@1.8.2",
-			"dependsOn": []
-		},
-		{
-			"ref": "pkg:pypi/zipp@3.20.2",
 			"dependsOn": []
 		},
 		{

@@ -58,7 +58,6 @@ export default class Python_poetry extends Base_pyproject {
 	 * @param {Object} opts
 	 * @returns {Promise<{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[]}>}>}
 	 */
-	// eslint-disable-next-line no-unused-vars
 	async _getDependencyData(manifestDir, _workspaceDir, parsed, opts) {
 		let poetryBin = getCustomPath('poetry', opts)
 		let envBypass = environmentVariableIsPopulated('TRUSTIFY_DA_POETRY_SHOW_TREE')
@@ -136,11 +135,12 @@ export default class Python_poetry extends Base_pyproject {
 	 *   → transitiveMarkers['click']['colorama'] = "sys_platform == 'win32'"
 	 * @param {string|null} lockDir
 	 * @param {object} parsed - parsed pyproject.toml
-	 * @returns {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>, hashMap: Map<string, Array<{alg: string, content: string}>>}}
+	 * @returns {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>, packageMarkers: Map<string, string>, hashMap: Map<string, Array<{alg: string, content: string}>>}}
 	 */
 	_extractMarkerData(lockDir, parsed) {
 		let directMarkers = new Map()
 		let transitiveMarkers = new Map()
+		let packageMarkers = new Map()
 		let hashMap = new Map()
 
 		// Extract markers from PEP 621 dependency strings: "name[extras]>=ver ; marker"
@@ -160,6 +160,9 @@ export default class Python_poetry extends Base_pyproject {
 				let packages = lock.package || []
 				for (let pkg of packages) {
 					let pkgKey = this._canonicalize(pkg.name)
+					if (pkg.markers) {
+						packageMarkers.set(pkgKey, pkg.markers)
+					}
 					let pkgDeps = pkg.dependencies || {}
 					for (let [depName, depSpec] of Object.entries(pkgDeps)) {
 						let markers = typeof depSpec === 'object' && depSpec != null ? depSpec.markers : null
@@ -179,7 +182,7 @@ export default class Python_poetry extends Base_pyproject {
 			}
 		}
 
-		return { directMarkers, transitiveMarkers, hashMap }
+		return { directMarkers, transitiveMarkers, packageMarkers, hashMap }
 	}
 
 	/**
@@ -204,7 +207,7 @@ export default class Python_poetry extends Base_pyproject {
 	 *
 	 * @param {string} treeOutput
 	 * @param {Map<string, string>} versionMap - canonical name -> resolved version
-	 * @param {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>, hashMap: Map<string, Array<{alg: string, content: string}>>}} markerData
+	 * @param {{directMarkers: Map<string, string>, transitiveMarkers: Map<string, Map<string, string>>, packageMarkers: Map<string, string>, hashMap: Map<string, Array<{alg: string, content: string}>>}} markerData
 	 * @returns {{directDeps: string[], graph: Map<string, {name: string, version: string, children: string[], hashes?: Array<{alg: string, content: string}>}>}}
 	 */
 	_parsePoetryTree(treeOutput, versionMap, markerData) {
@@ -214,6 +217,7 @@ export default class Python_poetry extends Base_pyproject {
 
 		let stack = [] // [{key, depth}]
 		let currentDirectDep = null
+		let skipDepth = null
 
 		for (let line of lines) {
 			if (!line.trim()) { continue }
@@ -229,8 +233,10 @@ export default class Python_poetry extends Base_pyproject {
 				if (marker && !evaluateMarker(marker)) {
 					currentDirectDep = null
 					stack = []
+					skipDepth = null
 					continue
 				}
+				skipDepth = null
 
 				directDeps.push(key)
 				if (!graph.has(key)) {
@@ -261,9 +267,22 @@ export default class Python_poetry extends Base_pyproject {
 			let prefix = line.substring(0, nameStart)
 			let depth = (prefix.match(/(?:[├└│ ][\s─]{2} ?)/g) || []).length
 
+			// skip entire subtree of a marker-excluded dep
+			if (skipDepth != null) {
+				if (depth > skipDepth) { continue }
+				skipDepth = null
+			}
+
 			// pop stack back to find the parent at depth-1
 			while (stack.length > 0 && stack[stack.length - 1].depth >= depth) {
 				stack.pop()
+			}
+
+			// check package-level markers from poetry.lock
+			let pkgMarker = markerData.packageMarkers.get(depKey)
+			if (pkgMarker && !evaluateMarker(pkgMarker)) {
+				skipDepth = depth
+				continue
 			}
 
 			let parentKey = stack.length > 0 ? stack[stack.length - 1].key : null
@@ -272,6 +291,7 @@ export default class Python_poetry extends Base_pyproject {
 				if (parentMarkers) {
 					let marker = parentMarkers.get(depKey)
 					if (marker && !evaluateMarker(marker)) {
+						skipDepth = depth
 						continue
 					}
 				}

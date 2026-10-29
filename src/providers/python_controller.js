@@ -447,8 +447,8 @@ function bringAllDependencies(dependencies, dependencyName, cachedEnvironmentDep
 function getDependencyTreeJsonFromPipDepTree(pipPath,pythonPath) {
 	let dependencyTree
 	try {
-		// pipdeptree 4.x pulls typing_extensions>=4.16, polluting the user's env and causing version-mismatch errors
-		invokeCommand(pipPath, ['install', 'pipdeptree<3'])
+		// pipdeptree 4.x depends on nab-* packages that pull typing_extensions>=4.16, polluting the user's env and causing version-mismatch errors
+		invokeCommand(pipPath, ['install', 'pipdeptree<4'])
 	} catch (error) {
 		throw new Error(`Failed installing pipdeptree utility`, {cause: error})
 	}
