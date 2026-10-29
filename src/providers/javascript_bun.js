@@ -1,9 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { parse } from 'jsonc-parser';
-
 import Base_javascript, { sriToHash } from './base_javascript.js';
+import { parseBunEntry, readBunGraph, readBunLock } from './javascript_lockfile.js';
 
 export default class Javascript_bun extends Base_javascript {
 
@@ -11,10 +10,25 @@ export default class Javascript_bun extends Base_javascript {
 		return "bun.lock";
 	}
 
+	/** The binary lock file Bun cannot analyze but recognizes to drive a migrate diagnostic. */
+	_binaryLockFileName() {
+		return "bun.lockb";
+	}
+
+	_cmdName() {
+		return "bun";
+	}
+
+	/** Initializes the provider without resolving the bun executable. */
+	_setUp(manifestPath) {
+		this._setUpManifest(manifestPath);
+	}
+
 	/**
-	 * Parses `bun.lock` into a hash map keyed by `name@version`. Each entry in
-	 * the `packages` section is an array whose first element is the resolved id
-	 * (`name@version`) and whose fourth element is the SRI integrity string.
+	 * Parses `bun.lock` into a hash map keyed by `name@version`. Each entry in the
+	 * `packages` section is a tuple whose resolved id (`name@version`) and trailing
+	 * integrity string are extracted by {@link parseBunEntry}, so npm, hosted/git
+	 * and empty-registry entries are all handled.
 	 * @param {string} lockDir - Directory containing bun.lock
 	 * @returns {Map<string, Array<{alg: string, content: string}>>} Hash map
 	 * @protected
@@ -27,23 +41,27 @@ export default class Javascript_bun extends Base_javascript {
 		}
 		let lockData;
 		try {
-			lockData = parse(fs.readFileSync(lockPath, 'utf-8'));
+			lockData = readBunLock(lockPath);
 		} catch (_) {
 			return map;
 		}
 		const packages = lockData?.packages || {};
 		for (const entry of Object.values(packages)) {
-			if (!Array.isArray(entry) || typeof entry[0] !== 'string' || typeof entry[3] !== 'string') {
+			if (!Array.isArray(entry) || typeof entry[0] !== 'string') {
 				continue;
 			}
-			const id = entry[0];
-			const at = id.lastIndexOf('@');
-			if (at <= 0) {
+			// Skip a malformed/unreachable entry (e.g. an id without `@`, which
+			// makes parseBunEntry throw) rather than aborting the whole scan and
+			// dropping valid direct-dependency hashes. Entries reachable from the
+			// manifest are still validated by readBunGraph (the stack path).
+			let parsed;
+			try {
+				parsed = parseBunEntry(entry);
+			} catch (_) {
 				continue;
 			}
-			const name = id.slice(0, at);
-			const version = id.slice(at + 1);
-			const hash = sriToHash(entry[3]);
+			const { name, version, integrity } = parsed;
+			const hash = integrity ? sriToHash(integrity) : null;
 			if (name && version && hash) {
 				map.set(`${name}@${version}`, [hash]);
 			}
@@ -51,113 +69,32 @@ export default class Javascript_bun extends Base_javascript {
 		return map;
 	}
 
-	_cmdName() {
-		return "bun";
-	}
-
-	_listCmdArgs() {
-		throw new Error("not supported by Bun");
-	}
-
-	_updateLockFileCmdArgs() {
-		return ['install', '--lockfile-only'];
-	}
-
-	_buildDependencyTree(includeTransitive, opts = {}) {
-		this._version();
-		const manifestDir = path.dirname(this._getManifest().manifestPath);
-		const lockDir = this._findLockFileDir(manifestDir, opts) || manifestDir;
-		this._createLockFile(lockDir);
+	/**
+	 * Builds the dependency graph directly from `bun.lock`, requiring a
+	 * pre-existing text lockfile and invoking no package manager. A binary
+	 * `bun.lockb` without a text `bun.lock` is rejected with a migrate diagnostic.
+	 * @param {boolean} _includeTransitive - Unused; the full graph is always read
+	 * @param {Object} [opts={}] - Configuration options (may set the workspace dir)
+	 * @returns {import('./javascript_lockfile.js').LockGraph} The dependency graph
+	 * @protected
+	 */
+	_buildDependencyTree(_includeTransitive, opts = {}) {
+		const manifest = this._getManifest();
+		const manifestDir = path.dirname(manifest.manifestPath);
+		const lockDir = this._findLockFileDir(manifestDir, opts);
+		if (!lockDir) {
+			if (this._findLockFileDir(manifestDir, opts, [this._binaryLockFileName()])) {
+				throw new Error(
+					"Bun analysis found a binary 'bun.lockb' but no text 'bun.lock'. " +
+					"Migrate it with 'bun install --save-text-lockfile --frozen-lockfile " +
+					"--lockfile-only' (Bun >= 1.2) before scanning."
+				);
+			}
+			throw new Error('Bun analysis requires a lockfile. Generate bun.lock before scanning.');
+		}
+		const lock = readBunLock(path.join(lockDir, this._lockFileName()));
+		const graph = readBunGraph(lockDir, manifest.manifestPath, manifest.content, lock);
 		this._loadHashes(lockDir);
-
-		const lockContent = fs.readFileSync(path.join(lockDir, 'bun.lock'), 'utf-8');
-		const lockData = parse(lockContent);
-
-		const packages = lockData.packages || {};
-		const memberName = this._getManifest().name;
-		const workspaceEntry = this.#findWorkspaceEntry(lockData, lockDir, manifestDir, memberName);
-
-		const directDeps = workspaceEntry?.dependencies || {};
-		const tree = { name: memberName, version: this._getManifest().version, dependencies: {} };
-
-		const visited = new Set();
-		for (const depName of Object.keys(directDeps)) {
-			const resolved = this.#resolvePackage(depName, '', packages);
-			if (resolved) {
-				tree.dependencies[depName] = this.#buildNode(depName, resolved, packages, includeTransitive, visited);
-			}
-		}
-
-		return tree;
-	}
-
-	#findWorkspaceEntry(lockData, lockDir, manifestDir, memberName) {
-		const workspaces = lockData.workspaces || {};
-		const relPath = path.relative(lockDir, path.resolve(manifestDir));
-		if (!relPath || relPath === '.') {
-			return workspaces[''] || {};
-		}
-		const normalised = relPath.split(path.sep).join('/');
-		if (workspaces[normalised]) {
-			return workspaces[normalised];
-		}
-		for (const [wsPath, entry] of Object.entries(workspaces)) {
-			if (entry.name === memberName && wsPath !== '') {
-				return entry;
-			}
-		}
-		return workspaces[''] || {};
-	}
-
-	#resolvePackage(depName, parentKey, packages) {
-		if (parentKey) {
-			const scopedKey = `${parentKey}/${depName}`;
-			if (packages[scopedKey]) {
-				return packages[scopedKey];
-			}
-		}
-		return packages[depName] || null;
-	}
-
-	#buildNode(depName, resolved, packages, includeTransitive, visited) {
-		const resolvedId = Array.isArray(resolved) ? resolved[0] : resolved;
-		const version = this.#extractVersion(resolvedId);
-		const node = { version };
-
-		if (!includeTransitive) {
-			return node;
-		}
-
-		const metadata = Array.isArray(resolved) ? (resolved[2] || {}) : {};
-		const subDeps = metadata.dependencies || {};
-
-		if (Object.keys(subDeps).length > 0) {
-			const visitKey = `${depName}@${version}`;
-			if (visited.has(visitKey)) {
-				return node;
-			}
-			visited.add(visitKey);
-
-			node.dependencies = {};
-			for (const subName of Object.keys(subDeps)) {
-				const subResolved = this.#resolvePackage(subName, depName, packages);
-				if (subResolved) {
-					node.dependencies[subName] = this.#buildNode(subName, subResolved, packages, true, visited);
-				}
-			}
-		}
-
-		return node;
-	}
-
-	#extractVersion(resolvedId) {
-		if (typeof resolvedId !== 'string') {
-			return '0.0.0';
-		}
-		const atIdx = resolvedId.lastIndexOf('@');
-		if (atIdx > 0) {
-			return resolvedId.substring(atIdx + 1);
-		}
-		return '0.0.0';
+		return graph;
 	}
 }

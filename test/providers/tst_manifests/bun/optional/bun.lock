@@ -1,0 +1,31 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "optional-app",
+      "dependencies": {
+        "host": "1.0.0"
+      }
+    }
+  },
+  "packages": {
+    "host": [
+      "host@1.0.0",
+      "",
+      {
+        "optionalDependencies": {
+          "present-opt": "^1.0.0",
+          "absent-opt": "^1.0.0"
+        }
+      },
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ],
+    "present-opt": [
+      "present-opt@1.0.0",
+      "",
+      {},
+      "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="
+    ]
+  }
+}
