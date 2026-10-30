@@ -617,7 +617,12 @@ const remediate = {
 				}
 				console.log('')
 			}
-			console.log(generateReport(result.remediations, { groupBy: args['group-by'], dryRun: args['dry-run'] }))
+			console.log(generateReport(result.remediations, {
+				groupBy: args['group-by'],
+				dryRun: args['dry-run'],
+				groups: result.groups,
+				skipped: result.skipped,
+			}))
 			process.exit(result.exitCode)
 		} catch (err) {
 			console.error(err.message)

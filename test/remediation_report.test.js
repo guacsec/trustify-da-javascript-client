@@ -389,6 +389,284 @@ suite('remediation report generator', () => {
 		})
 	})
 
+	suite('divergence rendering', () => {
+		/** Verifies that divergent groups render a recommended-vs-applied table. */
+		test('renders divergence table when groups have divergent members', () => {
+			// Given remediations with a divergent group
+			const remediations = [
+				buildRemediation({ fixedInVersion: '1.10.0' }),
+				buildRemediation({
+					purl: 'pkg:maven/org.apache.commons/commons-lang3@3.8',
+					groupId: 'org.apache.commons',
+					artifactId: 'commons-lang3',
+					currentVersion: '3.8',
+					fixedInVersion: '3.12.0',
+					provider: 'trusted-content',
+					source: 'redhat',
+					vulnerabilities: [{ id: 'CVE-2023-11111', severity: 'HIGH', advisories: [] }],
+				}),
+			]
+			const groups = [{
+				changeKey: 'pom.xml:commons.version',
+				appliedVersion: '3.12.0',
+				remediations: remediations.map(r => ({ ...r, files: ['pom.xml'] })),
+				edit: { path: 'pom.xml', after: '<content/>' },
+				divergent: true,
+			}]
+
+			// When generating a report with groups
+			const report = generateReport(remediations, { groups })
+
+			// Then the divergence section should appear
+			expect(report).to.include('### Applied version differs from some recommendations')
+			expect(report).to.include('These artifacts share one version site')
+			expect(report).to.include('| Artifact | Recommended | Applied |')
+			expect(report).to.include('| org.apache.commons:commons-text | 1.10.0 | 3.12.0 |')
+			expect(report).to.include('| org.apache.commons:commons-lang3 | 3.12.0 | 3.12.0 |')
+		})
+
+		/** Verifies that non-divergent groups produce no divergence section. */
+		test('omits divergence section when no groups are divergent', () => {
+			const remediations = [buildRemediation()]
+			const groups = [{
+				changeKey: 'pom.xml:direct',
+				appliedVersion: '1.10.0',
+				remediations: [{ ...remediations[0], files: ['pom.xml'] }],
+				edit: { path: 'pom.xml', after: '<content/>' },
+				divergent: false,
+			}]
+
+			const report = generateReport(remediations, { groups })
+
+			expect(report).to.not.include('Applied version differs')
+			expect(report).to.not.include('Artifact | Recommended | Applied')
+		})
+
+		/** Verifies that divergence renders in bundle mode too. */
+		test('renders divergence section in bundle mode', () => {
+			const remediations = [
+				buildRemediation({ fixedInVersion: '1.10.0' }),
+				buildRemediation({
+					purl: 'pkg:maven/org.apache.commons/commons-lang3@3.8',
+					groupId: 'org.apache.commons',
+					artifactId: 'commons-lang3',
+					currentVersion: '3.8',
+					fixedInVersion: '3.12.0',
+					provider: 'trusted-content',
+					source: 'redhat',
+					vulnerabilities: [{ id: 'CVE-2023-11111', severity: 'HIGH', advisories: [] }],
+				}),
+			]
+			const groups = [{
+				changeKey: 'pom.xml:commons.version',
+				appliedVersion: '3.12.0',
+				remediations: remediations.map(r => ({ ...r, files: ['pom.xml'] })),
+				edit: { path: 'pom.xml', after: '<content/>' },
+				divergent: true,
+			}]
+
+			const report = generateReport(remediations, { groupBy: 'bundle', groups })
+
+			expect(report).to.include('# Security Update Summary')
+			expect(report).to.include('### Applied version differs from some recommendations')
+			expect(report).to.include('| org.apache.commons:commons-text | 1.10.0 | 3.12.0 |')
+		})
+
+		/** Verifies that divergence is omitted when groups option is not provided. */
+		test('omits divergence section when groups option is absent', () => {
+			const remediations = [buildRemediation()]
+
+			const report = generateReport(remediations)
+
+			expect(report).to.not.include('Applied version differs')
+		})
+
+		/** Verifies that an empty groups array produces no divergence section. */
+		test('omits divergence section for empty groups array', () => {
+			const remediations = [buildRemediation()]
+
+			const report = generateReport(remediations, { groups: [] })
+
+			expect(report).to.not.include('Applied version differs')
+		})
+
+		/** Verifies that dependencies without groupId render correctly in divergence. */
+		test('renders artifactId-only names in divergence table', () => {
+			const remediations = [
+				buildRemediation({ groupId: '', artifactId: 'lodash', fixedInVersion: '4.17.20' }),
+				buildRemediation({ groupId: '', artifactId: 'underscore', fixedInVersion: '1.13.6' }),
+			]
+			const groups = [{
+				changeKey: 'package.json:util-version',
+				appliedVersion: '1.13.6',
+				remediations: remediations.map(r => ({ ...r, files: ['package.json'] })),
+				edit: { path: 'package.json', after: '{}' },
+				divergent: true,
+			}]
+
+			const report = generateReport(remediations, { groups })
+
+			expect(report).to.include('| lodash | 4.17.20 | 1.13.6 |')
+			expect(report).to.include('| underscore | 1.13.6 | 1.13.6 |')
+		})
+	})
+
+	suite('skipped rendering', () => {
+		/** Verifies that skipped remediations render a table with reasons. */
+		test('renders skipped section with dependency names and reasons', () => {
+			const remediations = [buildRemediation()]
+			const skipped = [
+				{
+					groupId: 'com.example',
+					artifactId: 'legacy-lib',
+					newVersion: '2.0.0',
+					reason: 'Shares a Maven property with excluded dependency pkg:maven/com.example/excluded',
+				},
+			]
+
+			const report = generateReport(remediations, { skipped })
+
+			expect(report).to.include('### Skipped Remediations')
+			expect(report).to.include('The following remediations were not applied')
+			expect(report).to.include('| Dependency | Version | Reason |')
+			expect(report).to.include(
+				'| com.example:legacy-lib | 2.0.0 | Shares a Maven property with excluded dependency pkg:maven/com.example/excluded |'
+			)
+		})
+
+		/** Verifies that an empty skipped array produces no section. */
+		test('omits skipped section for empty array', () => {
+			const remediations = [buildRemediation()]
+
+			const report = generateReport(remediations, { skipped: [] })
+
+			expect(report).to.not.include('Skipped Remediations')
+		})
+
+		/** Verifies that skipped section is omitted when not provided. */
+		test('omits skipped section when option is absent', () => {
+			const remediations = [buildRemediation()]
+
+			const report = generateReport(remediations)
+
+			expect(report).to.not.include('Skipped Remediations')
+		})
+
+		/** Verifies that skipped renders in bundle mode. */
+		test('renders skipped section in bundle mode', () => {
+			const remediations = [buildRemediation()]
+			const skipped = [{
+				groupId: 'com.example',
+				artifactId: 'old-lib',
+				newVersion: '3.0.0',
+				reason: 'Excluded by user',
+			}]
+
+			const report = generateReport(remediations, { groupBy: 'bundle', skipped })
+
+			expect(report).to.include('# Security Update Summary')
+			expect(report).to.include('### Skipped Remediations')
+			expect(report).to.include('| com.example:old-lib | 3.0.0 | Excluded by user |')
+		})
+
+		/** Verifies that skipped dependencies without groupId render correctly. */
+		test('renders artifactId-only names in skipped table', () => {
+			const remediations = [buildRemediation()]
+			const skipped = [{
+				groupId: '',
+				artifactId: 'leftpad',
+				newVersion: '1.0.1',
+				reason: 'Shares a version.ref with excluded dependency',
+			}]
+
+			const report = generateReport(remediations, { skipped })
+
+			expect(report).to.include('| leftpad | 1.0.1 |')
+		})
+	})
+
+	suite('combined divergence and skipped', () => {
+		/** Verifies that both divergence and skipped sections render together. */
+		test('renders both divergence and skipped when both present', () => {
+			const remediations = [
+				buildRemediation({ fixedInVersion: '1.10.0' }),
+				buildRemediation({
+					purl: 'pkg:maven/org.apache.commons/commons-lang3@3.8',
+					groupId: 'org.apache.commons',
+					artifactId: 'commons-lang3',
+					currentVersion: '3.8',
+					fixedInVersion: '3.12.0',
+					provider: 'trusted-content',
+					source: 'redhat',
+					vulnerabilities: [{ id: 'CVE-2023-11111', severity: 'HIGH', advisories: [] }],
+				}),
+			]
+			const groups = [{
+				changeKey: 'pom.xml:commons.version',
+				appliedVersion: '3.12.0',
+				remediations: remediations.map(r => ({ ...r, files: ['pom.xml'] })),
+				edit: { path: 'pom.xml', after: '<content/>' },
+				divergent: true,
+			}]
+			const skipped = [{
+				groupId: 'com.example',
+				artifactId: 'dropped-lib',
+				newVersion: '4.0.0',
+				reason: 'Excluded',
+			}]
+
+			const report = generateReport(remediations, { groups, skipped })
+
+			// Then both sections should appear, divergence before skipped
+			expect(report).to.include('### Applied version differs from some recommendations')
+			expect(report).to.include('### Skipped Remediations')
+			expect(report.indexOf('Applied version differs')).to.be.lessThan(
+				report.indexOf('Skipped Remediations')
+			)
+		})
+
+		/** Verifies that dry-run mode does not render divergence or skipped. */
+		test('dry-run mode does not render divergence or skipped', () => {
+			const remediations = [buildRemediation()]
+			const groups = [{
+				changeKey: 'pom.xml:direct',
+				appliedVersion: '1.10.0',
+				remediations: [{ ...remediations[0], files: ['pom.xml'] }],
+				edit: { path: 'pom.xml', after: '<content/>' },
+				divergent: true,
+			}]
+			const skipped = [{
+				groupId: 'com.example',
+				artifactId: 'lib',
+				newVersion: '2.0.0',
+				reason: 'Excluded',
+			}]
+
+			const report = generateReport(remediations, { dryRun: true, groups, skipped })
+
+			expect(report).to.include('Proposed dependency updates:')
+			expect(report).to.not.include('Applied version differs')
+			expect(report).to.not.include('Skipped Remediations')
+		})
+
+		/** Verifies that JSON format does not render divergence or skipped. */
+		test('JSON format does not render divergence or skipped', () => {
+			const remediations = [buildRemediation()]
+			const groups = [{
+				changeKey: 'pom.xml:direct',
+				appliedVersion: '1.10.0',
+				remediations: [{ ...remediations[0], files: ['pom.xml'] }],
+				edit: { path: 'pom.xml', after: '<content/>' },
+				divergent: true,
+			}]
+
+			const report = generateReport(remediations, { format: 'json', groups })
+			const parsed = JSON.parse(report)
+
+			expect(parsed).to.deep.equal(remediations)
+		})
+	})
+
 	suite('deduplication key generation', () => {
 		/** Verifies that the key follows the groupId:artifactId:version format. */
 		test('generates key from groupId, artifactId, and fixedInVersion', () => {

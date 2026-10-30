@@ -13,10 +13,12 @@ import { SEVERITY_ORDER, maxSeverity } from './remediation.js'
  * @param {'dependency'|'bundle'} [options.groupBy='dependency'] - grouping strategy
  * @param {'markdown'|'json'} [options.format='markdown'] - output format
  * @param {boolean} [options.dryRun=false] - when true, produces tabular summary
+ * @param {import('./remediate.js').RemediationGroup[]} [options.groups] - orchestrator groups for divergence rendering
+ * @param {Array<{groupId: string, artifactId: string, newVersion: string, reason: string}>} [options.skipped] - skipped remediations
  * @returns {string}
  */
 export function generateReport(remediations, options = {}) {
-	const { groupBy = 'dependency', format = 'markdown', dryRun = false } = options
+	const { groupBy = 'dependency', format = 'markdown', dryRun = false, groups, skipped } = options
 
 	if (!remediations || remediations.length === 0) {
 		return format === 'json' ? '[]' : 'No remediations found.'
@@ -30,11 +32,18 @@ export function generateReport(remediations, options = {}) {
 		return generateDryRunReport(remediations)
 	}
 
+	let report
 	if (groupBy === 'bundle') {
-		return generateBundledReport(remediations)
+		report = generateBundledReport(remediations)
+	} else {
+		report = generatePerDependencyReport(remediations)
 	}
 
-	return generatePerDependencyReport(remediations)
+	const divergenceSection = renderDivergenceSection(groups)
+	const skippedSection = renderSkippedSection(skipped)
+	const suffix = [divergenceSection, skippedSection].filter(Boolean).join('\n\n')
+
+	return suffix ? `${report}\n\n${suffix}` : report
 }
 
 /**
@@ -193,6 +202,68 @@ function formatAdvisoryLinks(advisories) {
 	return advisories
 		.map(adv => adv.url ? `[${adv.id}](${adv.url})` : adv.id)
 		.join(', ')
+}
+
+/**
+ * Renders a divergence section for groups where the applied version differs from
+ * some members' recommended versions. Returns empty string when no divergence exists.
+ * @param {import('./remediate.js').RemediationGroup[]} [groups]
+ * @returns {string}
+ */
+function renderDivergenceSection(groups) {
+	if (!groups || groups.length === 0) {
+		return ''
+	}
+
+	const divergentGroups = groups.filter(g => g.divergent)
+	if (divergentGroups.length === 0) {
+		return ''
+	}
+
+	const rows = []
+	for (const group of divergentGroups) {
+		for (const rem of group.remediations) {
+			const name = rem.groupId ? `${rem.groupId}:${rem.artifactId}` : rem.artifactId
+			rows.push(`| ${name} | ${rem.fixedInVersion} | ${group.appliedVersion} |`)
+		}
+	}
+
+	return [
+		'### Applied version differs from some recommendations',
+		'',
+		'These artifacts share one version site, so a single version was written for all of them.',
+		'',
+		'| Artifact | Recommended | Applied |',
+		'| --- | --- | --- |',
+		...rows,
+	].join('\n')
+}
+
+/**
+ * Renders a section for remediations that were skipped during the orchestration.
+ * Returns empty string when no skipped entries exist.
+ * @param {Array<{groupId: string, artifactId: string, newVersion: string, reason: string}>} [skipped]
+ * @returns {string}
+ */
+function renderSkippedSection(skipped) {
+	if (!skipped || skipped.length === 0) {
+		return ''
+	}
+
+	const rows = skipped.map(s => {
+		const name = s.groupId ? `${s.groupId}:${s.artifactId}` : s.artifactId
+		return `| ${name} | ${s.newVersion} | ${s.reason} |`
+	})
+
+	return [
+		'### Skipped Remediations',
+		'',
+		'The following remediations were not applied. See the reason column for details.',
+		'',
+		'| Dependency | Version | Reason |',
+		'| --- | --- | --- |',
+		...rows,
+	].join('\n')
 }
 
 /**
