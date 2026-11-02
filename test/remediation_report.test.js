@@ -389,6 +389,39 @@ suite('remediation report generator', () => {
 		})
 	})
 
+	suite('empty remediations with skipped', () => {
+		/** Verifies that skipped section renders even when no remediations exist. */
+		test('renders skipped section when remediations is empty but skipped has entries', () => {
+			const skipped = [{
+				groupId: 'com.example',
+				artifactId: 'legacy-lib',
+				newVersion: '2.0.0',
+				reason: 'Dependency not directly declared in the manifest',
+			}]
+
+			const report = generateReport([], { skipped })
+
+			expect(report).to.include('No remediations found.')
+			expect(report).to.include('### Skipped Remediations')
+			expect(report).to.include('| com.example:legacy-lib | 2.0.0 |')
+		})
+
+		/** Verifies that null remediations with skipped still renders the skipped section. */
+		test('renders skipped section when remediations is null but skipped has entries', () => {
+			const skipped = [{
+				groupId: '',
+				artifactId: 'leftpad',
+				newVersion: '1.0.1',
+				reason: 'Excluded',
+			}]
+
+			const report = generateReport(null, { skipped })
+
+			expect(report).to.include('No remediations found.')
+			expect(report).to.include('### Skipped Remediations')
+		})
+	})
+
 	suite('divergence rendering', () => {
 		/** Verifies that divergent groups render a recommended-vs-applied table. */
 		test('renders divergence table when groups have divergent members', () => {

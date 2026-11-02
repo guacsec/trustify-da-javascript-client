@@ -20,20 +20,24 @@ import { SEVERITY_ORDER, maxSeverity } from './remediation.js'
 export function generateReport(remediations, options = {}) {
 	const { groupBy = 'dependency', format = 'markdown', dryRun = false, groups, skipped } = options
 
-	if (!remediations || remediations.length === 0) {
-		return format === 'json' ? '[]' : 'No remediations found.'
+	const hasRemediations = remediations && remediations.length > 0
+
+	if (!hasRemediations && format === 'json') {
+		return '[]'
 	}
 
-	if (format === 'json') {
+	if (hasRemediations && format === 'json') {
 		return JSON.stringify(remediations, null, '\t')
 	}
 
-	if (dryRun) {
+	if (hasRemediations && dryRun) {
 		return generateDryRunReport(remediations)
 	}
 
 	let report
-	if (groupBy === 'bundle') {
+	if (!hasRemediations) {
+		report = 'No remediations found.'
+	} else if (groupBy === 'bundle') {
 		report = generateBundledReport(remediations)
 	} else {
 		report = generatePerDependencyReport(remediations)
