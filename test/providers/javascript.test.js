@@ -9,6 +9,7 @@ import { useFakeTimers } from "sinon";
 
 import { availableProviders, match } from '../../src/provider.js';
 import { sriToHash } from '../../src/providers/base_javascript.js';
+import Bun from '../../src/providers/javascript_bun.js';
 import Manifest from '../../src/providers/manifest.js';
 import { compareSboms } from '../utils/sbom_utils.js';
 
@@ -52,8 +53,8 @@ async function createMockProvider(providerName, listingOutput) {
 		return new Javascript_yarn();
 	}
 	case 'bun': {
-		const Javascript_bun = await mockProvider(providerName, listingOutput);
-		return new Javascript_bun();
+		// Bun analysis is lockfile-only, so no subprocess mock is needed.
+		return new Bun();
 	}
 	default: { fail('Not implemented'); }
 	}

@@ -1,0 +1,7 @@
+{
+	"name": "ws-root",
+	"private": true,
+	"workspaces": [
+		"packages/member"
+	]
+}

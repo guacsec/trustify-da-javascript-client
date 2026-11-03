@@ -266,11 +266,11 @@ export default class Base_javascript {
 		return false
 	}
 
-	_findLockFileDir(manifestDir, opts = {}) {
+	_findLockFileDir(manifestDir, opts = {}, names = this._lockFileNames()) {
 		const workspaceDir = getCustom('TRUSTIFY_DA_WORKSPACE_DIR', null, opts)
 		if (workspaceDir) {
 			const dir = path.resolve(workspaceDir)
-			return this._lockFileNames().some(name => fs.existsSync(path.join(dir, name))) ? dir : null
+			return names.some(name => fs.existsSync(path.join(dir, name))) ? dir : null
 		}
 
 		let dir = path.resolve(manifestDir)
@@ -279,7 +279,7 @@ export default class Base_javascript {
 		do {
 			dir = parent
 
-			if (this._lockFileNames().some(name => fs.existsSync(path.join(dir, name)))) {
+			if (names.some(name => fs.existsSync(path.join(dir, name)))) {
 				return dir
 			}
 
@@ -299,7 +299,7 @@ export default class Base_javascript {
    * @returns {boolean} True if the lock file exists
    */
 	validateLockFile(manifestDir, opts = {}) {
-		return this._findLockFileDir(manifestDir, opts) !== null
+		return this._findLockFileDir(manifestDir, opts) != null
 	}
 
 	/**

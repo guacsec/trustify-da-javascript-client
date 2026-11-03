@@ -1,0 +1,51 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.6",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-08-07T00:00:00.000Z",
+		"component": {
+			"name": "optional-app",
+			"version": "1.0.0",
+			"purl": "pkg:npm/optional-app@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:npm/optional-app@1.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.4.0"
+				}
+			]
+		}
+	},
+	"components": [
+		{
+			"name": "chokidar",
+			"version": "3.5.3",
+			"purl": "pkg:npm/chokidar@3.5.3",
+			"type": "library",
+			"bom-ref": "pkg:npm/chokidar@3.5.3",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "0ebdec7ca44fea84dc8dfd8999498525f79532f5c175e83107489543979bd95d74b852540804bc381c9975503255bf315cdcf71a38d3823f642d6b194ea13a93"
+				}
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:npm/optional-app@1.0.0",
+			"dependsOn": [
+				"pkg:npm/chokidar@3.5.3"
+			]
+		},
+		{
+			"ref": "pkg:npm/chokidar@3.5.3",
+			"dependsOn": []
+		}
+	]
+}

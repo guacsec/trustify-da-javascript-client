@@ -1,0 +1,88 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.6",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-08-07T00:00:00.000Z",
+		"component": {
+			"name": "nested-app",
+			"version": "1.0.0",
+			"purl": "pkg:npm/nested-app@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:npm/nested-app@1.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.4.0"
+				}
+			]
+		}
+	},
+	"components": [
+		{
+			"name": "is-number",
+			"version": "7.0.0",
+			"purl": "pkg:npm/is-number@7.0.0",
+			"type": "library",
+			"bom-ref": "pkg:npm/is-number@7.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "e350a27e483a7bc4f2952a5db53a5e2d532abd20445734edb47bc4443ef8d7ea6767c00dbf4d34e0c44be3740a3c394af5c1af369e8d6566540656c65d8c719e"
+				}
+			]
+		},
+		{
+			"name": "is-odd",
+			"version": "3.0.1",
+			"purl": "pkg:npm/is-odd@3.0.1",
+			"type": "library",
+			"bom-ref": "pkg:npm/is-odd@3.0.1",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "090a6758fac3c263f5f923075d986d2ed26ff74ca2c957e5b86b17e62342564ae142d5374d01ec5163c6f7091d93d2e0779c8da4083d8d0128f7408169781630"
+				}
+			]
+		},
+		{
+			"name": "is-number",
+			"version": "6.0.0",
+			"purl": "pkg:npm/is-number@6.0.0",
+			"type": "library",
+			"bom-ref": "pkg:npm/is-number@6.0.0",
+			"hashes": [
+				{
+					"alg": "SHA-512",
+					"content": "5aed551de20b04af0a016254022499417f781a6384e39460ebfe77f1f2b08a5a14bb6d4a9dc1246063eaa1bda8499e66513ef7bcb1ab1d08cac3728c3f07c3ce"
+				}
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:npm/nested-app@1.0.0",
+			"dependsOn": [
+				"pkg:npm/is-number@7.0.0",
+				"pkg:npm/is-odd@3.0.1"
+			]
+		},
+		{
+			"ref": "pkg:npm/is-number@7.0.0",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:npm/is-odd@3.0.1",
+			"dependsOn": [
+				"pkg:npm/is-number@6.0.0"
+			]
+		},
+		{
+			"ref": "pkg:npm/is-number@6.0.0",
+			"dependsOn": []
+		}
+	]
+}
