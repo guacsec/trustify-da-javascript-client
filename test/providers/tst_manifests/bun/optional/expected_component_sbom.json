@@ -23,15 +23,15 @@
 	},
 	"components": [
 		{
-			"name": "host",
-			"version": "1.0.0",
-			"purl": "pkg:npm/host@1.0.0",
+			"name": "chokidar",
+			"version": "3.5.3",
+			"purl": "pkg:npm/chokidar@3.5.3",
 			"type": "library",
-			"bom-ref": "pkg:npm/host@1.0.0",
+			"bom-ref": "pkg:npm/chokidar@3.5.3",
 			"hashes": [
 				{
 					"alg": "SHA-512",
-					"content": "e350a27e483a7bc4f2952a5db53a5e2d532abd20445734edb47bc4443ef8d7ea6767c00dbf4d34e0c44be3740a3c394af5c1af369e8d6566540656c65d8c719e"
+					"content": "0ebdec7ca44fea84dc8dfd8999498525f79532f5c175e83107489543979bd95d74b852540804bc381c9975503255bf315cdcf71a38d3823f642d6b194ea13a93"
 				}
 			]
 		}
@@ -40,11 +40,11 @@
 		{
 			"ref": "pkg:npm/optional-app@1.0.0",
 			"dependsOn": [
-				"pkg:npm/host@1.0.0"
+				"pkg:npm/chokidar@3.5.3"
 			]
 		},
 		{
-			"ref": "pkg:npm/host@1.0.0",
+			"ref": "pkg:npm/chokidar@3.5.3",
 			"dependsOn": []
 		}
 	]

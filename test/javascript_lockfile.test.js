@@ -20,7 +20,7 @@ const SBOM_CASES = [
 	{ method: 'provideComponent', type: 'component' },
 ];
 
-/** A valid SHA-512 SRI (is-number@7.0.0) reused across bun lockfile fixtures. */
+/** A valid SHA-512 SRI (is-number@7.0.0) reused by synthetic Bun lockfile tests. */
 const BUN_SRI = 'sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==';
 const BUN_SRI_HEX = Buffer.from(BUN_SRI.slice('sha512-'.length), 'base64').toString('hex');
 
@@ -1528,6 +1528,7 @@ suite('bun lockfile-only analysis (TC-7014)', () => {
 	});
 });
 
+/// Reference bun.lock fixtures were generated with Bun 1.4.0 and `bun install --lockfile-only --save-text-lockfile --no-progress`.
 suite('bun complete SBOM reference comparisons (TC-7014)', () => {
 	let refClock;
 	suiteSetup(() => { refClock = useFakeTimers(new Date('2023-08-07T00:00:00.000Z')); });

@@ -2,6 +2,6 @@
 	"name": "member",
 	"version": "2.0.0",
 	"dependencies": {
-		"alpha": "1.0.0"
+		"is-number": "7.0.0"
 	}
 }
