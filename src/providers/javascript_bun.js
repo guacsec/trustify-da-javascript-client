@@ -4,15 +4,21 @@ import path from 'node:path'
 import Base_javascript, { sriToHash } from './base_javascript.js';
 import { parseBunEntry, readBunGraph, readBunLock } from './javascript_lockfile.js';
 
+const BUN_BINARY_LOCK_FILE = 'bun.lockb';
+
 export default class Javascript_bun extends Base_javascript {
 
 	_lockFileName() {
 		return "bun.lock";
 	}
 
-	/** The binary lock file Bun cannot analyze but recognizes to drive a migrate diagnostic. */
-	_binaryLockFileName() {
-		return "bun.lockb";
+	/**
+	 * Recognize Bun's binary lock file during provider matching so analysis can
+	 * report how to migrate it to the supported text lock file.
+	 */
+	validateLockFile(manifestDir, opts = {}) {
+		return super.validateLockFile(manifestDir, opts)
+			|| this._findLockFileDir(manifestDir, opts, [BUN_BINARY_LOCK_FILE]) != null;
 	}
 
 	_cmdName() {
@@ -83,7 +89,7 @@ export default class Javascript_bun extends Base_javascript {
 		const manifestDir = path.dirname(manifest.manifestPath);
 		const lockDir = this._findLockFileDir(manifestDir, opts);
 		if (!lockDir) {
-			if (this._findLockFileDir(manifestDir, opts, [this._binaryLockFileName()])) {
+			if (this._findLockFileDir(manifestDir, opts, [BUN_BINARY_LOCK_FILE])) {
 				throw new Error(
 					"Bun analysis found a binary 'bun.lockb' but no text 'bun.lock'. " +
 					"Migrate it with 'bun install --save-text-lockfile --frozen-lockfile " +
