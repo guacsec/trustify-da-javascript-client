@@ -136,15 +136,21 @@ suite('Python_controller virtual environment executables', function() {
 			expect(venvInvocation.bin).to.equal(sourcePython)
 			expect(venvInvocation.args).to.deep.equal(['-m', 'venv', path.join(path.sep, 'tmp', 'trustify_da_env_js')])
 
-			// Then the pip upgrade runs through the venv Scripts/python.exe
-			expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
-			expect(pipUpgradeInvocation.bin).to.equal(controller.pathToPythonBin)
-			expect(pathComponents(pipUpgradeInvocation.bin)).to.include('Scripts')
-			expect(path.basename(pipUpgradeInvocation.bin)).to.equal('python.exe')
+			// Then the executable paths are anchored to the venv directory that was created.
+			// Resolving the recorded target makes this match the controller's drive-prefixed
+			// Windows paths on a native host as well as under the mocked win32 platform.
+			const expectedVenvDir = path.resolve(venvInvocation.args[2])
+			expect(path.resolve(controller.pythonEnvDir)).to.equal(expectedVenvDir)
+			const expectedPythonBin = path.join(expectedVenvDir, 'Scripts', 'python.exe')
+			const expectedPipBin = path.join(expectedVenvDir, 'Scripts', 'pip.exe')
 
-			// Then the venv pip path ends in Scripts/pip.exe
-			expect(pathComponents(controller.pathToPipBin)).to.include('Scripts')
-			expect(path.basename(controller.pathToPipBin)).to.equal('pip.exe')
+			// Then the pip upgrade runs through that venv's Scripts/python.exe exactly
+			expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
+			expect(pipUpgradeInvocation.bin).to.equal(expectedPythonBin)
+			expect(controller.pathToPythonBin).to.equal(expectedPythonBin)
+
+			// Then the venv pip path is exactly that venv's Scripts/pip.exe
+			expect(controller.pathToPipBin).to.equal(expectedPipBin)
 
 			// Then no invocation targets the nonexistent Scripts/python3.exe
 			expect(path.basename(pipUpgradeInvocation.bin)).to.not.equal('python3.exe')
@@ -153,23 +159,40 @@ suite('Python_controller virtual environment executables', function() {
 		})
 	}
 
+	/** Verifies that a same-basename executable in another venv's Scripts directory cannot satisfy the exact-path checks. */
+	test('rejects Scripts/python.exe from a different venv directory on Windows', async function() {
+		// Given a Windows host virtual environment controller
+		const { controller, invocations } = await constructVirtualEnvController('win32', 'python3')
+
+		// When the candidate path has the same Scripts component and python.exe basename
+		// as the real venv, but belongs to a different venv root
+		const wrongVenvDir = path.resolve(path.join(path.sep, 'tmp', 'wrong_trustify_da_env_js'))
+		const wrongVenvPythonBin = path.join(wrongVenvDir, 'Scripts', 'python.exe')
+
+		// Then the shape that previously satisfied the component/basename checks is rejected
+		expect(pathComponents(wrongVenvPythonBin)).to.include('Scripts')
+		expect(path.basename(wrongVenvPythonBin)).to.equal('python.exe')
+		expect(controller.pathToPythonBin).to.not.equal(wrongVenvPythonBin)
+		expect(invocations[1].bin).to.not.equal(wrongVenvPythonBin)
+	})
+
 	/** Verifies that POSIX venv naming still mirrors a python3 source interpreter. */
 	test('keeps bin/python3 and bin/pip3 on non-Windows hosts for a python3 source', async function() {
 		// Given a POSIX host and a configured source interpreter named python3
 		const { controller, invocations } = await constructVirtualEnvController('linux', 'python3')
 
 		// When the venv is prepared while the controller is constructed
+		const venvInvocation = invocations[0]
 		const pipUpgradeInvocation = invocations[1]
 
-		// Then the pip upgrade runs through the venv bin/python3
+		// Then the pip upgrade runs through the venv bin/python3 exactly
 		expect(invocations).to.have.lengthOf(2)
+		expect(venvInvocation.args[2]).to.equal(path.join(path.sep, 'tmp', 'trustify_da_env_js'))
 		expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
-		expect(pipUpgradeInvocation.bin).to.equal(controller.pathToPythonBin)
-		expect(pathComponents(controller.pathToPythonBin)).to.include('bin')
-		expect(path.basename(controller.pathToPythonBin)).to.equal('python3')
+		expect(pipUpgradeInvocation.bin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python3'))
+		expect(controller.pathToPythonBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python3'))
 
 		// Then the venv pip path stays bin/pip3
-		expect(pathComponents(controller.pathToPipBin)).to.include('bin')
-		expect(path.basename(controller.pathToPipBin)).to.equal('pip3')
+		expect(controller.pathToPipBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'pip3'))
 	})
 })
