@@ -1,12 +1,16 @@
 import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+
 import { expect } from 'chai'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { afterEach } from 'mocha'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
-import { stub } from 'sinon'
+import { stub, useFakeTimers } from 'sinon'
 
 import analysis from '../src/analysis.js'
+import pythonPip from '../src/providers/python_pip.js'
 import { addProxyAgent } from '../src/tools.js'
 
 // utility function creating a dummy server, intercepting a handler,
@@ -476,6 +480,212 @@ suite('testing the analysis module for sending api requests', () => {
 			async () => {
 				let res = await analysis.requestStack(fakeProvider, fakeManifest, backendUrl)
 				expect(res).to.deep.equal({ ok: 'ok' })
+			}
+		))
+	})
+
+	suite('audit metadata preserves decoded requirements manifests', () => {
+		const goldenSbomDir = 'test/providers/tst_manifests/pip/pip_requirements_txt_utf16le'
+		const utf16leManifest = `${goldenSbomDir}/requirements.txt`
+		// Same text as the committed UTF-16LE fixture, used to build the other encodings on the fly.
+		const requirementsText = 'blinker==1.9.0\r\ncertifi==2026.10.23\r\nsix==1.16.0 # exhortignore\r\n'
+		const expectedAuditContent = Buffer.from(requirementsText).toString('base64')
+		const pipFreezeOutput = 'blinker==1.9.0\ncertifi==2026.10.23\nsix==1.16.0\n'
+		const pipShowOutput =
+			'Name: blinker\nVersion: 1.9.0\nSummary: Fast, simple object-to-object and broadcast signaling\nRequires: \nRequired-by: ' +
+			'\n---\n' +
+			'Name: certifi\nVersion: 2026.10.23\nSummary: Python package for providing Mozilla\'s CA Bundle.\nRequires: \nRequired-by: ' +
+			'\n---\n' +
+			'Name: six\nVersion: 1.16.0\nSummary: Python 2 and 3 compatibility utilities\nRequires: \nRequired-by: '
+		const encodings = [
+			{ name: 'UTF-8 without BOM', encoding: 'utf8' },
+			{ name: 'UTF-8 with BOM', encoding: 'utf8-bom' },
+			{ name: 'UTF-16LE with BOM', encoding: 'utf16le-bom' },
+			{ name: 'UTF-16BE with BOM', encoding: 'utf16be-bom' }
+		]
+		let clock
+
+		suiteSetup(() => {
+			// Only fake Date so SBOM timestamps are deterministic; fetch/MSW rely on real timers.
+			clock = useFakeTimers({ now: new Date('2023-10-01T00:00:00.000Z'), toFake: ['Date'] })
+		})
+
+		suiteTeardown(() => {
+			clock.restore()
+		})
+
+		/**
+		 * Encode requirements text with the given encoding, including a BOM where applicable.
+		 * @param {string} text - requirements text
+		 * @param {string} encoding - one of utf8, utf8-bom, utf16le-bom, utf16be-bom
+		 * @returns {Buffer} encoded manifest bytes
+		 */
+		function encodeRequirements(text, encoding) {
+			if (encoding === 'utf8-bom') {
+				return Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(text, 'utf8')])
+			}
+			if (encoding === 'utf16le-bom') {
+				return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(text, 'utf16le')])
+			}
+			if (encoding === 'utf16be-bom') {
+				const littleEndian = Buffer.from(text, 'utf16le')
+				littleEndian.swap16()
+				return Buffer.concat([Buffer.from([0xFE, 0xFF]), littleEndian])
+			}
+			return Buffer.from(text, 'utf8')
+		}
+
+		/**
+		 * Build the expected audited SBOM from a committed golden, adding the audit
+		 * properties the public analysis path is responsible for submitting.
+		 * @param {string} goldenFile - golden SBOM file name
+		 * @returns {object} expected SBOM including audit metadata
+		 */
+		function expectedSbomWithAudit(goldenFile) {
+			const sbom = JSON.parse(fs.readFileSync(`${goldenSbomDir}/${goldenFile}`).toString())
+			sbom.metadata.properties = [
+				{ name: 'rhda:manifest:content', value: expectedAuditContent },
+				{ name: 'rhda:manifest:filename', value: 'requirements.txt' }
+			]
+			return sbom
+		}
+
+		/**
+		 * Write a requirements manifest in the requested encoding outside the repository,
+		 * reusing the committed UTF-16LE fixture for that encoding.
+		 * @param {string} encoding - one of utf8, utf8-bom, utf16le-bom, utf16be-bom
+		 * @returns {{manifest: string, cleanup: Function}} manifest path and cleanup callback
+		 */
+		function prepareManifest(encoding) {
+			if (encoding === 'utf16le-bom') {
+				return { manifest: utf16leManifest, cleanup: () => { } }
+			}
+			const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trustify-da-audit-'))
+			const manifest = path.join(tempDir, 'requirements.txt')
+			fs.writeFileSync(manifest, encodeRequirements(requirementsText, encoding))
+			return { manifest, cleanup: () => fs.rmSync(tempDir, { recursive: true, force: true }) }
+		}
+
+		/**
+		 * Run a provider-backed request with a deterministic pip environment, so the
+		 * assertion focuses on audit decoding rather than on the host pip packages.
+		 * @param {Function} run - request to execute
+		 * @returns {Promise<*>} the value returned by `run`
+		 */
+		async function withPipEnvironment(run) {
+			process.env['TRUSTIFY_DA_PIP_FREEZE'] = Buffer.from(pipFreezeOutput).toString('base64')
+			process.env['TRUSTIFY_DA_PIP_SHOW'] = Buffer.from(pipShowOutput).toString('base64')
+			try {
+				return await run()
+			} finally {
+				delete process.env['TRUSTIFY_DA_PIP_FREEZE']
+				delete process.env['TRUSTIFY_DA_PIP_SHOW']
+			}
+		}
+
+		let submittedSbom
+
+		encodings.forEach(({ name, encoding }) => {
+			/** Verifies requestStack submits decoded requirements text in a complete audited SBOM. */
+			test(`requestStack submits decoded ${name} requirements audit metadata`, interceptAndRun(
+				http.post(`${backendUrl}/api/v5/analysis`, async ({ request }) => {
+					submittedSbom = await request.json()
+					return HttpResponse.json({ dummy: 'response' })
+				}),
+				async () => {
+					// Given a requirements manifest saved with the requested encoding
+					const { manifest, cleanup } = prepareManifest(encoding)
+
+					try {
+						// When stack analysis runs through the public request path
+						await withPipEnvironment(() => analysis.requestStack(pythonPip, manifest, backendUrl))
+
+						// Then the submitted SBOM equals the golden including exact audit metadata
+						expect(submittedSbom).to.deep.equal(expectedSbomWithAudit('expected_stack_sbom.json'))
+						const auditProperty = submittedSbom.metadata.properties
+							.find(property => property.name === 'rhda:manifest:content')
+						expect(Buffer.from(auditProperty.value, 'base64').toString('utf8')).to.equal(requirementsText)
+					} finally {
+						cleanup()
+					}
+				}
+			)).timeout(10000)
+
+			/** Verifies audit-enabled requestComponent submits decoded requirements text in a complete audited SBOM. */
+			test(`requestComponent submits decoded ${name} requirements audit metadata`, interceptAndRun(
+				http.post(`${backendUrl}/api/v5/analysis`, async ({ request }) => {
+					submittedSbom = await request.json()
+					return HttpResponse.json({ dummy: 'response' })
+				}),
+				async () => {
+					// Given a requirements manifest saved with the requested encoding
+					const { manifest, cleanup } = prepareManifest(encoding)
+
+					try {
+						// When component analysis runs with audit metadata enabled
+						await withPipEnvironment(() => analysis.requestComponent(
+							pythonPip, manifest, backendUrl, { 'manifest-type': 'requirements.txt', licenseCheck: false }
+						))
+
+						// Then the submitted SBOM equals the golden including exact audit metadata
+						expect(submittedSbom).to.deep.equal(expectedSbomWithAudit('expected_component_sbom.json'))
+						const auditProperty = submittedSbom.metadata.properties
+							.find(property => property.name === 'rhda:manifest:content')
+						expect(Buffer.from(auditProperty.value, 'base64').toString('utf8')).to.equal(requirementsText)
+					} finally {
+						cleanup()
+					}
+				}
+			)).timeout(10000)
+		})
+
+		/** Verifies component requests without manifest-type still omit audit metadata. */
+		test('requestComponent without manifest-type omits audit metadata', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, async ({ request }) => {
+				submittedSbom = await request.json()
+				return HttpResponse.json({ dummy: 'response' })
+			}),
+			async () => {
+				// Given the UTF-16LE fixture and no manifest-type option
+				// When component analysis runs
+				await withPipEnvironment(() => analysis.requestComponent(
+					pythonPip, utf16leManifest, backendUrl, { licenseCheck: false }
+				))
+
+				// Then the submitted SBOM matches the unaudited golden with no metadata.properties
+				expect(submittedSbom).to.deep.equal(
+					JSON.parse(fs.readFileSync(`${goldenSbomDir}/expected_component_sbom.json`).toString())
+				)
+			}
+		)).timeout(10000)
+
+		/** Verifies non-requirements manifests keep the existing raw audit bytes. */
+		test('requestStack leaves non-requirements audit bytes raw', interceptAndRun(
+			http.post(`${backendUrl}/api/v5/analysis`, () => HttpResponse.json({ dummy: 'response' })),
+			async () => {
+				// Given a non-requirements manifest whose bytes start with a UTF-8 BOM
+				const manifest = 'fake-audit-manifest.typ'
+				const rawBytes = Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from('dummy-content', 'utf8')])
+				fs.writeFileSync(manifest, rawBytes)
+				let recordedSourceManifest
+				const provider = {
+					provideStack: (manifestPath, opts) => {
+						recordedSourceManifest = opts['source-manifest']
+						return { ecosystem: 'dummy-ecosystem', content: 'dummy-content', contentType: 'dummy-content-type' }
+					},
+					provideComponent: () => { },
+					isSupported: () => { }
+				}
+
+				try {
+					// When stack analysis runs
+					await analysis.requestStack(provider, manifest, backendUrl)
+
+					// Then the audit payload is still the raw file bytes, BOM included
+					expect(recordedSourceManifest).to.equal(rawBytes.toString('base64'))
+				} finally {
+					fs.unlinkSync(manifest)
+				}
 			}
 		))
 	})
