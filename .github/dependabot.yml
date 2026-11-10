@@ -221,6 +221,7 @@ updates:
       - "/test/providers/tst_manifests/pip/pip_requirements_txt_ignore"
       - "/test/providers/tst_manifests/pip/pip_requirements_txt_marker_skip"
       - "/test/providers/tst_manifests/pip/pip_requirements_txt_no_ignore"
+      - "/test/providers/tst_manifests/pip/pip_requirements_txt_utf16le"
       - "/test/providers/tst_manifests/pip/pip_requirements_txt_with_hashes"
       - "/test/providers/tst_manifests/pip/pip_requirements_virtual_env_txt_no_ignore"
       - "/test/providers/tst_manifests/pip/pip_requirements_virtual_env_with_ignore"

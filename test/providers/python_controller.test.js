@@ -1,6 +1,15 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+
 import { expect } from 'chai'
 
 import Python_controller from '../../src/providers/python_controller.js'
+import {
+	getParser,
+	getRequirementQuery,
+	readRequirementsFile
+} from '../../src/providers/requirements_parser.js'
 
 suite('Python_controller BEST_EFFORTS validation', function() {
 	let originalBestEfforts
@@ -69,5 +78,91 @@ suite('Python_controller BEST_EFFORTS validation', function() {
 		} catch (error) {
 			expect(error.message).to.not.include('requires TRUSTIFY_DA_PYTHON_VIRTUAL_ENV')
 		}
+	})
+})
+
+suite('Python_controller requirements file decoding', () => {
+	const requirementsText = 'blinker==1.9.0\r\ncertifi==2026.10.23\r\n'
+	let tempDir
+
+	suiteSetup(() => { tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trustify-da-decoding-')) })
+	suiteTeardown(() => { fs.rmSync(tempDir, { recursive: true, force: true }) })
+
+	/**
+	 * Encode requirements text with the given encoding, prefixing a BOM where applicable.
+	 * @param {string} text - requirements text to encode
+	 * @param {string} encoding - one of utf8, utf8-bom, utf16le-bom, utf16be-bom
+	 * @returns {Buffer} encoded manifest bytes
+	 */
+	function encode(text, encoding) {
+		if (encoding === 'utf8-bom') {
+			return Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(text, 'utf8')])
+		}
+		if (encoding === 'utf16le-bom') {
+			return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(text, 'utf16le')])
+		}
+		if (encoding === 'utf16be-bom') {
+			const littleEndian = Buffer.from(text, 'utf16le')
+			littleEndian.swap16()
+			return Buffer.concat([Buffer.from([0xFE, 0xFF]), littleEndian])
+		}
+		return Buffer.from(text, 'utf8')
+	}
+
+	const encodingCases = [
+		{ name: 'plain UTF-8', encoding: 'utf8' },
+		{ name: 'UTF-8 with BOM', encoding: 'utf8-bom' },
+		{ name: 'UTF-16LE with BOM', encoding: 'utf16le-bom' },
+		{ name: 'UTF-16BE with BOM', encoding: 'utf16be-bom' }
+	]
+	encodingCases.forEach(testCase => {
+		/** Verifies the shared reader decodes every supported BOM variant to the same plain text. */
+		test(`verify requirements reader decodes ${testCase.name} manifests`, () => {
+			// Given a manifest written with the given encoding
+			const manifest = path.join(tempDir, `requirements-${testCase.encoding}.txt`)
+			fs.writeFileSync(manifest, encode(requirementsText, testCase.encoding))
+
+			// When the shared reader loads it
+			const decoded = readRequirementsFile(manifest)
+
+			// Then the text matches the plain manifest, without a BOM or NUL characters
+			expect(decoded).to.equal(requirementsText)
+			expect(decoded).to.not.include('\uFEFF')
+			expect(decoded).to.not.include(String.fromCharCode(0))
+		})
+
+		/** Verifies the requirements query recovers real names and pinned versions from every encoding. */
+		test(`verify requirements query recovers real packages from ${testCase.name} manifests`, async () => {
+			// Given a manifest written with the given encoding
+			const manifest = path.join(tempDir, `parsed-${testCase.encoding}.txt`)
+			fs.writeFileSync(manifest, encode(requirementsText, testCase.encoding))
+
+			// When the decoded text is parsed with the requirements query
+			const parser = await getParser()
+			const query = await getRequirementQuery()
+			const matches = query.matches(parser.parse(readRequirementsFile(manifest)).rootNode)
+
+			// Then the package names and pinned versions are the ones written in the manifest
+			expect(matches.map(match => match.captures.find(capture => capture.name === 'name').node.text))
+				.to.deep.equal(['blinker', 'certifi'])
+			expect(matches.map(match => match.captures.find(capture => capture.name === 'req').node.text.trim()))
+				.to.deep.equal(['blinker==1.9.0', 'certifi==2026.10.23'])
+		})
+	})
+
+	/** Verifies the reported defect: decoding UTF-16LE bytes as UTF-8 yields bogus digit-only package names. */
+	test('verify naive UTF-8 decoding of UTF-16LE bytes recovers digit-only package names', async () => {
+		// Given the UTF-16LE-with-BOM bytes PowerShell 5.1 writes, decoded as UTF-8 the way the old code did
+		const mojibake = encode(requirementsText, 'utf16le-bom').toString()
+
+		// When the requirements query parses that text
+		const parser = await getParser()
+		const query = await getRequirementQuery()
+		const names = query.matches(parser.parse(mojibake).rootNode)
+			.map(match => match.captures.find(capture => capture.name === 'name').node.text)
+
+		// Then no real package name survives and digit-only names appear, so BOM-aware decoding is required
+		expect(names).to.not.include('blinker')
+		expect(names.filter(name => /^\d+$/.test(name))).to.not.be.empty
 	})
 })
