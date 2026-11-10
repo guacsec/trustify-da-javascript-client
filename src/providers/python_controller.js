@@ -108,22 +108,20 @@ export default class Python_controller {
 			} catch (error) {
 				throw new Error('Failed creating virtual python environment', {cause: error})
 			}
-			if(this.pathToPythonBin.includes("python3")) {
-				this.pathToPipBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("pip3"))
-				this.pathToPythonBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("python3"))
-				if(os.platform() === 'win32') {
-					let driveLetter = path.parse(process.cwd()).root
-					this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
-					this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
-				}
-			} else {
-				this.pathToPipBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("pip"));
-				this.pathToPythonBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("python"))
-				if(os.platform() === 'win32') {
-					let driveLetter = path.parse(process.cwd()).root
-					this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
-					this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
-				}
+			const isWindows = os.platform() === 'win32'
+			// On Windows, venv always installs `Scripts\python.exe` and `Scripts\pip.exe`
+			// regardless of how the source interpreter is named, so a `python3` source
+			// must not be mapped to the nonexistent `Scripts\python3.exe` (TC-7485).
+			const usesPython3Source = this.pathToPythonBin.includes("python3")
+			const pipExecutable = isWindows ? "pip" : usesPython3Source ? "pip3" : "pip"
+			const pythonExecutable = isWindows ? "python" : usesPython3Source ? "python3" : "python"
+			const envBinDir = isWindows ? "Scripts" : "bin"
+			this.pathToPipBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath(pipExecutable))
+			this.pathToPythonBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath(pythonExecutable))
+			if(isWindows) {
+				let driveLetter = path.parse(process.cwd()).root
+				this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
+				this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
 			}
 			// upgrade pip version to latest
 			try {
