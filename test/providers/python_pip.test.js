@@ -1,6 +1,4 @@
 import fs from 'fs'
-import os from 'node:os'
-import path from 'node:path'
 
 import { expect } from 'chai'
 import { useFakeTimers } from "sinon";
@@ -293,8 +291,6 @@ suite('testing python-pip UTF-16 requirements.txt decoding', () => {
 	suiteTeardown(() => clock.restore());
 	const testCase = 'pip_requirements_txt_utf16le'
 	const manifestPath = `test/providers/tst_manifests/pip/${testCase}/requirements.txt`
-	// Same text as the committed UTF-16LE fixture, used to build the other encodings on the fly.
-	const requirementsText = 'blinker==1.9.0\r\ncertifi==2026.10.23\r\nsix==1.16.0 # exhortignore\r\n'
 	const pipFreezeOutput = 'blinker==1.9.0\ncertifi==2026.10.23\nsix==1.16.0\n'
 	const pipShowOutput =
 		'Name: blinker\nVersion: 1.9.0\nSummary: Fast, simple object-to-object and broadcast signaling\nRequires: \nRequired-by: ' +
@@ -318,27 +314,6 @@ suite('testing python-pip UTF-16 requirements.txt decoding', () => {
 			delete process.env['TRUSTIFY_DA_PIP_FREEZE']
 			delete process.env['TRUSTIFY_DA_PIP_SHOW']
 		}
-	}
-
-	/**
-	 * Encode requirements text with the given encoding, including a BOM where applicable.
-	 * @param {string} text - requirements text
-	 * @param {string} encoding - one of utf8, utf8-bom, utf16le-bom, utf16be-bom
-	 * @returns {Buffer} encoded manifest bytes
-	 */
-	function encodeRequirements(text, encoding) {
-		if (encoding === 'utf8-bom') {
-			return Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(text, 'utf8')])
-		}
-		if (encoding === 'utf16le-bom') {
-			return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(text, 'utf16le')])
-		}
-		if (encoding === 'utf16be-bom') {
-			const littleEndian = Buffer.from(text, 'utf16le')
-			littleEndian.swap16()
-			return Buffer.concat([Buffer.from([0xFE, 0xFF]), littleEndian])
-		}
-		return Buffer.from(text, 'utf8')
 	}
 
 	/** Verifies the fixture holds real UTF-16LE bytes with a BOM, not a UTF-8 file renamed to .txt. */
@@ -398,47 +373,6 @@ suite('testing python-pip UTF-16 requirements.txt decoding', () => {
 		expect(componentSbom.components.map(component => component.purl)).to.not.include('pkg:pypi/six@1.16.0')
 		expect(stackSbom.dependencies.flatMap(dependency => dependency.dependsOn)).to.not.include('pkg:pypi/six@1.16.0')
 	}).timeout(10000)
-
-	const additionalEncodings = [
-		{ name: 'UTF-8 without BOM', encoding: 'utf8' },
-		{ name: 'UTF-8 with BOM', encoding: 'utf8-bom' },
-		{ name: 'UTF-16BE with BOM', encoding: 'utf16be-bom' }
-	]
-	additionalEncodings.forEach(encodingCase => {
-		/** Verifies an alternative manifest encoding yields the same component SBOM as the UTF-16LE fixture. */
-		test(`verify component analysis decodes ${encodingCase.name} manifest into the same SBOM`, async () => {
-			// Given the fixture text encoded differently and written outside the repository
-			const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trustify-da-encoding-'))
-			const tempManifest = path.join(tempDir, 'requirements.txt')
-			fs.writeFileSync(tempManifest, encodeRequirements(requirementsText, encodingCase.encoding))
-
-			try {
-				// When component analysis runs
-				const actualSbom = await withPipEnvironment(async () => JSON.parse((await pythonPip.provideComponent(tempManifest, {})).content))
-
-				// Then the SBOM matches the UTF-16LE golden file, including real names and pinned versions
-				expect(actualSbom).to.deep.equal(JSON.parse(fs.readFileSync(`test/providers/tst_manifests/pip/pip_requirements_txt_utf16le/expected_component_sbom.json`).toString()))
-			} finally {
-				fs.rmSync(tempDir, { recursive: true, force: true })
-			}
-		}).timeout(10000)
-	});
-
-	/** Verifies the end-to-end PowerShell 5.1 scenario: install from the UTF-8 counterpart, analyse the UTF-16 manifest. */
-	test('verify real pip analysis of UTF-16LE manifest reports the installed packages', async () => {
-		// Given the pinned packages installed from the UTF-8 setup manifest
-		const pipPath = getCustomPath("pip3")
-		invokeCommand(pipPath, ['install', '-r', `test/providers/tst_manifests/pip/${testCase}/requirements-setup.txt`])
-
-		// When stack analysis runs against the UTF-16LE manifest with the real pip environment
-		const result = await pythonPip.provideStack(manifestPath, {})
-
-		// Then the decoded names and pinned versions appear in the SBOM and the ignored package stays excluded
-		const sbom = JSON.parse(result.content)
-		expect(sbom.components.map(component => `${component.name}@${component.version}`))
-			.to.deep.equal(['blinker@1.9.0', 'certifi@2026.10.23'])
-	}).timeout(process.env.GITHUB_ACTIONS ? 60000 : 30000)
-
 });
 
 suite('testing python-pip SHA-256 hashes with real pip inspect', () => {

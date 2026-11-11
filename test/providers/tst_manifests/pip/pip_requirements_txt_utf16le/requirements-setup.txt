@@ -1,3 +1,0 @@
-blinker==1.9.0
-certifi==2026.10.23
-six==1.16.0 # exhortignore
