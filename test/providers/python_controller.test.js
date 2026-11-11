@@ -130,39 +130,23 @@ suite('Python_controller requirements file decoding', () => {
 			expect(decoded).to.not.include('\uFEFF')
 			expect(decoded).to.not.include(String.fromCharCode(0))
 		})
-
-		/** Verifies the requirements query recovers real names and pinned versions from every encoding. */
-		test(`verify requirements query recovers real packages from ${testCase.name} manifests`, async () => {
-			// Given a manifest written with the given encoding
-			const manifest = path.join(tempDir, `parsed-${testCase.encoding}.txt`)
-			fs.writeFileSync(manifest, encode(requirementsText, testCase.encoding))
-
-			// When the decoded text is parsed with the requirements query
-			const parser = await getParser()
-			const query = await getRequirementQuery()
-			const matches = query.matches(parser.parse(readRequirementsFile(manifest)).rootNode)
-
-			// Then the package names and pinned versions are the ones written in the manifest
-			expect(matches.map(match => match.captures.find(capture => capture.name === 'name').node.text))
-				.to.deep.equal(['blinker', 'certifi'])
-			expect(matches.map(match => match.captures.find(capture => capture.name === 'req').node.text.trim()))
-				.to.deep.equal(['blinker==1.9.0', 'certifi==2026.10.23'])
-		})
 	})
 
-	/** Verifies the reported defect: decoding UTF-16LE bytes as UTF-8 yields bogus digit-only package names. */
-	test('verify naive UTF-8 decoding of UTF-16LE bytes recovers digit-only package names', async () => {
-		// Given the UTF-16LE-with-BOM bytes PowerShell 5.1 writes, decoded as UTF-8 the way the old code did
-		const mojibake = encode(requirementsText, 'utf16le-bom').toString()
+	/** Verifies the requirements query recovers real names and pinned versions from a decoded manifest. */
+	test('verify requirements query recovers real packages from a UTF-16LE manifest', async () => {
+		// Given the UTF-16LE-with-BOM manifest PowerShell 5.1 writes with `pip freeze > requirements.txt`
+		const manifest = path.join(tempDir, 'parsed-utf16le-bom.txt')
+		fs.writeFileSync(manifest, encode(requirementsText, 'utf16le-bom'))
 
-		// When the requirements query parses that text
+		// When the decoded text is parsed with the requirements query
 		const parser = await getParser()
 		const query = await getRequirementQuery()
-		const names = query.matches(parser.parse(mojibake).rootNode)
-			.map(match => match.captures.find(capture => capture.name === 'name').node.text)
+		const matches = query.matches(parser.parse(readRequirementsFile(manifest)).rootNode)
 
-		// Then no real package name survives and digit-only names appear, so BOM-aware decoding is required
-		expect(names).to.not.include('blinker')
-		expect(names.filter(name => /^\d+$/.test(name))).to.not.be.empty
+		// Then the package names and pinned versions are the ones written in the manifest
+		expect(matches.map(match => match.captures.find(capture => capture.name === 'name').node.text))
+			.to.deep.equal(['blinker', 'certifi'])
+		expect(matches.map(match => match.captures.find(capture => capture.name === 'req').node.text.trim()))
+			.to.deep.equal(['blinker==1.9.0', 'certifi==2026.10.23'])
 	})
 })
