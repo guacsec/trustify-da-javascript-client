@@ -4,10 +4,12 @@ import { TextDecoder } from 'node:util';
 
 import { Language, Parser, Query } from 'web-tree-sitter';
 
+import { initializeTreeSitter } from './tree_sitter_runtime.js';
+
 const wasmUrl = new URL('./tree-sitter-requirements.wasm', import.meta.url);
 
 async function init() {
-	await Parser.init();
+	await initializeTreeSitter();
 	const wasmBytes = new Uint8Array(await readFile(wasmUrl));
 	return await Language.load(wasmBytes);
 }

@@ -35,7 +35,8 @@ suite('testing the OCI image data provider', () => {
 	].forEach(imageRef => {
 		test(`verify invalid image ref ${imageRef} is rejected`, () => {
 			expect(() => generateImageSBOM(parseImageRef(imageRef))).to.throw()
-		}).timeout(10000)
+		// A nonexistent digest still needs a registry lookup; allow the same time as valid images above.
+		}).timeout(imageRef.includes('@sha256:') ? 40000 : 10000)
 	})
 
 });
