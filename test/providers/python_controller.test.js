@@ -15,15 +15,16 @@ import {
 const REQUIREMENTS_MANIFEST = 'test/providers/tst_manifests/pip/pip_requirements_txt_no_ignore/requirements.txt'
 
 /**
- * Loads Python_controller with os.platform() and command invocation stubbed, then
- * constructs a virtual-environment controller so the venv setup invocations can be
- * inspected. Stubbing the parser keeps the test independent of the tree-sitter wasm
- * artifacts.
+ * Loads Python_controller with os.platform(), os.tmpdir() and command invocation
+ * stubbed, then constructs a virtual-environment controller so the venv setup
+ * invocations can be inspected. Stubbing the parser keeps the test independent of
+ * the tree-sitter wasm artifacts.
  * @param {string} platform - platform reported by os.platform()
  * @param {string} sourcePython - configured source python binary
+ * @param {string} tempDir - directory reported by os.tmpdir()
  * @return {Promise<{controller: Python_controller, invocations: Array<{bin: string, args: string[]}>}>}
  */
-async function constructVirtualEnvController(platform, sourcePython) {
+async function constructVirtualEnvController(platform, sourcePython, tempDir = os.tmpdir()) {
 	const invocations = []
 	/** Records a command invocation instead of executing it. */
 	const recordInvocation = (bin, args) => {
@@ -31,7 +32,7 @@ async function constructVirtualEnvController(platform, sourcePython) {
 		return ''
 	}
 	const { default: MockedPythonController } = await esmock('../../src/providers/python_controller.js', {
-		os: { default: { platform: () => platform }, EOL: '\n' },
+		os: { default: { platform: () => platform, tmpdir: () => tempDir }, EOL: '\n' },
 		'../../src/tools.js': {
 			environmentVariableIsPopulated: () => false,
 			getCustom: () => undefined,
@@ -118,12 +119,15 @@ suite('Python_controller BEST_EFFORTS validation', function() {
 })
 
 suite('Python_controller virtual environment executables', function() {
+	const windowsTempDir = 'C:\\Users\\da-test\\AppData\\Local\\Temp'
+	const windowsVenvDir = path.win32.join(windowsTempDir, 'trustify_da_env_js')
+
 	// Windows venv executable names must not depend on how the source interpreter is named (TC-7485).
 	for (const sourcePython of ['python3', 'python']) {
 		/** Verifies that a Windows venv created from `sourcePython` upgrades pip via Scripts/python.exe. */
 		test(`upgrades pip via Scripts/python.exe on Windows for a ${sourcePython} source`, async function() {
-			// Given a Windows host and a configured source interpreter named sourcePython
-			const { controller, invocations } = await constructVirtualEnvController('win32', sourcePython)
+			// Given a Windows host with a configured temp directory and a source interpreter named sourcePython
+			const { controller, invocations } = await constructVirtualEnvController('win32', sourcePython, windowsTempDir)
 
 			// When the venv is prepared while the controller is constructed
 			const venvInvocation = invocations[0]
@@ -132,27 +136,18 @@ suite('Python_controller virtual environment executables', function() {
 			// Then the venv is created from the configured source interpreter
 			expect(invocations).to.have.lengthOf(2)
 			expect(venvInvocation.bin).to.equal(sourcePython)
-			expect(venvInvocation.args).to.deep.equal(['-m', 'venv', path.join(path.sep, 'tmp', 'trustify_da_env_js')])
-
-			// Then the executable paths are anchored to the venv directory that was created.
-			// Resolving the recorded target makes this match the controller's drive-prefixed
-			// Windows paths on a native host as well as under the mocked win32 platform.
-			const expectedVenvDir = path.resolve(venvInvocation.args[2])
-			expect(path.resolve(controller.pythonEnvDir)).to.equal(expectedVenvDir)
-			const expectedPythonBin = path.join(expectedVenvDir, 'Scripts', 'python.exe')
-			const expectedPipBin = path.join(expectedVenvDir, 'Scripts', 'pip.exe')
 
 			// Then the pip upgrade runs through that venv's Scripts/python.exe exactly
+			const expectedPythonBin = path.win32.join(windowsVenvDir, 'Scripts', 'python.exe')
 			expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
 			expect(pipUpgradeInvocation.bin).to.equal(expectedPythonBin)
 			expect(controller.pathToPythonBin).to.equal(expectedPythonBin)
 
 			// Then the venv pip path is exactly that venv's Scripts/pip.exe
-			expect(controller.pathToPipBin).to.equal(expectedPipBin)
+			expect(controller.pathToPipBin).to.equal(path.win32.join(windowsVenvDir, 'Scripts', 'pip.exe'))
 
 			// Then no invocation targets the nonexistent Scripts/python3.exe
 			expect(path.basename(pipUpgradeInvocation.bin)).to.not.equal('python3.exe')
-			expect(invocations.map(invocation => path.basename(invocation.bin))).to.not.include('python3.exe')
 			expect(invocations.map(invocation => path.basename(invocation.bin))).to.not.include('pip3.exe')
 		})
 	}
@@ -162,8 +157,8 @@ suite('Python_controller virtual environment executables', function() {
 	for (const sourcePython of ['python3', 'python']) {
 		/** Verifies that POSIX venvs expose bin/python and bin/pip regardless of the source interpreter name. */
 		test(`uses bin/python and bin/pip on non-Windows hosts for a ${sourcePython} source`, async function() {
-			// Given a POSIX host and a configured source interpreter named sourcePython
-			const { controller, invocations } = await constructVirtualEnvController('linux', sourcePython)
+			// Given a POSIX host whose configured temp directory is not /tmp
+			const { controller, invocations } = await constructVirtualEnvController('linux', sourcePython, '/var/tmp')
 
 			// When the venv is prepared while the controller is constructed
 			const venvInvocation = invocations[0]
@@ -172,17 +167,44 @@ suite('Python_controller virtual environment executables', function() {
 			// Then the venv is created from the configured source interpreter
 			expect(invocations).to.have.lengthOf(2)
 			expect(venvInvocation.bin).to.equal(sourcePython)
-			expect(venvInvocation.args[2]).to.equal(path.join(path.sep, 'tmp', 'trustify_da_env_js'))
 
-			// Then the pip upgrade runs through the venv bin/python exactly
+			// Then the venv still uses the fixed /tmp location with bin/python and bin/pip
+			expect(venvInvocation.args[2]).to.equal('/tmp/trustify_da_env_js')
 			expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
-			expect(pipUpgradeInvocation.bin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python'))
-			expect(controller.pathToPythonBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python'))
-
-			// Then the venv pip path is bin/pip
-			expect(controller.pathToPipBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'pip'))
+			expect(pipUpgradeInvocation.bin).to.equal('/tmp/trustify_da_env_js/bin/python')
+			expect(controller.pathToPythonBin).to.equal('/tmp/trustify_da_env_js/bin/python')
+			expect(controller.pathToPipBin).to.equal('/tmp/trustify_da_env_js/bin/pip')
 		})
 	}
+})
+
+suite('Python_controller virtual environment placement', function() {
+	/**
+	 * Verifies that Windows venvs are created and upgraded under the OS-configured temp
+	 * directory instead of a root-relative \tmp path on the current drive.
+	 */
+	test('creates and upgrades the Windows venv under the configured temp directory', async function() {
+		// Given Windows configured D:\Temp on the D: drive
+		const tempDir = 'D:\\Temp'
+		const { controller, invocations } = await constructVirtualEnvController('win32', 'python', tempDir)
+
+		// When the virtual environment is prepared on controller construction
+		const venvInvocation = invocations[0]
+		const pipUpgradeInvocation = invocations[1]
+		const expectedVenvDir = path.win32.join(tempDir, 'trustify_da_env_js')
+
+		// Then the venv is created in the configured temp directory, on its drive
+		expect(venvInvocation.args).to.deep.equal(['-m', 'venv', expectedVenvDir])
+		expect(controller.pythonEnvDir).to.equal(expectedVenvDir)
+		expect(path.win32.parse(controller.pythonEnvDir).root).to.equal('D:\\')
+
+		// Then the old current-drive-root \tmp location is not used
+		expect(controller.pythonEnvDir).to.not.equal('C:\\tmp\\trustify_da_env_js')
+
+		// Then the pip upgrade runs from the same venv's Scripts directory
+		expect(pipUpgradeInvocation.bin).to.equal(path.win32.join(expectedVenvDir, 'Scripts', 'python.exe'))
+		expect(controller.pathToPipBin).to.equal(path.win32.join(expectedVenvDir, 'Scripts', 'pip.exe'))
+	})
 })
 suite('Python_controller requirements file decoding', () => {
 	const requirementsText = 'blinker==1.9.0\r\ncertifi==2026.10.23\r\n'
