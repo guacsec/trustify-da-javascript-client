@@ -1,0 +1,57 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.6",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-10-01T00:00:00.000Z",
+		"component": {
+			"name": "default-pip-root",
+			"version": "0.0.0",
+			"purl": "pkg:pypi/default-pip-root@0.0.0",
+			"type": "application",
+			"bom-ref": "pkg:pypi/default-pip-root@0.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.4.0"
+				}
+			]
+		}
+	},
+	"components": [
+		{
+			"name": "blinker",
+			"version": "1.9.0",
+			"purl": "pkg:pypi/blinker@1.9.0",
+			"type": "library",
+			"bom-ref": "pkg:pypi/blinker@1.9.0"
+		},
+		{
+			"name": "certifi",
+			"version": "2026.10.23",
+			"purl": "pkg:pypi/certifi@2026.10.23",
+			"type": "library",
+			"bom-ref": "pkg:pypi/certifi@2026.10.23"
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:pypi/default-pip-root@0.0.0",
+			"dependsOn": [
+				"pkg:pypi/blinker@1.9.0",
+				"pkg:pypi/certifi@2026.10.23"
+			]
+		},
+		{
+			"ref": "pkg:pypi/blinker@1.9.0",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:pypi/certifi@2026.10.23",
+			"dependsOn": []
+		}
+	]
+}

@@ -286,6 +286,95 @@ suite('testing python-pip SHA-256 hash extraction via pip inspect', () => {
 
 });
 
+suite('testing python-pip UTF-16 requirements.txt decoding', () => {
+	suiteSetup(() => clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z')));
+	suiteTeardown(() => clock.restore());
+	const testCase = 'pip_requirements_txt_utf16le'
+	const manifestPath = `test/providers/tst_manifests/pip/${testCase}/requirements.txt`
+	const pipFreezeOutput = 'blinker==1.9.0\ncertifi==2026.10.23\nsix==1.16.0\n'
+	const pipShowOutput =
+		'Name: blinker\nVersion: 1.9.0\nSummary: Fast, simple object-to-object and broadcast signaling\nRequires: \nRequired-by: ' +
+		'\n---\n' +
+		'Name: certifi\nVersion: 2026.10.23\nSummary: Python package for providing Mozilla\'s CA Bundle.\nRequires: \nRequired-by: ' +
+		'\n---\n' +
+		'Name: six\nVersion: 1.16.0\nSummary: Python 2 and 3 compatibility utilities\nRequires: \nRequired-by: '
+
+	/**
+	 * Run a provider call with a deterministic pip environment, so the assertions
+	 * focus on manifest decoding rather than on the packages installed on the host.
+	 * @param {Function} run - provider call to execute
+	 * @returns {Promise<*>} the value returned by `run`
+	 */
+	async function withPipEnvironment(run) {
+		process.env['TRUSTIFY_DA_PIP_FREEZE'] = Buffer.from(pipFreezeOutput).toString('base64')
+		process.env['TRUSTIFY_DA_PIP_SHOW'] = Buffer.from(pipShowOutput).toString('base64')
+		try {
+			return await run()
+		} finally {
+			delete process.env['TRUSTIFY_DA_PIP_FREEZE']
+			delete process.env['TRUSTIFY_DA_PIP_SHOW']
+		}
+	}
+
+	/** Verifies the fixture holds real UTF-16LE bytes with a BOM, not a UTF-8 file renamed to .txt. */
+	test('verify UTF-16 fixture uses a real UTF-16LE byte-order mark', () => {
+		// Given the committed fixture on disk
+		const bytes = fs.readFileSync(manifestPath)
+
+		// Then it starts with the UTF-16LE BOM and contains NUL bytes from the UTF-16 code units
+		expect(bytes[0]).to.equal(0xFF)
+		expect(bytes[1]).to.equal(0xFE)
+		expect(bytes.includes(0)).to.equal(true)
+	})
+
+	/** Verifies component analysis decodes a UTF-16LE manifest into real package names and pinned versions. */
+	test('verify component analysis decodes UTF-16LE requirements.txt', async () => {
+		// Given the committed UTF-16LE fixture and a matching pip environment
+		// When component analysis runs
+		const actualSbom = await withPipEnvironment(async () => {
+			const result = await pythonPip.provideComponent(manifestPath, {})
+			expect(result.ecosystem).to.equal('pip')
+			expect(result.contentType).to.equal('application/vnd.cyclonedx+json')
+			return JSON.parse(result.content)
+		})
+
+		// Then the SBOM contains the real names and versions and matches the golden file
+		expect(actualSbom.components.map(component => `${component.name}@${component.version}`))
+			.to.deep.equal(['blinker@1.9.0', 'certifi@2026.10.23'])
+		expect(actualSbom).to.deep.equal(JSON.parse(fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_component_sbom.json`).toString()))
+	}).timeout(10000)
+
+	/** Verifies stack analysis decodes a UTF-16LE manifest and still resolves the dependency graph. */
+	test('verify stack analysis decodes UTF-16LE requirements.txt', async () => {
+		// Given the committed UTF-16LE fixture and a matching pip environment
+		// When stack analysis runs
+		const actualSbom = await withPipEnvironment(async () => {
+			const result = await pythonPip.provideStack(manifestPath, {})
+			expect(result.ecosystem).to.equal('pip')
+			expect(result.contentType).to.equal('application/vnd.cyclonedx+json')
+			return JSON.parse(result.content)
+		})
+
+		// Then the SBOM matches the golden file and the pinned versions are preserved
+		expect(actualSbom.components.map(component => `${component.name}@${component.version}`))
+			.to.deep.equal(['blinker@1.9.0', 'certifi@2026.10.23'])
+		expect(actualSbom).to.deep.equal(JSON.parse(fs.readFileSync(`test/providers/tst_manifests/pip/${testCase}/expected_stack_sbom.json`).toString()))
+	}).timeout(10000)
+
+	/** Verifies the ignored requirement is decoded by the same reader and excluded from both SBOM variants. */
+	test('verify exhortignore requirement is excluded from component and stack SBOMs', async () => {
+		// Given the committed UTF-16LE fixture, which ignores six behind an exhortignore comment
+		const componentSbom = await withPipEnvironment(async () => JSON.parse((await pythonPip.provideComponent(manifestPath, {})).content))
+		const stackSbom = await withPipEnvironment(async () => JSON.parse((await pythonPip.provideStack(manifestPath, {})).content))
+
+		// Then six is absent from both SBOMs while the non-ignored packages remain
+		expect(componentSbom.components.map(component => component.name)).to.deep.equal(['blinker', 'certifi'])
+		expect(stackSbom.components.map(component => component.name)).to.deep.equal(['blinker', 'certifi'])
+		expect(componentSbom.components.map(component => component.purl)).to.not.include('pkg:pypi/six@1.16.0')
+		expect(stackSbom.dependencies.flatMap(dependency => dependency.dependsOn)).to.not.include('pkg:pypi/six@1.16.0')
+	}).timeout(10000)
+});
+
 suite('testing python-pip SHA-256 hashes with real pip inspect', () => {
 	suiteSetup(() => clock = useFakeTimers(new Date('2023-10-01T00:00:00.000Z')));
 	suiteTeardown(() => clock.restore());

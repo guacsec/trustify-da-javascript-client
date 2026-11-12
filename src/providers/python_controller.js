@@ -1,10 +1,9 @@
-import fs from "node:fs";
 import path from 'node:path';
 import os, { EOL } from "os";
 
 import { environmentVariableIsPopulated, getCustom, invokeCommand } from "../tools.js";
 
-import { getParser, getRequirementQuery, getPinnedVersionQuery } from './requirements_parser.js';
+import { getParser, getRequirementQuery, getPinnedVersionQuery, readRequirementsFile } from './requirements_parser.js';
 
 function getPipFreezeOutput() {
 	try {
@@ -145,7 +144,7 @@ export default class Python_controller {
 	 * @return {Promise<{name: string, version: string|null, hasMarker: boolean}[]>}
 	 */
 	async #parseRequirements() {
-		const content = fs.readFileSync(this.pathToRequirements).toString();
+		const content = readRequirementsFile(this.pathToRequirements);
 		const tree = (await this.parser).parse(content);
 		return Promise.all((await this.requirementsQuery).matches(tree.rootNode).map(async (match) => {
 			const reqNode = match.captures.find(c => c.name === 'req').node;
