@@ -107,22 +107,18 @@ export default class Python_controller {
 			} catch (error) {
 				throw new Error('Failed creating virtual python environment', {cause: error})
 			}
-			if(this.pathToPythonBin.includes("python3")) {
-				this.pathToPipBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("pip3"))
-				this.pathToPythonBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("python3"))
-				if(os.platform() === 'win32') {
-					let driveLetter = path.parse(process.cwd()).root
-					this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
-					this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
-				}
-			} else {
-				this.pathToPipBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("pip"));
-				this.pathToPythonBin = path.join(path.sep,this.pythonEnvDir,os.platform() === 'win32' ? "Scripts" : "bin",this.#decideIfWindowsOrLinuxPath("python"))
-				if(os.platform() === 'win32') {
-					let driveLetter = path.parse(process.cwd()).root
-					this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
-					this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
-				}
+			const isWindows = os.platform() === 'win32'
+			// venv always installs the unversioned `python` and `pip` names regardless of
+			// how the source interpreter is named: `Scripts\python.exe`/`Scripts\pip.exe`
+			// on Windows and `bin/python`/`bin/pip` on POSIX. A `python3` source must not
+			// be mapped to the nonexistent `Scripts\python3.exe` (TC-7485).
+			const envBinDir = isWindows ? "Scripts" : "bin"
+			this.pathToPipBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("pip"))
+			this.pathToPythonBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("python"))
+			if(isWindows) {
+				let driveLetter = path.parse(process.cwd()).root
+				this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
+				this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
 			}
 			// upgrade pip version to latest
 			try {
