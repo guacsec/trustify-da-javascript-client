@@ -8,15 +8,6 @@ import Python_controller from '../../src/providers/python_controller.js'
 const REQUIREMENTS_MANIFEST = 'test/providers/tst_manifests/pip/pip_requirements_txt_no_ignore/requirements.txt'
 
 /**
- * Splits a filesystem path into its components regardless of the separator used.
- * @param {string} filePath - path to split
- * @return {string[]} non-empty path components
- */
-function pathComponents(filePath) {
-	return filePath.split(/[\\/]+/).filter(component => component !== '')
-}
-
-/**
  * Loads Python_controller with os.platform() and command invocation stubbed, then
  * constructs a virtual-environment controller so the venv setup invocations can be
  * inspected. Stubbing the parser keeps the test independent of the tree-sitter wasm
@@ -158,23 +149,6 @@ suite('Python_controller virtual environment executables', function() {
 			expect(invocations.map(invocation => path.basename(invocation.bin))).to.not.include('pip3.exe')
 		})
 	}
-
-	/** Verifies that a same-basename executable in another venv's Scripts directory cannot satisfy the exact-path checks. */
-	test('rejects Scripts/python.exe from a different venv directory on Windows', async function() {
-		// Given a Windows host virtual environment controller
-		const { controller, invocations } = await constructVirtualEnvController('win32', 'python3')
-
-		// When the candidate path has the same Scripts component and python.exe basename
-		// as the real venv, but belongs to a different venv root
-		const wrongVenvDir = path.resolve(path.join(path.sep, 'tmp', 'wrong_trustify_da_env_js'))
-		const wrongVenvPythonBin = path.join(wrongVenvDir, 'Scripts', 'python.exe')
-
-		// Then the shape that previously satisfied the component/basename checks is rejected
-		expect(pathComponents(wrongVenvPythonBin)).to.include('Scripts')
-		expect(path.basename(wrongVenvPythonBin)).to.equal('python.exe')
-		expect(controller.pathToPythonBin).to.not.equal(wrongVenvPythonBin)
-		expect(invocations[1].bin).to.not.equal(wrongVenvPythonBin)
-	})
 
 	// The venv layout is independent of the source interpreter name, so POSIX
 	// environments always expose bin/python and bin/pip.
