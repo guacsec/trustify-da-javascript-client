@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import esmock from 'esmock'
 import { afterEach } from 'mocha'
+import { createSandbox } from 'sinon'
 
 import { getCustom, getCustomPath } from "../src/tools.js"
 
@@ -17,6 +18,35 @@ async function mockToolsPartial(operatingSystem) {
 		}
 	}
 	)
+}
+
+/** Runs the real command boundary with a simulated host and intercepted subprocess/filesystem. */
+async function interceptCommand(platform, run, files = []) {
+	const invocations = []
+	const tools = await esmock('../src/tools.js', {
+		child_process: {
+			execFileSync: (bin, args, opts) => {
+				invocations.push({ bin, args, opts })
+				return 'command output'
+			}
+		},
+		'node:fs': {
+			statSync: file => files.includes(file) ? { isFile: () => true } : undefined
+		}
+	})
+	const sandbox = createSandbox()
+	sandbox.stub(process, 'platform').value(platform)
+	sandbox.stub(process, 'env').value({
+		...process.env,
+		PATH: 'C:\\Tools',
+		PATHEXT: '.COM;.EXE;.BAT;.CMD',
+		ComSpec: 'C:\\Windows\\System32\\cmd.exe'
+	})
+	try {
+		await run(tools, invocations)
+	} finally {
+		sandbox.restore()
+	}
 }
 
 suite('testing the various tools and utility functions', () => {
@@ -188,6 +218,132 @@ suite('testing the various tools and utility functions', () => {
 			expect(actualPath).to.equal(expectedPath)
 		})
 
+	})
+
+	suite('invokeCommand subprocess boundary', () => {
+		for (const tempDir of ['D:\\Temp', 'D:\\Temp Folder', 'D:\\Temp&Untrusted']) {
+			/** Verifies venv targets and interpreters reach native execution as literal, complete paths. */
+			test(`keeps native Windows paths literal under ${tempDir}`, async () => {
+				await interceptCommand('win32', (tools, invocations) => {
+					// Given a target and interpreter on a different drive from the working directory
+					const target = `${tempDir}\\trustify_da_env_js`
+					const interpreter = `${target}\\Scripts\\python.exe`
+					const opts = { cwd: 'C:\\workspace', timeout: 5000 }
+					// When creating the venv and upgrading pip
+					tools.invokeCommand('python.exe', ['-m', 'venv', target], opts)
+					const result = tools.invokeCommand(interpreter, ['-m', 'pip', 'install', '--upgrade', 'pip'], opts)
+					// Then neither call exposes the paths to a shell or pre-quotes the native arguments
+					expect(invocations.map(({ bin, args, opts }) => ({ bin, args, shell: opts.shell })))
+						.to.deep.equal([
+							{ bin: 'python.exe', args: ['-m', 'venv', target], shell: false },
+							{ bin: interpreter, args: ['-m', 'pip', 'install', '--upgrade', 'pip'], shell: false }
+						])
+					expect(invocations[1].opts).to.include({ cwd: 'C:\\workspace', timeout: 5000, maxBuffer: 10 * 1024 * 1024 })
+					expect(opts).to.deep.equal({ cwd: 'C:\\workspace', timeout: 5000 })
+					expect(result).to.equal('command output')
+				})
+			})
+		}
+
+		for (const extension of ['exe', 'com']) {
+			/** Verifies caller options cannot accidentally restore shell interpretation of native paths. */
+			test(`disables shell and verbatim argument options for Windows .${extension}`, async () => {
+				await interceptCommand('win32', (tools, invocations) => {
+					// Given shell and verbatim options that would bypass native argument protection
+					const bin = `D:\\Tools & More\\python.${extension}`
+					// When invoking a native executable
+					tools.invokeCommand(bin, ['%TEMP%', '!value!', 'a"b', 'a&b'], { shell: true, windowsVerbatimArguments: true })
+					// Then Node retains responsibility for quoting individual native arguments
+					expect(invocations[0]).to.include({ bin })
+					expect(invocations[0].args).to.deep.equal(['%TEMP%', '!value!', 'a"b', 'a&b'])
+					expect(invocations[0].opts).to.include({ shell: false, windowsVerbatimArguments: false })
+				})
+			})
+		}
+
+		for (const extension of ['bat', 'CMD']) {
+			/** Verifies batch wrappers receive cmd-escaped command and argument tokens, including expansion syntax. */
+			test(`escapes Windows .${extension} wrapper inputs`, async () => {
+				await interceptCommand('win32', (tools, invocations) => {
+					// Given a configured wrapper and data containing cmd metacharacters
+					const bin = `D:\\Tools & More\\wrapper.${extension}`
+					// When invoking the wrapper (never executed by this test)
+					tools.invokeCommand(bin, ['D:\\Temp&Untrusted', '%TEMP%', '!value!', 'a"b', 'tail\\', ''])
+					// Then cmd autorun/delayed expansion are disabled and all tokens are escaped
+					expect(invocations[0].bin).to.equal('C:\\Windows\\System32\\cmd.exe')
+					expect(invocations[0].args).to.deep.equal([
+						'/d', '/v:off', '/s', '/c',
+						`"D:\\Tools^ ^&^ More\\wrapper.${extension} ^"D:\\Temp^&Untrusted^" ^"^%TEMP^%^" ^"^!value^!^" ^"a\\^"b^" ^"tail\\\\^" ^"^""`
+					])
+					expect(invocations[0].opts).to.include({ shell: false, windowsVerbatimArguments: true })
+				})
+			})
+		}
+
+		for (const [name, file, expectedBin, expectedArgs] of [
+			['python', 'C:\\Tools\\python.EXE', 'C:\\Tools\\python.EXE', ['--version']],
+			['npm', 'C:\\Tools\\npm.CMD', 'C:\\Windows\\System32\\cmd.exe', ['/d', '/v:off', '/s', '/c', '"C:\\Tools\\npm.CMD ^"--version^""']],
+			['D:\\project\\node_modules\\.bin\\npm', 'D:\\project\\node_modules\\.bin\\npm.CMD', 'C:\\Windows\\System32\\cmd.exe', ['/d', '/v:off', '/s', '/c', '"D:\\project\\node_modules\\.bin\\npm.CMD ^^^"--version^^^""']]
+		]) {
+			/** Verifies extensionless native commands and batch shims retain Windows command lookup support. */
+			test(`resolves Windows command ${name}`, async () => {
+				await interceptCommand('win32', (tools, invocations) => {
+					// When resolving an extensionless command through PATH/PATHEXT
+					tools.invokeCommand(name, ['--version'], { cwd: 'C:\\workspace' })
+					// Then the selected file determines native versus escaped batch invocation
+					expect(invocations[0].bin).to.equal(expectedBin)
+					expect(invocations[0].args).to.deep.equal(expectedArgs)
+					expect(invocations[0].opts.shell).to.equal(false)
+				}, [file])
+			})
+		}
+
+		/** Verifies explicit .cmd names get the same shim reparse protection as extensionless names. */
+		test('resolves PATH shims before escaping explicit .cmd commands', async () => {
+			const shim = 'D:\\project\\node_modules\\.bin\\npm.cmd'
+			await interceptCommand('win32', (tools, invocations) => {
+				// Given both names resolve to the same shim, with an exact-extension decoy present
+				process.env.PATH = 'D:\\project\\node_modules\\.bin'
+				process.env.PATHEXT = '.exe;.cmd'
+				const args = ['D:\\Temp&Untrusted', 'a"&b', '%TEMP%', '!value!']
+				// When invoking both the extensionless and explicit-extension names
+				tools.invokeCommand('npm', args)
+				tools.invokeCommand('npm.cmd', args)
+				// Then the shim arguments survive both parsing passes, without selecting npm.cmd.exe
+				const expectedArgs = ['/d', '/v:off', '/s', '/c',
+					'"D:\\project\\node_modules\\.bin\\npm.cmd ^^^"D:\\Temp^^^&Untrusted^^^" ^^^"a\\^^^"^^^&b^^^" ^^^"^^^%TEMP^^^%^^^" ^^^"^^^!value^^^!^^^""']
+				expect(invocations.map(({ bin, args }) => ({ bin, args }))).to.deep.equal([
+					{ bin: 'C:\\Windows\\System32\\cmd.exe', args: expectedArgs },
+					{ bin: 'C:\\Windows\\System32\\cmd.exe', args: expectedArgs }
+				])
+			}, [shim, `${shim}.exe`])
+		})
+
+		/** Verifies batch arguments cannot introduce command lines that caret escaping does not protect. */
+		test('rejects line breaks before invoking a Windows wrapper', async () => {
+			await interceptCommand('win32', (tools, invocations) => {
+				for (const value of ['safe\ncommand', 'safe\rcommand']) {
+					expect(() => tools.invokeCommand('mvn.cmd', [value])).to.throw('line breaks')
+				}
+				expect(invocations).to.deep.equal([])
+			})
+		})
+
+		/** Verifies POSIX command inputs and explicit caller options pass through unchanged. */
+		test('preserves non-Windows invocation behavior', async () => {
+			await interceptCommand('linux', (tools, invocations) => {
+				// Given POSIX paths and literal arguments
+				const bin = '/tools with spaces/python'
+				const args = ['-m', 'venv', '/tmp/a&b', '$HOME']
+				// When invoking the non-Windows command
+				tools.invokeCommand(bin, args, { cwd: '/workspace', shell: false })
+				// Then no Windows resolution, quoting or shell flags are introduced
+				expect(invocations[0].bin).to.equal(bin)
+				expect(invocations[0].args).to.deep.equal(args)
+				expect(invocations[0].opts).to.include({ cwd: '/workspace', shell: false })
+				expect(invocations[0].opts).not.to.have.property('windowsVerbatimArguments')
+			})
+		})
 	})
 
 

@@ -101,25 +101,28 @@ export default class Python_controller {
 
 	prepareEnvironment() {
 		if(!this.realEnvironment) {
-			this.pythonEnvDir = path.join(path.sep, "tmp", "trustify_da_env_js")
+			const isWindows = os.platform() === 'win32'
+			// Windows hosts keep the venv in the OS-configured temp directory so it is
+			// writable without elevation and independent of the current drive. POSIX
+			// hosts keep the existing fixed /tmp location.
+			// Match path semantics to the detected platform so Windows paths stay
+			// drive-aware even when the Windows branch runs on another host (tests).
+			const venvPath = isWindows ? path.win32 : path.posix
+			this.pythonEnvDir = isWindows
+				? venvPath.join(os.tmpdir(), "trustify_da_env_js")
+				: venvPath.join("/", "tmp", "trustify_da_env_js")
 			try {
 				invokeCommand(this.pathToPythonBin, ['-m', 'venv', this.pythonEnvDir])
 			} catch (error) {
 				throw new Error('Failed creating virtual python environment', {cause: error})
 			}
-			const isWindows = os.platform() === 'win32'
 			// venv always installs the unversioned `python` and `pip` names regardless of
 			// how the source interpreter is named: `Scripts\python.exe`/`Scripts\pip.exe`
 			// on Windows and `bin/python`/`bin/pip` on POSIX. A `python3` source must not
 			// be mapped to the nonexistent `Scripts\python3.exe` (TC-7485).
 			const envBinDir = isWindows ? "Scripts" : "bin"
-			this.pathToPipBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("pip"))
-			this.pathToPythonBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("python"))
-			if(isWindows) {
-				let driveLetter = path.parse(process.cwd()).root
-				this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`
-				this.pathToPipBin = `${driveLetter}${this.pathToPipBin.substring(1)}`
-			}
+			this.pathToPipBin = venvPath.join(this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("pip"))
+			this.pathToPythonBin = venvPath.join(this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("python"))
 			// upgrade pip version to latest
 			try {
 				invokeCommand(this.pathToPythonBin, ['-m', 'pip', 'install', '--upgrade', 'pip'])

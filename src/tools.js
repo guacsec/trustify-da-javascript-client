@@ -1,6 +1,7 @@
 import { execFileSync } from "child_process";
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { EOL } from "os";
 
 import { HttpsProxyAgent } from "https-proxy-agent";
@@ -236,14 +237,23 @@ export function resolveBinary(globalBinary, localWrapper, startDir, opts = {}) {
  * @returns {string}
  */
 export function invokeCommand(bin, args, opts={}) {
-	// .bat and .cmd files can't be executed in windows with execFileSync without {shell: true}, so we
-	// special case them here to keep the amount of escaping we need to do to a minimum.
-	// https://nodejs.org/docs/latest-v20.x/api/child_process.html#spawning-bat-and-cmd-files-on-windows
-	// https://github.com/nodejs/node/issues/52681#issuecomment-2076426887
 	if (process.platform === 'win32') {
-		opts = {...opts, shell: true}
-		args = args.map(arg => handleSpacesInPath(arg))
-		bin = handleSpacesInPath(bin)
+		bin = resolveWindowsCommand(bin, opts.cwd)
+		// Native executables take literal argv values; never pre-quote them or enable a shell.
+		opts = { ...opts, shell: false, windowsVerbatimArguments: false }
+		if (/\.(?:bat|cmd)$/i.test(bin)) {
+			// Batch files require cmd.exe. Escape its command string ourselves instead of
+			// passing an unescaped argument array with shell:true (Node does not escape it).
+			// npm .bin shims reparse arguments, requiring a second layer of caret escaping.
+			const isShim = /node_modules[\\/]\.bin[\\/][^\\/]+\.cmd$/i.test(bin)
+			const command = [
+				escapeWindowsShellToken(path.win32.normalize(bin)),
+				...args.map(arg => escapeWindowsShellToken(arg, true, isShim))
+			].join(' ')
+			bin = process.env.ComSpec || 'cmd.exe'
+			args = ['/d', '/v:off', '/s', '/c', `"${command}"`]
+			opts = { ...opts, windowsVerbatimArguments: true }
+		}
 	}
 
 	opts = {
@@ -262,6 +272,55 @@ export function invokeCommand(bin, args, opts={}) {
 	};
 
 	return execFileSync(bin, args, {...{stdio: 'pipe', encoding: 'utf-8'}, ...opts})
+}
+
+/** Resolves Windows commands before classifying PATH batch wrappers and local npm shims. */
+function resolveWindowsCommand(bin, cwd) {
+	const hasExtension = /\.(?:exe|com|bat|cmd)$/i.test(bin)
+	if (/\.(?:exe|com)$/i.test(bin) || (hasExtension && path.win32.isAbsolute(bin))) {
+		return bin
+	}
+	cwd = cwd instanceof URL ? fileURLToPath(cwd) : cwd || process.cwd()
+	const directories = /[\\/]/.test(bin) ? [''] : ['', ...(process.env.PATH || '').split(';')]
+	const extensions = hasExtension
+		? ['']
+		: (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)
+	for (const directory of directories) {
+		for (const extension of extensions) {
+			const candidate = path.win32.resolve(cwd, directory.replace(/^"|"$/g, ''), bin + extension)
+			if (fs.statSync(candidate, { throwIfNoEntry: false })?.isFile()) {
+				return candidate
+			}
+		}
+	}
+	return bin
+}
+
+/** Quotes Windows argv values and escapes cmd syntax, including percent and bang expansion. */
+function escapeWindowsShellToken(value, argument = false, doubleEscape = false) {
+	if (/[\r\n]/.test(value)) {
+		throw new Error('Windows batch command inputs must not contain line breaks')
+	}
+	if (argument) {
+		// Windows argv quoting: double backslashes before quotes and the closing quote.
+		// A single pass avoids regex backtracking on long runs of backslashes.
+		let quoted = '"'
+		let backslashes = 0
+		for (const character of value) {
+			if (character === '\\') {
+				backslashes++
+				continue
+			}
+			quoted += '\\'.repeat(character === '"' ? backslashes * 2 + 1 : backslashes) + character
+			backslashes = 0
+		}
+		value = quoted + '\\'.repeat(backslashes * 2) + '"'
+	}
+	// cmd metacharacters must be escaped even inside quotes: quoting alone permits expansion.
+	// This is the cmd token-escaping strategy also used by cross-spawn.
+	const metacharacters = /([()\][%!^"`<>&|;, *?])/g
+	value = value.replace(metacharacters, '^$1')
+	return doubleEscape ? value.replace(metacharacters, '^$1') : value
 }
 
 
