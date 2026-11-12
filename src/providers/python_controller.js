@@ -109,15 +109,13 @@ export default class Python_controller {
 				throw new Error('Failed creating virtual python environment', {cause: error})
 			}
 			const isWindows = os.platform() === 'win32'
-			// On Windows, venv always installs `Scripts\python.exe` and `Scripts\pip.exe`
-			// regardless of how the source interpreter is named, so a `python3` source
-			// must not be mapped to the nonexistent `Scripts\python3.exe` (TC-7485).
-			const usesPython3Source = this.pathToPythonBin.includes("python3")
-			const pipExecutable = isWindows ? "pip" : usesPython3Source ? "pip3" : "pip"
-			const pythonExecutable = isWindows ? "python" : usesPython3Source ? "python3" : "python"
+			// venv always installs the unversioned `python` and `pip` names regardless of
+			// how the source interpreter is named: `Scripts\python.exe`/`Scripts\pip.exe`
+			// on Windows and `bin/python`/`bin/pip` on POSIX. A `python3` source must not
+			// be mapped to the nonexistent `Scripts\python3.exe` (TC-7485).
 			const envBinDir = isWindows ? "Scripts" : "bin"
-			this.pathToPipBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath(pipExecutable))
-			this.pathToPythonBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath(pythonExecutable))
+			this.pathToPipBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("pip"))
+			this.pathToPythonBin = path.join(path.sep, this.pythonEnvDir, envBinDir, this.#decideIfWindowsOrLinuxPath("python"))
 			if(isWindows) {
 				let driveLetter = path.parse(process.cwd()).root
 				this.pathToPythonBin = `${driveLetter}${this.pathToPythonBin.substring(1)}`

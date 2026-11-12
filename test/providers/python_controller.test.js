@@ -176,23 +176,30 @@ suite('Python_controller virtual environment executables', function() {
 		expect(invocations[1].bin).to.not.equal(wrongVenvPythonBin)
 	})
 
-	/** Verifies that POSIX venv naming still mirrors a python3 source interpreter. */
-	test('keeps bin/python3 and bin/pip3 on non-Windows hosts for a python3 source', async function() {
-		// Given a POSIX host and a configured source interpreter named python3
-		const { controller, invocations } = await constructVirtualEnvController('linux', 'python3')
+	// The venv layout is independent of the source interpreter name, so POSIX
+	// environments always expose bin/python and bin/pip.
+	for (const sourcePython of ['python3', 'python']) {
+		/** Verifies that POSIX venvs expose bin/python and bin/pip regardless of the source interpreter name. */
+		test(`uses bin/python and bin/pip on non-Windows hosts for a ${sourcePython} source`, async function() {
+			// Given a POSIX host and a configured source interpreter named sourcePython
+			const { controller, invocations } = await constructVirtualEnvController('linux', sourcePython)
 
-		// When the venv is prepared while the controller is constructed
-		const venvInvocation = invocations[0]
-		const pipUpgradeInvocation = invocations[1]
+			// When the venv is prepared while the controller is constructed
+			const venvInvocation = invocations[0]
+			const pipUpgradeInvocation = invocations[1]
 
-		// Then the pip upgrade runs through the venv bin/python3 exactly
-		expect(invocations).to.have.lengthOf(2)
-		expect(venvInvocation.args[2]).to.equal(path.join(path.sep, 'tmp', 'trustify_da_env_js'))
-		expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
-		expect(pipUpgradeInvocation.bin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python3'))
-		expect(controller.pathToPythonBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python3'))
+			// Then the venv is created from the configured source interpreter
+			expect(invocations).to.have.lengthOf(2)
+			expect(venvInvocation.bin).to.equal(sourcePython)
+			expect(venvInvocation.args[2]).to.equal(path.join(path.sep, 'tmp', 'trustify_da_env_js'))
 
-		// Then the venv pip path stays bin/pip3
-		expect(controller.pathToPipBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'pip3'))
-	})
+			// Then the pip upgrade runs through the venv bin/python exactly
+			expect(pipUpgradeInvocation.args).to.deep.equal(['-m', 'pip', 'install', '--upgrade', 'pip'])
+			expect(pipUpgradeInvocation.bin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python'))
+			expect(controller.pathToPythonBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'python'))
+
+			// Then the venv pip path is bin/pip
+			expect(controller.pathToPipBin).to.equal(path.join(venvInvocation.args[2], 'bin', 'pip'))
+		})
+	}
 })
