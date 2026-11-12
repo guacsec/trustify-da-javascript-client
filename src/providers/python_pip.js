@@ -1,5 +1,3 @@
-import fs from 'node:fs'
-
 import { PackageURL } from 'packageurl-js'
 
 import { readLicenseFile } from '../license/license_utils.js'
@@ -12,7 +10,7 @@ import {
 } from "../tools.js";
 
 import Python_controller from './python_controller.js'
-import { getParser, getIgnoreQuery, getPinnedVersionQuery } from './requirements_parser.js'
+import { getParser, getIgnoreQuery, getPinnedVersionQuery, readRequirementsFile } from './requirements_parser.js'
 
 export default { isSupported, validateLockFile, provideComponent, provideStack, readLicenseFromManifest, packageManagerName() { return 'pip' } }
 
@@ -100,7 +98,7 @@ async function getIgnoredDependencies(manifest) {
 	const [parser, ignoreQuery, pinnedVersionQuery] = await Promise.all([
 		getParser(), getIgnoreQuery(), getPinnedVersionQuery()
 	]);
-	const content = fs.readFileSync(manifest).toString();
+	const content = readRequirementsFile(manifest);
 	const tree = parser.parse(content);
 	return ignoreQuery.matches(tree.rootNode).map(match => {
 		const reqNode = match.captures.find(c => c.name === 'req').node;

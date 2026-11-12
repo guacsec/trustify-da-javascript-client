@@ -4,12 +4,30 @@ import { EOL } from "os";
 
 import { runLicenseCheck } from "./license/index.js";
 import { generateImageSBOM, parseImageRef } from "./oci_image/utils.js";
+import { readRequirementsFile } from "./providers/requirements_parser.js";
 import { addProxyAgent, getCustom, getTokenHeaders , TRUSTIFY_DA_OPERATION_TYPE_HEADER, TRUSTIFY_DA_PACKAGE_MANAGER_HEADER } from "./tools.js";
 
 /** Media type for CycloneDX JSON batch payloads (batch-analysis API). */
 export const CYCLONEDX_JSON_MEDIA_TYPE = 'application/vnd.cyclonedx+json'
 
+/** File name of the pip requirements manifest handled by the BOM-aware decoder. */
+const REQUIREMENTS_MANIFEST = 'requirements.txt'
+
 export default { requestComponent, requestStack, requestStackBatch, requestImages, validateToken, appendAnalysisQueryParams }
+
+/**
+ * Read a manifest for audit-trail capture. Requirements files are decoded with
+ * the shared BOM-aware decoder so UTF-16 bytes are not corrupted by UTF-8
+ * decoding; other ecosystems keep their existing raw read behaviour.
+ * @param {string} manifest - path to the manifest
+ * @returns {string} manifest text to encode as audit metadata
+ */
+function readManifestForAudit(manifest) {
+	if (path.parse(manifest).base === REQUIREMENTS_MANIFEST) {
+		return readRequirementsFile(manifest)
+	}
+	return fs.readFileSync(manifest).toString()
+}
 
 /**
  * @overload
@@ -41,7 +59,7 @@ export default { requestComponent, requestStack, requestStackBatch, requestImage
  * @returns {Promise<string|import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>}
  */
 async function requestStack(provider, manifest, url, html = false, opts = {}) {
-	opts["source-manifest"] = Buffer.from(fs.readFileSync(manifest).toString()).toString('base64')
+	opts["source-manifest"] = Buffer.from(readManifestForAudit(manifest)).toString('base64')
 	opts["manifest-type"] = path.parse(manifest).base
 	let provided = await provider.provideStack(manifest, opts) // throws error if content providing failed
 	if (provided.batch) {
@@ -106,7 +124,7 @@ async function requestStack(provider, manifest, url, html = false, opts = {}) {
  * @returns {Promise<import('@trustify-da/trustify-da-api-model/model/v5/AnalysisReport.ts').AnalysisReport>}
  */
 async function requestComponent(provider, manifest, url, opts = {}) {
-	opts["source-manifest"] = Buffer.from(fs.readFileSync(manifest).toString()).toString('base64')
+	opts["source-manifest"] = Buffer.from(readManifestForAudit(manifest)).toString('base64')
 
 	let provided = await provider.provideComponent(manifest, opts) // throws error if content providing failed
 	if (provided.batch) {
