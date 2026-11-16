@@ -108,10 +108,14 @@ suite('remediate — runRemediation', () => {
 	let runRemediation
 	let requestStackStub
 	let matchStub
+	let discoverGradleSubprojectsStub
+	let findNearestBuildFileStub
 
 	setup(async () => {
 		requestStackStub = stub()
 		matchStub = stub()
+		discoverGradleSubprojectsStub = stub().resolves([])
+		findNearestBuildFileStub = stub().returns(undefined)
 
 		const mod = await esmock('../src/remediate.js', {
 			'../src/analysis.js': {
@@ -125,6 +129,10 @@ suite('remediate — runRemediation', () => {
 			},
 			'../src/index.js': {
 				selectTrustifyDABackend: () => 'https://da.example.com',
+			},
+			'../src/providers/java_gradle.js': {
+				discoverGradleSubprojects: discoverGradleSubprojectsStub,
+				findNearestBuildFile: findNearestBuildFileStub,
 			},
 		})
 		runRemediation = mod.runRemediation
@@ -264,6 +272,107 @@ suite('remediate — runRemediation', () => {
 				expect(result.exitCode).to.equal(0)
 				const updatedContent = fs.readFileSync(tomlPath, 'utf-8')
 				expect(updatedContent).to.include('2.15.0')
+			} finally {
+				cleanup()
+			}
+		})
+	})
+
+	suite('Gradle version catalog fan-out', () => {
+		const CATALOG = `[versions]
+commons = "3.16.0"
+
+[libraries]
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons" }
+`
+
+		const SUBPROJECT_REPORT = buildAnalysisReport({
+			depRef: 'pkg:maven/org.apache.commons/commons-lang3@3.16.0',
+			fixedIn: ['pkg:maven/org.apache.commons/commons-lang3@3.17.0'],
+		})
+
+		/**
+		 * Creates a multi-project Gradle layout and wires the catalog to it.
+		 * @returns {{rootBuild: string, appBuild: string, tomlPath: string, cleanup: function}}
+		 */
+		function createMultiProject() {
+			const { dir, cleanup } = createTempDir({
+				'build.gradle': '// root',
+				'app/build.gradle': '// app',
+				'gradle/libs.versions.toml': CATALOG,
+			})
+			const rootBuild = path.join(dir, 'build.gradle')
+			const appBuild = path.join(dir, 'app', 'build.gradle')
+			findNearestBuildFileStub.returns(rootBuild)
+			discoverGradleSubprojectsStub.resolves([rootBuild, appBuild])
+			matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'gradle' }) })
+			return { rootBuild, appBuild, tomlPath: path.join(dir, 'gradle', 'libs.versions.toml'), cleanup }
+		}
+
+		test('analyzes every project in the build and applies subproject remediations to the catalog', async () => {
+			const { rootBuild, appBuild, tomlPath, cleanup } = createMultiProject()
+			try {
+				requestStackStub.callsFake(async (_provider, manifestPath) =>
+					manifestPath === appBuild ? SUBPROJECT_REPORT : { providers: {} })
+
+				const result = await runRemediation(tomlPath, {})
+
+				expect(requestStackStub.callCount).to.equal(2)
+				expect(requestStackStub.firstCall.args[1]).to.equal(rootBuild)
+				expect(result.remediations.map(r => r.artifactId)).to.deep.equal(['commons-lang3'])
+				expect(fs.readFileSync(tomlPath, 'utf-8')).to.include('3.17.0')
+			} finally {
+				cleanup()
+			}
+		})
+
+		test('reports a dependency found in several projects once', async () => {
+			const { tomlPath, cleanup } = createMultiProject()
+			try {
+				requestStackStub.resolves(SUBPROJECT_REPORT)
+
+				const result = await runRemediation(tomlPath, { dryRun: true })
+
+				expect(result.remediations).to.have.lengthOf(1)
+				expect(result.groups).to.have.lengthOf(1)
+			} finally {
+				cleanup()
+			}
+		})
+
+		test('reports a subproject dependency absent from the catalog as skipped', async () => {
+			const { tomlPath, cleanup } = createMultiProject()
+			try {
+				requestStackStub.resolves(buildMultiDepReport([
+					{ depRef: 'pkg:maven/org.apache.commons/commons-lang3@3.16.0', fixedIn: ['pkg:maven/org.apache.commons/commons-lang3@3.17.0'], issueId: 'CVE-2024-0001' },
+					{ depRef: 'pkg:maven/com.example/direct-dep@1.0', fixedIn: ['pkg:maven/com.example/direct-dep@1.1'], issueId: 'CVE-2024-0002' },
+				]))
+
+				const result = await runRemediation(tomlPath, { dryRun: true })
+
+				expect(result.skipped).to.deep.include({
+					groupId: 'com.example',
+					artifactId: 'direct-dep',
+					newVersion: '1.1',
+					reason: 'Dependency not declared in the version catalog',
+				})
+			} finally {
+				cleanup()
+			}
+		})
+
+		test('falls back to the catalog itself when no Gradle build is discovered', async () => {
+			const { dir, cleanup } = createTempDir({ 'gradle/libs.versions.toml': CATALOG })
+			try {
+				const tomlPath = path.join(dir, 'gradle', 'libs.versions.toml')
+				matchStub.returns({ provideStack: stub().resolves({ content: '{}', contentType: 'application/json', ecosystem: 'gradle' }) })
+				requestStackStub.resolves(SUBPROJECT_REPORT)
+
+				const result = await runRemediation(tomlPath, { dryRun: true })
+
+				expect(requestStackStub.callCount).to.equal(1)
+				expect(requestStackStub.firstCall.args[1]).to.equal(tomlPath)
+				expect(result.remediations).to.have.lengthOf(1)
 			} finally {
 				cleanup()
 			}
