@@ -1,8 +1,12 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+
 import { expect } from 'chai'
 import esmock from 'esmock'
 import { afterEach } from 'mocha'
 
-import { getCustom, getCustomPath } from "../src/tools.js"
+import { getCustom, getCustomPath, invokeCommand } from "../src/tools.js"
 
 
 /**
@@ -191,4 +195,99 @@ suite('testing the various tools and utility functions', () => {
 	})
 
 
+})
+
+suite('invokeCommand', function () {
+	this.timeout(10000)
+	const windowsTest = process.platform === 'win32' ? test : test.skip
+	let directory
+
+	suiteSetup(() => {
+		directory = fs.mkdtempSync(path.join(os.tmpdir(), 'trustify-da tools &-'))
+	})
+
+	suiteTeardown(() => fs.rmSync(directory, { recursive: true, force: true }))
+
+	/** Catches shell interpretation/pre-quoting of native paths and dropped cwd/stdin options. */
+	test('passes literal arguments to native executables in paths with spaces and ampersands', () => {
+		const bin = path.join(directory, path.basename(process.execPath))
+		fs.copyFileSync(process.execPath, bin)
+		const args = ['a&b', 'two words', '', 'a"b', '%PATH%', '!value!', 'tail\\']
+		const script = 'process.stdout.write(JSON.stringify({args:process.argv.slice(1),cwd:process.cwd(),input:require("node:fs").readFileSync(0,"utf8")}))'
+		const result = JSON.parse(invokeCommand(bin, ['-e', script, '--', ...args], {
+			cwd: directory, input: 'stdin content'
+		}))
+		expect(result).to.deep.equal({ args, cwd: fs.realpathSync(directory), input: 'stdin content' })
+	})
+
+	/** Catches reverting our output buffer to spawnSync's 1 MiB default. */
+	test('captures dependency-tree output larger than 1 MiB', () => {
+		const result = invokeCommand(process.execPath, ['-e', 'process.stdout.write("x".repeat(2 * 1024 * 1024))'])
+		expect(result).to.equal('x'.repeat(2 * 1024 * 1024))
+	})
+
+	/** Catches returning stdout instead of throwing when a tool exits unsuccessfully. */
+	test('throws nonzero exits with captured output and status', () => {
+		const run = () => invokeCommand(process.execPath, ['-e',
+			'require("node:fs").writeSync(1,"partial output");require("node:fs").writeSync(2,"tool failed");process.exit(7)'])
+		expect(run).to.throw(Error, 'tool failed').that.includes({
+			status: 7, stdout: 'partial output', stderr: 'tool failed'
+		})
+	})
+
+	/** Catches losing spawn details or creating a circular error during enrichment. */
+	test('throws a serializable ENOENT for an unavailable tool', () => {
+		let error
+		try {
+			invokeCommand('trustify-da-command-that-does-not-exist', [])
+		} catch (caught) {
+			error = caught
+		}
+		expect(error).to.be.instanceOf(Error).with.property('code', 'ENOENT')
+		expect(error).to.include.all.keys('status', 'stdout', 'stderr')
+		expect(() => JSON.stringify(error)).not.to.throw()
+	})
+
+	/** Catches accepting a killed process or making its timeout error circular. */
+	test('throws a serializable error when a tool times out', () => {
+		let error
+		try {
+			invokeCommand(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { timeout: 100 })
+		} catch (caught) {
+			error = caught
+		}
+		expect(error).to.be.instanceOf(Error).with.property('code', 'ETIMEDOUT')
+		expect(error).to.include.all.keys('status', 'stdout', 'stderr')
+		expect(() => JSON.stringify(error)).not.to.throw()
+	})
+
+	/** Exercises real cmd.exe wrapper execution, not a reconstruction of its escaped command string. */
+	windowsTest('runs Maven/Gradle-style batch wrappers', () => {
+		for (const name of ['mvnw.cmd', 'gradlew.bat']) {
+			const wrapper = path.join(directory, name)
+			fs.writeFileSync(wrapper, '@echo off\r\necho %1\r\n')
+			expect(invokeCommand(wrapper, ['project path & data'], { cwd: directory }).trim())
+				.to.equal('"project path & data"')
+		}
+	})
+
+	/** Exercises npm shim reparsing and PATHEXT lookup for both explicit and extensionless names. */
+	windowsTest('runs npm .bin shims with literal arguments', () => {
+		const shimDirectory = path.join(directory, 'node_modules', '.bin')
+		fs.mkdirSync(shimDirectory, { recursive: true })
+		const script = path.join(directory, 'argv.cjs')
+		fs.writeFileSync(script, 'process.stdout.write(JSON.stringify(process.argv.slice(2)))')
+		const shim = path.join(shimDirectory, 'argv.cmd')
+		fs.writeFileSync(shim, `@echo off\r\n"${process.execPath}" "${script}" %*\r\n`)
+		const args = ['project path & data', '"(foo|bar>baz)"', '', '%PATH%', '!value!']
+		const originalPath = process.env.PATH
+		try {
+			process.env.PATH = `${shimDirectory}${path.delimiter}${originalPath}`
+			for (const command of ['argv', 'argv.cmd']) {
+				expect(JSON.parse(invokeCommand(command, args, { cwd: directory }))).to.deep.equal(args)
+			}
+		} finally {
+			process.env.PATH = originalPath
+		}
+	})
 })
