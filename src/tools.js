@@ -1,8 +1,8 @@
-import { execFileSync } from "child_process";
 import fs from 'node:fs'
 import path from 'node:path'
 import { EOL } from "os";
 
+import spawn from 'cross-spawn'
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { PackageURL } from "packageurl-js";
 
@@ -232,20 +232,14 @@ export function resolveBinary(globalBinary, localWrapper, startDir, opts = {}) {
 /** this method invokes command string in a process in a synchronous way.
  * @param {string} bin - the command to be invoked
  * @param {Array<string>} args - the args to pass to the binary
- * @param {import('child_process').ExecFileOptionsWithStringEncoding} [opts={}]
+ * @param {import('child_process').SpawnSyncOptionsWithStringEncoding} [opts={}]
  * @returns {string}
  */
 export function invokeCommand(bin, args, opts={}) {
-	// .bat and .cmd files can't be executed in windows with execFileSync without {shell: true}, so we
-	// special case them here to keep the amount of escaping we need to do to a minimum.
+	// Let cross-spawn handle Windows batch wrappers and npm shims without enabling shell:true
+	// or pre-quoting native executable paths/arguments. Batch files still require cmd.exe:
 	// https://nodejs.org/docs/latest-v20.x/api/child_process.html#spawning-bat-and-cmd-files-on-windows
 	// https://github.com/nodejs/node/issues/52681#issuecomment-2076426887
-	if (process.platform === 'win32') {
-		opts = {...opts, shell: true}
-		args = args.map(arg => handleSpacesInPath(arg))
-		bin = handleSpacesInPath(bin)
-	}
-
 	opts = {
 		...opts,
 		env: {
@@ -261,7 +255,15 @@ export function invokeCommand(bin, args, opts={}) {
 		maxBuffer: 10 * 1024 * 1024 // 10MB buffer
 	};
 
-	return execFileSync(bin, args, {...{stdio: 'pipe', encoding: 'utf-8'}, ...opts})
+	const result = spawn.sync(bin, args, {stdio: 'pipe', encoding: 'utf-8', ...opts})
+	// Unlike execFileSync, spawn.sync returns failures instead of throwing them.
+	if (result.error) {
+		throw Object.assign(result.error, result)
+	}
+	if (result.status !== 0) {
+		throw Object.assign(new Error(`Command failed: ${bin} ${args.join(' ')}\n${result.stderr || ''}`), result)
+	}
+	return result.stdout
 }
 
 
