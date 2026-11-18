@@ -235,16 +235,30 @@ suite('invokeCommand', function () {
 		})
 	})
 
-	/** Catches losing the error code used by providers to detect unavailable tools. */
-	test('throws ENOENT for an unavailable tool', () => {
-		expect(() => invokeCommand('trustify-da-command-that-does-not-exist', []))
-			.to.throw().with.property('code', 'ENOENT')
+	/** Catches losing spawn details or creating a circular error during enrichment. */
+	test('throws a serializable ENOENT for an unavailable tool', () => {
+		let error
+		try {
+			invokeCommand('trustify-da-command-that-does-not-exist', [])
+		} catch (caught) {
+			error = caught
+		}
+		expect(error).to.be.instanceOf(Error).with.property('code', 'ENOENT')
+		expect(error).to.include.all.keys('status', 'stdout', 'stderr')
+		expect(() => JSON.stringify(error)).not.to.throw()
 	})
 
-	/** Catches treating a killed process with null status as successful. */
-	test('throws when a tool times out', () => {
-		expect(() => invokeCommand(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { timeout: 100 }))
-			.to.throw().with.property('code', 'ETIMEDOUT')
+	/** Catches accepting a killed process or making its timeout error circular. */
+	test('throws a serializable error when a tool times out', () => {
+		let error
+		try {
+			invokeCommand(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { timeout: 100 })
+		} catch (caught) {
+			error = caught
+		}
+		expect(error).to.be.instanceOf(Error).with.property('code', 'ETIMEDOUT')
+		expect(error).to.include.all.keys('status', 'stdout', 'stderr')
+		expect(() => JSON.stringify(error)).not.to.throw()
 	})
 
 	/** Exercises real cmd.exe wrapper execution, not a reconstruction of its escaped command string. */

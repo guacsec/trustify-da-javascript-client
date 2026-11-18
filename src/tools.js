@@ -258,7 +258,8 @@ export function invokeCommand(bin, args, opts={}) {
 	const result = spawn.sync(bin, args, {stdio: 'pipe', encoding: 'utf-8', ...opts})
 	// Unlike execFileSync, spawn.sync returns failures instead of throwing them.
 	if (result.error) {
-		throw Object.assign(result.error, result)
+		const { error, ...rest } = result
+		throw Object.assign(error, rest)
 	}
 	if (result.status !== 0) {
 		throw Object.assign(new Error(`Command failed: ${bin} ${args.join(' ')}\n${result.stderr || ''}`), result)
