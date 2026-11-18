@@ -573,7 +573,7 @@ function listMavenModules(dir, mvnBin) {
 function parseMavenModuleList(raw) {
 	const parser = new XMLParser()
 	const parsed = parser.parse(raw)
-	const entries = parsed?.strings?.string
+	const entries = parsed?.strings?.string ?? parsed?.list?.string
 	if (!entries) { return [] }
 	const list = Array.isArray(entries) ? entries : [entries]
 	return list.map(s => String(s).trim()).filter(Boolean)
