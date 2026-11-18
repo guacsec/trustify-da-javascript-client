@@ -330,6 +330,79 @@ suite('discoverGradleSubprojects', () => {
 })
 
 suite('discoverMavenModules', () => {
+	suite('Maven help plugin output compatibility', () => {
+		async function discoverWithOutput(root, outputByDirectory, opts = {}) {
+			const { discoverMavenModules: discoverMocked } = await esmock('../../src/providers/java_maven.js', {}, {
+				'../../src/tools.js': {
+					getCustomPath: () => '/mock/mvn',
+					getWrapperPreference: () => false,
+					invokeCommand: (_bin, args, { cwd }) => args[0] === '--version'
+						? 'Apache Maven'
+						: outputByDirectory[path.relative(root, cwd)] ?? '<modules/>',
+				},
+			})
+			return discoverMocked(root, opts)
+		}
+
+		for (const format of ['strings', 'list']) {
+			test(`discovers multiple modules from <${format}> output`, async () => {
+				const root = path.resolve('test/providers/tst_manifests/maven/maven_multi_module')
+				const result = await discoverWithOutput(root, {
+					'': `<${format}><string>module-a</string><string>module-b</string></${format}>`,
+				})
+				expect(result).to.deep.equal([
+					path.join(root, 'pom.xml'),
+					path.join(root, 'module-a', 'pom.xml'),
+					path.join(root, 'module-b', 'pom.xml'),
+				])
+			})
+
+			test(`discovers a single child from <${format}> output`, async () => {
+				const root = path.resolve('test/providers/tst_manifests/maven/maven_multi_module')
+				const result = await discoverWithOutput(root, {
+					'': `<${format}><string> module-a </string></${format}>`,
+				})
+				expect(result).to.deep.equal([
+					path.join(root, 'pom.xml'),
+					path.join(root, 'module-a', 'pom.xml'),
+				])
+			})
+
+			test(`discovers nested modules with <${format}> root output and mixed formats`, async () => {
+				const root = path.resolve('test/providers/tst_manifests/maven/maven_nested_aggregator')
+				const nestedFormat = format === 'strings' ? 'list' : 'strings'
+				const result = await discoverWithOutput(root, {
+					'': `<${format}><string>parent</string></${format}>`,
+					parent: `<${nestedFormat}><string>child</string></${nestedFormat}>`,
+				})
+				expect(result).to.deep.equal([
+					path.join(root, 'pom.xml'),
+					path.join(root, 'parent', 'pom.xml'),
+					path.join(root, 'parent', 'child', 'pom.xml'),
+				])
+			})
+
+			test(`preserves discovery exclusions with <${format}> output`, async () => {
+				const root = path.resolve('test/providers/tst_manifests/maven/maven_multi_module')
+				const result = await discoverWithOutput(root, {
+					'': `<${format}><string>module-a</string><string>module-b</string></${format}>`,
+				}, { workspaceDiscoveryIgnore: ['**/module-b/**'] })
+				expect(result).to.deep.equal([
+					path.join(root, 'pom.xml'),
+					path.join(root, 'module-a', 'pom.xml'),
+				])
+			})
+		}
+
+		for (const output of ['<strings/>', '<strings></strings>', '<list/>', '<list></list>', '<modules/>']) {
+			test(`returns only root pom for empty ${output} output`, async () => {
+				const root = path.resolve('test/providers/tst_manifests/maven/maven_no_modules')
+				const result = await discoverWithOutput(root, { '': output })
+				expect(result).to.deep.equal([path.join(root, 'pom.xml')])
+			})
+		}
+	})
+
 	test('returns empty when no pom.xml at root', async () => {
 		const result = await discoverMavenModules('test/providers/tst_manifests/npm')
 		expect(result).to.be.an('array')
