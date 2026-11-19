@@ -139,6 +139,26 @@ suite('testing the java-gradle-groovy data provider', () => {
 		}).timeout(process.env.GITHUB_ACTIONS ? 40000 : 10000)
 	})
 
+	suite('subproject and empty dependency trees', () => {
+		[
+			{ name: 'subproject build file', scenario: 'gradle_multi_project/app' },
+			{ name: 'empty dependency blocks', scenario: 'empty_dependencies' },
+		].forEach(({ name, scenario }) => {
+			test(`verify gradle data provided for stack analysis with scenario ${name}`, async () => {
+				const dir = `test/providers/tst_manifests/gradle/${scenario}`
+				const expectedSbom = fs.readFileSync(`${dir}/expected_stack_sbom.json`).toString().trim()
+				const depTree = fs.readFileSync(`${dir}/depTree.txt`).toString()
+				const props = fs.readFileSync(`${dir}/gradle.properties`).toString()
+				const provider = new Java_gradle_groovy()
+				mockInvokeCommand(provider, depTree, props, '')
+
+				const provided = await provider.provideStack(`${dir}/build.gradle`)
+
+				expect(JSON.parse(provided.content)).to.deep.equal(JSON.parse(expectedSbom))
+			}).timeout(10000)
+		})
+	})
+
 	suite('artifact hash computation', () => {
 		const testCase = 'deps_with_no_ignore_common_paths'
 		const dir = `test/providers/tst_manifests/gradle/${testCase}`

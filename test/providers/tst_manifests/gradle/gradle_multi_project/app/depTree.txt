@@ -1,0 +1,10 @@
+> Task :app:dependencies
+
+compileClasspath - Compile classpath for source set 'main'.
++--- org.apache.commons:commons-lang3:3.16.0
+\--- commons-io:commons-io:2.16.1
+
+runtimeClasspath - Runtime classpath of source set 'main'.
++--- org.apache.commons:commons-lang3:3.16.0
+\--- commons-io:commons-io:2.16.1
+
