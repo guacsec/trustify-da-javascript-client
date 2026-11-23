@@ -130,12 +130,27 @@ export function getMavenIncludeScopes(opts = {}) {
 /**
  * Removes scope properties from parsed Maven arguments without modifying the input.
  * @param {string[]} mvnArgs The parsed extra Maven arguments.
- * @returns {string[]} Arguments other than bare or assigned -Dscope properties.
+ * @returns {string[]} Arguments without scope properties defined via -D or --define.
  */
 export function stripScopeArgs(mvnArgs) {
-	return mvnArgs.filter(arg =>
-		typeof arg !== 'string' || (arg !== '-Dscope' && !arg.startsWith('-Dscope='))
-	)
+	const filteredArgs = []
+	for (let i = 0; i < mvnArgs.length; i++) {
+		const arg = mvnArgs[i]
+		if (arg === '--') {
+			return filteredArgs.concat(mvnArgs.slice(i))
+		}
+		if (arg === '-D' || arg === '--define') {
+			const property = mvnArgs[i + 1]
+			if (typeof property === 'string' && /^scope(?:=|$)/.test(property)) {
+				i++
+				continue
+			}
+		} else if (typeof arg === 'string' && /^(?:-D=?|--define=)scope(?:=|$)/.test(arg)) {
+			continue
+		}
+		filteredArgs.push(arg)
+	}
+	return filteredArgs
 }
 
 export function environmentVariableIsPopulated(envVariableName) {
