@@ -54,6 +54,7 @@ export {
  * TRUSTIFY_DA_GO_PATH?: string | undefined,
  * TRUSTIFY_DA_GRADLE_PATH?: string | undefined,
  * TRUSTIFY_DA_IMAGE_PLATFORM?: string | undefined,
+ * TRUSTIFY_DA_MVN_INCLUDE_SCOPES?: string | undefined,
  * TRUSTIFY_DA_MVN_PATH?: string | undefined,
  * TRUSTIFY_DA_PIP_PATH?: string | undefined,
  * TRUSTIFY_DA_PIP_USE_DEP_TREE?: string | undefined,
