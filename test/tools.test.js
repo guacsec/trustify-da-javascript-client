@@ -6,7 +6,9 @@ import { expect } from 'chai'
 import esmock from 'esmock'
 import { afterEach } from 'mocha'
 
-import { getCustom, getCustomPath, invokeCommand } from "../src/tools.js"
+import {
+	getCustom, getCustomPath, getMavenIncludeScopes, invokeCommand, stripScopeArgs
+} from "../src/tools.js"
 
 
 /**
@@ -43,6 +45,94 @@ suite('testing the various tools and utility functions', () => {
 		test('when no environment variable and no opts, return default value', () => {
 			let fetchedValue = getCustom('DUMMY_KEY', 'dummy-default-value')
 			expect(fetchedValue).to.equal('dummy-default-value')
+		})
+	})
+
+	suite('getMavenIncludeScopes', () => {
+		const key = 'TRUSTIFY_DA_MVN_INCLUDE_SCOPES'
+		let originalValue
+
+		setup(() => {
+			originalValue = process.env[key]
+			delete process.env[key]
+		})
+
+		teardown(() => {
+			if (originalValue === undefined) {
+				delete process.env[key]
+			} else {
+				process.env[key] = originalValue
+			}
+		})
+
+		/** Verifies the option takes precedence over the environment. */
+		test('prefers the option to the environment', () => {
+			// Given different selections in the option and environment
+			process.env[key] = 'runtime'
+			const opts = { [key]: 'provided' }
+
+			// When resolving the scopes
+			const scopes = getMavenIncludeScopes(opts)
+
+			// Then only the option's selection is returned
+			expect(scopes).to.deep.equal(new Set(['provided']))
+		})
+
+		/** Verifies the environment takes precedence over the default. */
+		test('prefers the environment to the default', () => {
+			// Given an environment setting and no option
+			process.env[key] = 'runtime'
+
+			// When resolving the scopes
+			const scopes = getMavenIncludeScopes()
+
+			// Then only the environment's selection is returned
+			expect(scopes).to.deep.equal(new Set(['runtime']))
+		})
+
+		/** Verifies the four default Maven scopes when no setting is provided. */
+		test('uses the default Maven scopes', () => {
+			expect(getMavenIncludeScopes())
+				.to.deep.equal(new Set(['compile', 'provided', 'runtime', 'system']))
+		})
+
+		/** Verifies test scope can be included explicitly. */
+		test('accepts test scope explicitly', () => {
+			expect(getMavenIncludeScopes({ [key]: 'compile,test' }))
+				.to.deep.equal(new Set(['compile', 'test']))
+		})
+
+		/** Verifies whitespace, empty entries and duplicate scopes are normalized. */
+		test('normalizes the scope list', () => {
+			expect(getMavenIncludeScopes({ [key]: ' compile, , runtime,compile, ' }))
+				.to.deep.equal(new Set(['compile', 'runtime']))
+		})
+
+		for (const [value, message] of [
+			['compile,import', "scope 'import' is not supported"],
+			['compile,bogus', "unknown scope 'bogus'"],
+			['', 'at least one scope is required'],
+			['   ', 'at least one scope is required'],
+			[' , ', 'at least one scope is required']
+		]) {
+			/** Verifies invalid selections fail with a descriptive error. */
+			test(`rejects ${JSON.stringify(value)}`, () => {
+				expect(() => getMavenIncludeScopes({ [key]: value })).to.throw(message)
+			})
+		}
+	})
+
+	suite('stripScopeArgs', () => {
+		/** Verifies only the bare and assigned scope properties are removed. */
+		test('removes only -Dscope arguments', () => {
+			// Given parsed Maven arguments with scope properties and other flags
+			const args = ['-Dscope=test', '-Pmyprofile', '-Dscope', '-Dscope=', '-DscopeX=value']
+
+			// When removing scope properties
+			const filtered = stripScopeArgs(args)
+
+			// Then all other flags are retained in order
+			expect(filtered).to.deep.equal(['-Pmyprofile', '-DscopeX=value'])
 		})
 	})
 

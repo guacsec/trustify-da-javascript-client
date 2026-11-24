@@ -6,6 +6,8 @@ import spawn from 'cross-spawn'
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { PackageURL } from "packageurl-js";
 
+import Base_Java from './providers/base_java.js'
+
 export const RegexNotToBeLogged = /TRUSTIFY_DA_(.*_)?TOKEN|ex-.*-token|trust-.*-token/
 /**
  *
@@ -99,6 +101,56 @@ export function getCustomPath(name, opts = {}) {
  */
 export function getWrapperPreference(name, opts = {}) {
 	return getCustom(`TRUSTIFY_DA_PREFER_${name.toUpperCase()}W`, 'true', opts) === 'true'
+}
+
+/**
+ * Resolves and validates the Maven dependency scopes selected for analysis.
+ * @param {{}} [opts={}] The options object to check before the environment.
+ * @returns {Set<string>} The selected Maven dependency scopes.
+ * @throws {Error} If the selection is empty or contains an unsupported scope.
+ */
+export function getMavenIncludeScopes(opts = {}) {
+	const value = getCustom('TRUSTIFY_DA_MVN_INCLUDE_SCOPES', 'compile,provided,runtime,system', opts)
+	const scopes = new Set(value?.split(',').map(scope => scope.trim()).filter(Boolean))
+	if (!scopes.size) {
+		throw new Error('Maven include scopes rejected: at least one scope is required')
+	}
+
+	for (const scope of scopes) {
+		if (scope === 'import') {
+			throw new Error("Maven include scopes rejected: scope 'import' is not supported")
+		}
+		if (!Base_Java.MAVEN_SCOPES.includes(scope)) {
+			throw new Error(`Maven include scopes rejected: unknown scope '${scope}'`)
+		}
+	}
+	return scopes
+}
+
+/**
+ * Removes scope properties from parsed Maven arguments without modifying the input.
+ * @param {string[]} mvnArgs The parsed extra Maven arguments.
+ * @returns {string[]} Arguments without scope properties defined via -D or --define.
+ */
+export function stripScopeArgs(mvnArgs) {
+	const filteredArgs = []
+	for (let i = 0; i < mvnArgs.length; i++) {
+		const arg = mvnArgs[i]
+		if (arg === '--') {
+			return filteredArgs.concat(mvnArgs.slice(i))
+		}
+		if (arg === '-D' || arg === '--define') {
+			const property = mvnArgs[i + 1]
+			if (typeof property === 'string' && /^scope(?:=|$)/.test(property)) {
+				i++
+				continue
+			}
+		} else if (typeof arg === 'string' && /^(?:-D=?|--define=)scope(?:=|$)/.test(arg)) {
+			continue
+		}
+		filteredArgs.push(arg)
+	}
+	return filteredArgs
 }
 
 export function environmentVariableIsPopulated(envVariableName) {
