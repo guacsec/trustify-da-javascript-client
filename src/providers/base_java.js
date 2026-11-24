@@ -57,29 +57,29 @@ export default class Base_Java {
 	 * @param {number} srcDepth - Current depth in the graph for the given source
 	 * @param {Array} lines - Array containing the text files being parsed
 	 * @param {Sbom} sbom - The SBOM where the dependencies are being added
+	 * @param {Set<string>} includeScopes - The selected Maven dependency scopes
 	 */
-	parseDependencyTree(src, srcDepth, lines, sbom) {
+	parseDependencyTree(src, srcDepth, lines, sbom, includeScopes) {
 		if (lines.length === 0) {
 			return;
 		}
 		if ((lines.length === 1 && lines[0].trim() === "")) {
 			return;
 		}
+		const sourceScope = srcDepth === 0 ? null : this.parseCoordinate(src).scope
+		const sourceInScope = srcDepth === 0 || (sourceScope != null && includeScopes.has(sourceScope))
 		let index = 0;
 		let target = lines[index];
 		let targetDepth = this._getDepth(target);
 		while (targetDepth > srcDepth && index < lines.length) {
 			if (targetDepth === srcDepth + 1) {
-				let from = this.parseDep(src);
-				let to = this.parseDep(target);
-				let matchedScope = target.match(/:compile|:provided|:runtime|:test|:system|:import/g)
-				let matchedScopeSrc = src.match(/:compile|:provided|:runtime|:test|:system|:import/g)
-				// only add dependency to sbom if it's not with test scope or if it's root
-				if ((matchedScope && matchedScope[0] !== ":test" && (matchedScopeSrc && matchedScopeSrc[0] !== ":test")) || (srcDepth === 0 && matchedScope && matchedScope[0] !== ":test")) {
-					sbom.addDependency(from, to)
+				const { scope: targetScope } = this.parseCoordinate(target)
+				if (sourceInScope && targetScope != null && includeScopes.has(targetScope)) {
+					sbom.addDependency(this.parseDep(src), this.parseDep(target))
 				}
 			} else {
-				this.parseDependencyTree(lines[index - 1], this._getDepth(lines[index - 1]), lines.slice(index), sbom)
+				const parent = lines[index - 1]
+				this.parseDependencyTree(parent, this._getDepth(parent), lines.slice(index), sbom, includeScopes)
 			}
 			target = lines[++index];
 			targetDepth = this._getDepth(target);

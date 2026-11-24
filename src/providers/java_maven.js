@@ -8,7 +8,7 @@ import { XMLParser } from 'fast-xml-parser'
 
 import { getLicense } from '../license/license_utils.js'
 import Sbom from '../sbom.js'
-import { getCustom, invokeCommand } from '../tools.js'
+import { getCustom, getMavenIncludeScopes, invokeCommand, stripScopeArgs } from '../tools.js'
 import { filterManifestPathsByDiscoveryIgnore, resolveWorkspaceDiscoveryIgnore } from '../workspace.js'
 
 import Base_java, { ecosystem_maven } from "./base_java.js";
@@ -104,13 +104,20 @@ export default class Java_maven extends Base_java {
 	 * @returns {Promise<string>} the Dot Graph content
 	 * @private
 	 */
-	async #createSbomStackAnalysis(manifest, opts = {}) {
-		const manifestDir = path.dirname(manifest)
-		const mvn = this.selectToolBinary(manifest, opts)
-		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
+	/** Reads additional Maven args without allowing them to pre-filter the dependency tree. */
+	#getMavenArgs(opts) {
+		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts))
 		if (!Array.isArray(mvnArgs)) {
 			throw new Error(`configured maven args is not an array, is a ${typeof mvnArgs}`)
 		}
+		return stripScopeArgs(mvnArgs)
+	}
+
+	async #createSbomStackAnalysis(manifest, opts = {}) {
+		const includeScopes = getMavenIncludeScopes(opts)
+		const manifestDir = path.dirname(manifest)
+		const mvn = this.selectToolBinary(manifest, opts)
+		const mvnArgs = this.#getMavenArgs(opts)
 
 		// clean maven target
 		try {
@@ -124,7 +131,7 @@ export default class Java_maven extends Base_java {
 		let tmpDepTree = path.join(tmpDir, 'mvn_deptree.txt')
 		// build initial command (dot outputType is not available for verbose mode)
 		let depTreeCmdArgs = ['-q', 'org.apache.maven.plugins:maven-dependency-plugin:3.6.0:tree',
-			'-Dscope=compile', '-Dverbose',
+			'-Dverbose',
 			'-DoutputType=text', `-DoutputFile=${tmpDepTree}`]
 		// exclude ignored dependencies, exclude format is groupId:artifactId:scope:version.
 		// version and scope are marked as '*' if not specified (we do not use scope yet)
@@ -153,7 +160,9 @@ export default class Java_maven extends Base_java {
 		}
 		const depTreeContent = content.toString()
 		const hashMap = await this._buildMavenHashMap(depTreeContent, opts)
-		let sbom = this.createSbomFileFromTextFormat(depTreeContent, ignoredDeps, opts, manifest, hashMap);
+		const sbom = this.createSbomFileFromTextFormat(
+			depTreeContent, ignoredDeps, opts, manifest, hashMap, includeScopes
+		)
 		// delete temp file and directory
 		fs.rmSync(tmpDir, { recursive: true, force: true })
 		// return dependency graph as string
@@ -246,9 +255,12 @@ export default class Java_maven extends Base_java {
 	 * @param {{}} opts Options
 	 * @param {String} manifestPath Path to the pom.xml manifest
 	 * @param {Map<string, Array<{alg: string, content: string}>>} [hashMap] PURL→hashes map
+	 * @param {Set<string>} [includeScopes] The resolved Maven dependency scopes
 	 * @return {String} formatted sbom Json String with all dependencies
 	 */
-	createSbomFileFromTextFormat(textGraphList, ignoredDeps, opts, manifestPath, hashMap) {
+	createSbomFileFromTextFormat(
+		textGraphList, ignoredDeps, opts, manifestPath, hashMap, includeScopes = getMavenIncludeScopes(opts)
+	) {
 		let lines = textGraphList.split(EOL);
 		// get root component
 		let root = lines[0];
@@ -256,7 +268,7 @@ export default class Java_maven extends Base_java {
 		const license = this.readLicenseFromManifest(manifestPath);
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
-		this.parseDependencyTree(root, 0, lines.slice(1), sbom);
+		this.parseDependencyTree(root, 0, lines.slice(1), sbom, includeScopes);
 		// Attach Maven artifact hashes as a post-processing step, keeping this
 		// Maven-specific concern out of the shared dependency-tree parser.
 		sbom.attachHashes(hashMap);
@@ -271,10 +283,7 @@ export default class Java_maven extends Base_java {
 	 */
 	#getSbomForComponentAnalysis(manifestPath, opts = {}) {
 		const mvn = this.selectToolBinary(manifestPath, opts)
-		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
-		if (!Array.isArray(mvnArgs)) {
-			throw new Error(`configured maven args is not an array, is a ${typeof mvnArgs}`)
-		}
+		const mvnArgs = this.#getMavenArgs(opts)
 
 		const tmpEffectivePom = path.resolve(path.join(path.dirname(manifestPath), 'effective-pom.xml'))
 
@@ -432,7 +441,7 @@ export default class Java_maven extends Base_java {
 		}
 
 		const mvn = this.selectToolBinary(manifestPath, opts)
-		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts));
+		const mvnArgs = this.#getMavenArgs(opts)
 		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trustify_da_range_'))
 		const tmpDepTree = path.join(tmpDir, 'mvn_deptree_ranges.txt')
 
@@ -440,7 +449,6 @@ export default class Java_maven extends Base_java {
 			this._invokeCommand(mvn, [
 				'-q',
 				'org.apache.maven.plugins:maven-dependency-plugin:3.6.0:tree',
-				'-Dscope=compile',
 				'-DoutputType=text',
 				`-DoutputFile=${tmpDepTree}`,
 				...mvnArgs

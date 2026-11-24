@@ -462,6 +462,14 @@
 			"purl": "pkg:maven/org.projectlombok/lombok@1.18.24",
 			"type": "library",
 			"bom-ref": "pkg:maven/org.projectlombok/lombok@1.18.24"
+		},
+		{
+			"group": "org.springframework",
+			"name": "spring-jcl",
+			"version": "5.3.19",
+			"purl": "pkg:maven/org.springframework/spring-jcl@5.3.19",
+			"type": "library",
+			"bom-ref": "pkg:maven/org.springframework/spring-jcl@5.3.19"
 		}
 	],
 	"dependencies": [
@@ -504,7 +512,9 @@
 		},
 		{
 			"ref": "pkg:maven/org.springframework/spring-core@5.3.19",
-			"dependsOn": []
+			"dependsOn": [
+				"pkg:maven/org.springframework/spring-jcl@5.3.19"
+			]
 		},
 		{
 			"ref": "pkg:maven/org.springframework/spring-context@5.3.19",
@@ -824,6 +834,10 @@
 		},
 		{
 			"ref": "pkg:maven/org.projectlombok/lombok@1.18.24",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:maven/org.springframework/spring-jcl@5.3.19",
 			"dependsOn": []
 		}
 	]

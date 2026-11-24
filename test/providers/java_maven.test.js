@@ -141,6 +141,151 @@ suite('testing the java-maven data provider', async () => {
 	})
 });
 
+suite('testing Maven scope selection', function () {
+	this.timeout(40000)
+	const fixtures = 'test/providers/tst_manifests/maven'
+	const runtimeManifest = `${fixtures}/poms_deps_with_no_ignore_long/pom.xml`
+	const scopedManifest = `${fixtures}/pom_with_multiple_modules/module3/pom.xml`
+
+	/** Verifies that the default includes runtime-only dependencies but excludes tests. */
+	test('includes runtime-only dependencies by default', async () => {
+		// Given a POM with an explicitly runtime-scoped dependency
+		const provider = new Java_maven()
+
+		// When generating the default stack SBOM
+		const result = await provider.provideStack(runtimeManifest)
+
+		// Then the runtime dependency is included and the test starter is not
+		const names = JSON.parse(result.content).components.map(component => component.name)
+		expect(names).to.include('micrometer-registry-prometheus')
+		expect(names).not.to.include('spring-boot-starter-test')
+	})
+
+	for (const { scopes, included, excluded } of [
+		{ scopes: 'compile,runtime', included: 'gson', excluded: 'javax.servlet-api' },
+		{ scopes: 'test', included: 'assertj-core', excluded: 'gson' }
+	]) {
+		/** Verifies that the requested scope set determines which components appear. */
+		test(`honors the ${scopes} scope selection`, async () => {
+			// Given a POM with compile, provided, and test dependencies
+			const provider = new Java_maven()
+			const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: scopes }
+
+			// When generating a stack SBOM with the selected scopes
+			const result = await provider.provideStack(scopedManifest, opts)
+
+			// Then only the selected dependencies are represented
+			const names = JSON.parse(result.content).components.map(component => component.name)
+			expect(names).to.include(included)
+			expect(names).not.to.include(excluded)
+		})
+	}
+
+	/** Verifies that a classifier beginning with a scope name is not the scope column. */
+	test('includes provided and system dependencies by default', () => {
+		// Given a tree whose system dependency has a classifier beginning with "test"
+		const provider = new Java_maven()
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- example:provided-library:jar:1.0:provided',
+			'\\- example:local-library:jar:test-fixture:1.0:system'
+		].join(os.EOL)
+
+		// When generating default and narrowed SBOMs from the same tree
+		const defaults = provider.createSbomFileFromTextFormat(tree, [], {}, scopedManifest, new Map())
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile,runtime' }
+		const narrowed = provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map())
+
+		// Then the default includes both dependencies, while the narrowed set excludes both
+		expect(JSON.parse(defaults).components.map(component => component.name))
+			.to.have.members(['provided-library', 'local-library'])
+		expect(JSON.parse(narrowed).components ?? []).to.deep.equal([])
+	})
+
+	/** Verifies that extra Maven arguments cannot override the default stack selection. */
+	test('ignores a conflicting -Dscope in stack analysis', async () => {
+		// Given a POM with runtime and test dependencies and a deterministic timestamp
+		const clock = useFakeTimers({ now: new Date('2023-08-07T00:00:00.000Z'), toFake: ['Date'] })
+		try {
+			const provider = new Java_maven()
+			const invoke = spy(provider, '_invokeCommand')
+			const opts = { TRUSTIFY_DA_MVN_ARGS: '["-Dscope=test"]' }
+
+			// When generating both SBOMs with real Maven
+			const defaults = await provider.provideStack(runtimeManifest)
+			const withArgs = await provider.provideStack(runtimeManifest, opts)
+
+			// Then the conflicting Maven argument did not change the output or reach Maven
+			expect(JSON.parse(withArgs.content)).to.deep.equal(JSON.parse(defaults.content))
+			const scopeArgs = invoke.getCalls().flatMap(call => call.args[1])
+				.filter(arg => arg.startsWith('-Dscope'))
+			expect(scopeArgs).to.deep.equal([])
+		} finally {
+			clock.restore()
+		}
+	})
+
+	/** Verifies that version ranges resolve even outside compile scope. */
+	test('resolves a runtime version range without forwarding -Dscope', () => {
+		// Given the version-range fixture with its ranged dependency set to runtime scope
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const pom = fs.readFileSync(`${fixtures}/pom_deps_with_version_range/pom.xml`, 'utf8')
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, pom.replace('<artifactId>log4j</artifactId>',
+				'<artifactId>log4j</artifactId><scope>runtime</scope>'))
+			const provider = new Java_maven()
+			const invoke = spy(provider, '_invokeCommand')
+
+			// When running component analysis with and without a conflicting scope argument
+			const defaults = provider.provideComponent(manifest)
+			invoke.resetHistory()
+			const result = provider.provideComponent(manifest, {
+				TRUSTIFY_DA_MVN_ARGS: '["-Dscope=test","-Dstyle.color=never"]'
+			})
+
+			// Then the range is resolved and only the unrelated property reaches Maven
+			const purls = JSON.parse(result.content).components.map(component => component.purl)
+			const defaultPurls = JSON.parse(defaults.content).components.map(component => component.purl)
+			expect(purls).to.include('pkg:maven/log4j/log4j@1.2.17')
+			expect(defaultPurls).to.deep.equal(purls)
+			const commandArgs = invoke.getCalls().map(call => call.args[1])
+				.filter(args => args[0] === '-q')
+			expect(commandArgs.map(args => args[1])).to.deep.equal([
+				'help:effective-pom', 'org.apache.maven.plugins:maven-dependency-plugin:3.6.0:tree'
+			])
+			for (const args of commandArgs) {
+				expect(args).to.include('-Dstyle.color=never')
+				expect(args.filter(arg => arg.startsWith('-Dscope'))).to.deep.equal([])
+			}
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that batch analysis sends the same selected dependency graph as single analysis. */
+	test('applies the selected scopes to batch SBOMs', async () => {
+		// Given the actual workspace discovery and providers, replacing only the backend call
+		const client = await esmock('../../src/index.js', {
+			'../../src/analysis.js': { default: { requestStackBatch: async sboms => sboms } }
+		})
+		const provider = new Java_maven()
+		const opts = {
+			TRUSTIFY_DA_BACKEND_URL: 'http://localhost:9999',
+			TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile,runtime'
+		}
+
+		// When analyzing the same Maven project individually and in batch
+		const single = JSON.parse((await provider.provideStack(scopedManifest, opts)).content)
+		const batch = await client.stackAnalysisBatch(path.dirname(scopedManifest), false, opts)
+
+		// Then batch sends only the dependencies selected by the single analysis
+		const batchSbom = batch['pkg:maven/org.example/module3@1.0-SNAPSHOT']
+		expect(batchSbom?.dependencies).to.deep.equal(single.dependencies)
+		expect(batchSbom.components.map(component => component.name)).not.to.include('javax.servlet-api')
+	})
+})
+
 suite('testing the java-maven data provider with modules', () => {
 	suiteSetup(() => clock = useFakeTimers({ now: new Date('2023-08-07T00:00:00.000Z'), toFake: ['Date'] }));
 	suiteTeardown(() => clock.restore());
