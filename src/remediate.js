@@ -6,6 +6,7 @@ import { PackageURL } from 'packageurl-js'
 
 import analysis from './analysis.js'
 import { availableProviders, match } from './provider.js'
+import { discoverGradleSubprojects, findNearestBuildFile } from './providers/java_gradle.js'
 import { extractRemediations, compareVersions } from './remediation.js'
 import { mavenChangeKey, mavenDepsForEditSite, updateMavenVersions } from './updaters/maven_updater.js'
 import { tomlChangeKey, tomlDepsForEditSite, updateTomlVersions } from './updaters/toml_updater.js'
@@ -204,6 +205,33 @@ export function findManifests(targetPath) {
 }
 
 /**
+ * Resolves which manifests must be analyzed to produce remediations for `manifestPath`.
+ *
+ * Maven manifests are analyzed as-is. A Gradle version catalog is shared by every project
+ * in its build, while `gradle dependencies` only reports the project it runs in, so the
+ * catalog's owning build is expanded to all of its projects. Falls back to analyzing the
+ * catalog itself when the build cannot be discovered (no settings file) or has no projects.
+ *
+ * @param {string} manifestPath - the manifest being remediated
+ * @param {ManifestType} manifestType
+ * @param {Object} opts - client options
+ * @returns {Promise<string[]>} manifests to analyze
+ */
+async function analysisPathsFor(manifestPath, manifestType, opts) {
+	if (manifestType.label !== 'toml') {
+		return [manifestPath]
+	}
+
+	const buildFile = findNearestBuildFile(path.dirname(manifestPath))
+	if (!buildFile) {
+		return [manifestPath]
+	}
+
+	const projects = await discoverGradleSubprojects(path.dirname(buildFile), opts)
+	return projects.length > 0 ? projects : [manifestPath]
+}
+
+/**
  * Resolves a version conflict among candidates. Default: highest version wins.
  * @param {string[]} versions
  * @param {((versions: string[]) => string)} [resolve]
@@ -289,17 +317,29 @@ export async function runRemediation(targetPath, options = {}) {
 			continue
 		}
 
-		let provider
-		try {
-			provider = match(manifestPath, availableProviders, opts)
-		} catch {
-			continue
-		}
+		const providerPriority = providers ? providers.split(',').map(p => p.trim()).filter(Boolean) : undefined
+		const analysisPaths = await analysisPathsFor(manifestPath, manifestType, opts)
 
-		const analysisReport = await analysis.requestStack(provider, manifestPath, url, false, opts)
-		const extracted = extractRemediations(analysisReport, {
-			providerPriority: providers ? providers.split(',').map(p => p.trim()).filter(Boolean) : undefined,
-		})
+		// A dependency visible from several projects yields one remediation per analysis.
+		// Keep a single entry per purl so it is reported and edited once.
+		/** @type {Map<string, import('./remediation.js').Remediation>} */
+		const remediationsByPurl = new Map()
+		for (const analysisPath of analysisPaths) {
+			let provider
+			try {
+				provider = match(analysisPath, availableProviders, opts)
+			} catch {
+				continue
+			}
+
+			const analysisReport = await analysis.requestStack(provider, analysisPath, url, false, opts)
+			for (const remediation of extractRemediations(analysisReport, { providerPriority })) {
+				if (!remediationsByPurl.has(remediation.purl)) {
+					remediationsByPurl.set(remediation.purl, remediation)
+				}
+			}
+		}
+		const extracted = [...remediationsByPurl.values()].sort((a, b) => a.purl.localeCompare(b.purl))
 
 		let remediations = excludeMatchers.length === 0
 			? extracted
@@ -333,7 +373,9 @@ export async function runRemediation(targetPath, options = {}) {
 					groupId: remediation.groupId,
 					artifactId: remediation.artifactId,
 					newVersion: remediation.fixedInVersion,
-					reason: 'Dependency not directly declared in the manifest',
+					reason: manifestType.label === 'toml'
+						? 'Dependency not declared in the version catalog'
+						: 'Dependency not directly declared in the manifest',
 				})
 				continue
 			}

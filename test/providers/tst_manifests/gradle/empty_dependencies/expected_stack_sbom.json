@@ -1,0 +1,27 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.6",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-08-07T00:00:00.000Z",
+		"component": {
+			"group": "com.example",
+			"name": "empty_dependencies",
+			"version": "1.0.0",
+			"purl": "pkg:maven/com.example/empty_dependencies@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:maven/com.example/empty_dependencies@1.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.4.0"
+				}
+			]
+		}
+	},
+	"components": [],
+	"dependencies": []
+}

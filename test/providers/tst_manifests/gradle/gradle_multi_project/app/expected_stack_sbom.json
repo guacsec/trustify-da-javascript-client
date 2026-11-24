@@ -1,0 +1,62 @@
+{
+	"bomFormat": "CycloneDX",
+	"specVersion": "1.6",
+	"version": 1,
+	"metadata": {
+		"timestamp": "2023-08-07T00:00:00.000Z",
+		"component": {
+			"group": "com.example",
+			"name": "app",
+			"version": "1.0.0",
+			"purl": "pkg:maven/com.example/app@1.0.0",
+			"type": "application",
+			"bom-ref": "pkg:maven/com.example/app@1.0.0"
+		},
+		"tools": {
+			"components": [
+				{
+					"type": "application",
+					"name": "trustify-da-javascript-client",
+					"version": "0.4.0"
+				}
+			]
+		}
+	},
+	"components": [
+		{
+			"group": "org.apache.commons",
+			"name": "commons-lang3",
+			"version": "3.16.0",
+			"purl": "pkg:maven/org.apache.commons/commons-lang3@3.16.0",
+			"type": "library",
+			"bom-ref": "pkg:maven/org.apache.commons/commons-lang3@3.16.0",
+			"scope": "required"
+		},
+		{
+			"group": "commons-io",
+			"name": "commons-io",
+			"version": "2.16.1",
+			"purl": "pkg:maven/commons-io/commons-io@2.16.1",
+			"type": "library",
+			"bom-ref": "pkg:maven/commons-io/commons-io@2.16.1",
+			"scope": "required"
+		}
+	],
+	"dependencies": [
+		{
+			"ref": "pkg:maven/com.example/app@1.0.0",
+			"dependsOn": [
+				"pkg:maven/org.apache.commons/commons-lang3@3.16.0",
+				"pkg:maven/commons-io/commons-io@2.16.1"
+			]
+		},
+		{
+			"ref": "pkg:maven/org.apache.commons/commons-lang3@3.16.0",
+			"dependsOn": []
+		},
+		{
+			"ref": "pkg:maven/commons-io/commons-io@2.16.1",
+			"dependsOn": []
+		}
+	]
+}

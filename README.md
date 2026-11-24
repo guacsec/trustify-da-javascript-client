@@ -863,7 +863,7 @@ The <code>remediate</code> command scans manifest files for known vulnerabilitie
 <h4>Supported Manifest Formats</h4>
 <ul>
 <li><strong>Maven</strong> — <code>pom.xml</code> (single-module projects; updates dependency version elements and resolves property references)</li>
-<li><strong>Gradle Version Catalog</strong> — <code>libs.versions.toml</code> or any <code>*.versions.toml</code> file (updates centralized version references and inline version declarations)</li>
+<li><strong>Gradle Version Catalog</strong> — <code>libs.versions.toml</code> or any <code>*.versions.toml</code> file (updates centralized version references and inline version declarations). In a multi-project build, every project that belongs to the catalog's build is analyzed, so dependencies used only in subprojects are included.</li>
 </ul>
 
 <h4>CLI Flags</h4>
@@ -943,7 +943,7 @@ When multiple vulnerability providers suggest different remediation versions for
 
 <h4>Known Limitations</h4>
 <ul>
-<li>Gradle DSL files (<code>build.gradle</code>, <code>build.gradle.kts</code>) are not supported — only version catalog files (<code>*.versions.toml</code>).</li>
+<li>Gradle DSL files (<code>build.gradle</code>, <code>build.gradle.kts</code>) are not supported — only version catalog files (<code>*.versions.toml</code>). Dependencies declared directly in a build file (not in the catalog) are reported as skipped, since they cannot be edited.</li>
 <li>Multi-module Maven projects with inherited dependency versions from parent POMs are not supported — only versions declared directly in the scanned <code>pom.xml</code> are updated.</li>
 </ul>
 

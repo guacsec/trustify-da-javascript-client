@@ -19,8 +19,8 @@ import Base_java, { ecosystem_gradle } from "./base_java.js";
 
 /** @typedef {import('../provider.js').Provided} Provided */
 
-const ROOT_PROJECT_KEY_NAME = "root-project";
-
+const BUILD_FILE_NAMES = ['build.gradle.kts', 'build.gradle']
+const MAX_BUILD_FILE_SEARCH_DEPTH = 5
 
 const TRUSTIFY_DA_IGNORE_REGEX_LINE = /.*\s?(exhortignore|trustify-da-ignore)\s*$/g
 const TRUSTIFY_DA_IGNORE_REGEX = /\/\/\s?(exhortignore|trustify-da-ignore)/
@@ -38,6 +38,28 @@ function depHasLibsNotation(depToBeIgnored) {
 
 function stripString(depPart) {
 	return depPart.replaceAll(/["']/g,"")
+}
+
+/**
+ * Walk from `startDir` upward looking for a Gradle build file. Bounded so a scan
+ * starting outside a Gradle project cannot escape to the filesystem root.
+ * @param {string} startDir
+ * @returns {string|undefined} absolute path to the nearest build file, if any
+ */
+export function findNearestBuildFile(startDir) {
+	let dir = startDir
+	for (let depth = 0; depth < MAX_BUILD_FILE_SEARCH_DEPTH; depth++) {
+		for (const name of BUILD_FILE_NAMES) {
+			const candidate = path.join(dir, name)
+			if (fs.existsSync(candidate)) {
+				return candidate
+			}
+		}
+		const parent = path.dirname(dir)
+		if (parent === dir) { break }
+		dir = parent
+	}
+	return undefined
 }
 
 /**
@@ -75,30 +97,7 @@ export default class Java_gradle extends Base_java {
 	 * @returns {boolean}
 	 */
 	validateLockFile(manifestDir) {
-		return this.#findBuildFile(manifestDir) !== undefined
-	}
-
-	/**
-	 * Walk from `startDir` upward looking for a Gradle build file.
-	 * Stops after 5 levels to avoid scanning to the filesystem root.
-	 * @param {string} startDir
-	 * @returns {string|undefined} absolute path to the build file, or undefined
-	 */
-	#findBuildFile(startDir) {
-		const maxDepth = 5
-		let dir = startDir
-		for (let i = 0; i < maxDepth; i++) {
-			for (const name of ['build.gradle.kts', 'build.gradle']) {
-				const candidate = path.join(dir, name)
-				if (fs.existsSync(candidate)) {
-					return candidate
-				}
-			}
-			const parent = path.dirname(dir)
-			if (parent === dir) { break }
-			dir = parent
-		}
-		return undefined
+		return findNearestBuildFile(manifestDir) !== undefined
 	}
 
 	/**
@@ -127,7 +126,7 @@ export default class Java_gradle extends Base_java {
 		if (!path.basename(manifest).endsWith('.versions.toml')) {
 			return manifest
 		}
-		const found = this.#findBuildFile(path.dirname(manifest))
+		const found = findNearestBuildFile(path.dirname(manifest))
 		if (!found) {
 			throw new Error(`No parent build.gradle found for ${path.basename(manifest)}`)
 		}
@@ -200,7 +199,9 @@ export default class Java_gradle extends Base_java {
 					line: `${processedLine}:compile`,
 					depth: depth
 				};
-			});
+			})
+			// Depth -1 marks lines that are not part of a dependency tree (e.g. "No dependencies").
+			.filter(entry => entry.depth > 0);
 	}
 
 	/**
@@ -242,11 +243,8 @@ export default class Java_gradle extends Base_java {
 		}
 	}
 
-	#buildRootCoordinate(properties) {
-		const group = properties.group || 'unknown'
-		const version = properties.version || '0.0.0'
-		const rootName = properties[ROOT_PROJECT_KEY_NAME]?.match(/Root project '(.+)'/)?.[1] || 'unknown'
-		return `${group}:${rootName}:jar:${version}`
+	#buildRootCoordinate({ group, name, version }) {
+		return `${group || 'unknown'}:${name || 'unknown'}:jar:${version || '0.0.0'}`
 	}
 
 	/**
@@ -294,24 +292,22 @@ export default class Java_gradle extends Base_java {
 	}
 
 	/**
-	 *
-	 * @param {string} manifestPath - path to build.gradle.
-	 * @param {Object} opts - contains various options settings from client.
-	 * @return {{Object}} an object that contains all gradle properties
+	 * Reads the identity of the project that `gradle properties` was run in.
+	 * `name` is the current project, so a subproject build file yields the
+	 * subproject's identity rather than the root project's.
+	 * @param {string} manifestPath - path to build.gradle[.kts]
+	 * @param {Object} opts - client options
+	 * @returns {{group: string|undefined, name: string|undefined, version: string|undefined}}
 	 */
 	#extractProperties(manifestPath, opts) {
-		let properties = {}
-		let propertiesContent = this.#getProperties(manifestPath, opts)
-		let regExpMatchArray = propertiesContent.match(/([^\n:]+):[\t ]*(.*)/g);
-		for (let i = 0; i < regExpMatchArray.length - 1; i++) {
-			let parts = regExpMatchArray[i].split(":");
-			properties[parts[0].trim()] = parts[1].trim()
+		const output = this.#getProperties(manifestPath, opts)
+		const readProperty = key => output.match(new RegExp(`^${key}:[ \\t]*(.*)$`, 'm'))?.[1].trim()
+
+		return {
+			group: readProperty('group'),
+			name: readProperty('name'),
+			version: readProperty('version'),
 		}
-		let regExpMatchArray1 = propertiesContent.match(/Root project '(.+)'/);
-		if (regExpMatchArray1[0]) {
-			properties[ROOT_PROJECT_KEY_NAME] = regExpMatchArray1[0]
-		}
-		return properties;
 	}
 
 	/**

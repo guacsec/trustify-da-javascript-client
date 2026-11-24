@@ -1,0 +1,8 @@
+> Task :dependencies
+
+compileClasspath - Compile classpath for source set 'main'.
+No dependencies
+
+runtimeClasspath - Runtime classpath of source set 'main'.
+No dependencies
+
