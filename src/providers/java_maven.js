@@ -97,13 +97,6 @@ export default class Java_maven extends Base_java {
 		return getLicense(fromPom, manifestPath);
 	}
 
-	/**
-	 * Create a Dot Graph dependency tree for a manifest path.
-	 * @param {string} manifest - path for pom.xml
-	 * @param {{}} [opts={}] - optional various options to pass along the application
-	 * @returns {Promise<string>} the Dot Graph content
-	 * @private
-	 */
 	/** Reads additional Maven args without allowing them to pre-filter the dependency tree. */
 	#getMavenArgs(opts) {
 		const mvnArgs = JSON.parse(getCustom('TRUSTIFY_DA_MVN_ARGS', '[]', opts))
@@ -113,6 +106,13 @@ export default class Java_maven extends Base_java {
 		return stripScopeArgs(mvnArgs)
 	}
 
+	/**
+	 * Create a Dot Graph dependency tree for a manifest path.
+	 * @param {string} manifest - path for pom.xml
+	 * @param {{}} [opts={}] - optional various options to pass along the application
+	 * @returns {Promise<string>} the Dot Graph content
+	 * @private
+	 */
 	async #createSbomStackAnalysis(manifest, opts = {}) {
 		const includeScopes = getMavenIncludeScopes(opts)
 		const manifestDir = path.dirname(manifest)
@@ -137,7 +137,8 @@ export default class Java_maven extends Base_java {
 		// version and scope are marked as '*' if not specified (we do not use scope yet)
 		let ignoredDeps = new Array()
 		let ignoredArgs = new Array()
-		this.#getDependencies(manifest).forEach(dep => {
+		// Stack ignore markers apply across all scopes, independent of the scan selection.
+		this.#getDependencies(manifest, true).forEach(dep => {
 			if (dep.ignore) {
 				ignoredArgs.push(`${dep['groupId']}:${dep['artifactId']}`)
 				//version is not reliable because we're not resolving the effective pom
@@ -353,10 +354,11 @@ export default class Java_maven extends Base_java {
 	 * Get a list of dependencies with marking of dependencies commented with
 	 * <!--exhortignore--> or <!--trustify-da-ignore-->.
 	 * @param {string} manifest - path for pom.xml
+	 * @param {boolean} [includeTest=false] - include test declarations for stack ignores; component analysis skips them
 	 * @returns {[Dependency]} an array of dependencies
 	 * @private
 	 */
-	#getDependencies(manifest) {
+	#getDependencies(manifest, includeTest = false) {
 		/** @type [Dependency] */
 		let ignored = []
 		// build xml parser with options
@@ -387,12 +389,12 @@ export default class Java_maven extends Base_java {
 			if (dep['#comment'] && [].concat(dep['#comment']).some(comment => IGNORE_MARKER_REGEX.test(comment))) { // #comment is an array or a string
 				ignore = true
 			}
-			if (dep['scope'] !== 'test') {
+			if (includeTest || dep['scope'] !== 'test') {
 				ignored.push({
 					groupId: dep['groupId'],
 					artifactId: dep['artifactId'],
 					version: dep['version'] ? dep['version'].toString() : '*',
-					scope: '*',
+					scope: dep['scope'] || 'compile',
 					ignore: ignore
 				})
 			}
@@ -410,7 +412,8 @@ export default class Java_maven extends Base_java {
 	 * @private
 	 */
 	#dependencyIn(dep, deps) {
-		return deps.filter(d => dep.artifactId === d.artifactId && dep.groupId === d.groupId && dep.scope === d.scope).length > 0
+		// Ignore markers still match across scopes, as when every POM entry used '*'.
+		return deps.some(d => dep.artifactId === d.artifactId && dep.groupId === d.groupId)
 	}
 
 	/**
@@ -457,20 +460,20 @@ export default class Java_maven extends Base_java {
 			const content = fs.readFileSync(tmpDepTree)
 			const lines = content.toString().split(EOL).filter(l => l.trim() !== '')
 
-			// Build a map of groupId:artifactId -> resolved version from depth-1 entries
+			// Scope keeps newly visible depth-1 entries from overwriting another scope's resolution.
 			/** @type {Map<string, string>} */
 			const resolvedVersions = new Map()
 			for (const line of lines) {
 				if (this._getDepth(line) === 1) {
-					const purl = this.parseDep(line)
-					resolvedVersions.set(`${purl.namespace}:${purl.name}`, purl.version)
+					const coord = this.parseCoordinate(line)
+					resolvedVersions.set(`${coord.groupId}:${coord.artifactId}:${coord.scope}`, this._coordinateToPurl(coord).version)
 				}
 			}
 
 			// Replace version ranges with resolved concrete versions
 			return dependencies.map(dep => {
 				if (this.#isVersionRange(dep.version)) {
-					const key = `${dep.groupId}:${dep.artifactId}`
+					const key = `${dep.groupId}:${dep.artifactId}:${dep.scope}`
 					const resolved = resolvedVersions.get(key)
 					if (resolved) {
 						return { ...dep, version: resolved }

@@ -147,20 +147,6 @@ suite('testing Maven scope selection', function () {
 	const runtimeManifest = `${fixtures}/poms_deps_with_no_ignore_long/pom.xml`
 	const scopedManifest = `${fixtures}/pom_with_multiple_modules/module3/pom.xml`
 
-	/** Verifies that the default includes runtime-only dependencies but excludes tests. */
-	test('includes runtime-only dependencies by default', async () => {
-		// Given a POM with an explicitly runtime-scoped dependency
-		const provider = new Java_maven()
-
-		// When generating the default stack SBOM
-		const result = await provider.provideStack(runtimeManifest)
-
-		// Then the runtime dependency is included and the test starter is not
-		const names = JSON.parse(result.content).components.map(component => component.name)
-		expect(names).to.include('micrometer-registry-prometheus')
-		expect(names).not.to.include('spring-boot-starter-test')
-	})
-
 	for (const { scopes, included, excluded } of [
 		{ scopes: 'compile,runtime', included: 'gson', excluded: 'javax.servlet-api' },
 		{ scopes: 'test', included: 'assertj-core', excluded: 'gson' }
@@ -180,6 +166,91 @@ suite('testing Maven scope selection', function () {
 			expect(names).not.to.include(excluded)
 		})
 	}
+
+	/** Verifies that a runtime-only scan still honors an ignore marker on a compile declaration. */
+	test('honors compile ignore markers in runtime-only analysis', async () => {
+		// Given compile and runtime declarations of Kafka, plus an unrelated runtime dependency
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const manifest = path.join(tmpDir, 'pom.xml')
+			const pom = `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>scopes</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>3.0.1</version><scope>compile</scope>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>3.0.1</version><classifier>test</classifier><scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>com.google.code.gson</groupId><artifactId>gson</artifactId>
+						<version>2.9.0</version><scope>runtime</scope>
+					</dependency>
+				</dependencies>
+			</project>`
+			const provider = new Java_maven()
+			const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' }
+
+			// When scanning runtime scope, before and after marking the compile declaration
+			fs.writeFileSync(manifest, pom)
+			const unmarked = await provider.provideStack(manifest, opts)
+			fs.writeFileSync(manifest, pom.replace('<scope>compile</scope>', '<scope>compile</scope><!-- trustify-da-ignore -->'))
+			const marked = await provider.provideStack(manifest, opts)
+
+			// Then the marker excludes Kafka by group/artifact without affecting Gson
+			expect(JSON.parse(unmarked.content).components.map(component => component.purl))
+				.to.include('pkg:maven/org.apache.kafka/kafka-clients@3.0.1-test')
+			const names = JSON.parse(marked.content).components.map(component => component.name)
+			expect(names).to.include('gson')
+			expect(names).not.to.include('kafka-clients')
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a test-scope ignore marker is honored whether or not test scope is selected. */
+	test('honors test ignore markers with and without test scope selected', async () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const manifest = path.join(tmpDir, 'pom.xml')
+			const pom = fs.readFileSync(scopedManifest, 'utf8').replace('</dependencies>', `
+				<dependency>
+					<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+					<version>3.0.1</version><scope>compile</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+					<version>3.0.1</version><classifier>test</classifier><scope>test</scope>
+				</dependency>
+			</dependencies>`)
+			const provider = new Java_maven()
+			const analyze = async scopes => {
+				const result = await provider.provideStack(manifest, { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: scopes })
+				return JSON.parse(result.content).components
+			}
+
+			fs.writeFileSync(manifest, pom)
+			const unmarked = await analyze('compile,test')
+			expect(unmarked.map(component => component.purl)).to.include('pkg:maven/org.apache.kafka/kafka-clients@3.0.1')
+			expect(unmarked.map(component => component.name)).to.include('assertj-core')
+
+			// Use a standalone test dependency for the selected-test case.
+			fs.writeFileSync(manifest, pom
+				.replace('<artifactId>assertj-core</artifactId>', '<artifactId>assertj-core</artifactId><!-- trustify-da-ignore -->')
+				.replace('<classifier>test</classifier><scope>test</scope>',
+					'<classifier>test</classifier><scope>test</scope><!-- trustify-da-ignore -->'))
+			for (const [scopes, ignoredName] of [['compile', 'kafka-clients'], ['compile,test', 'assertj-core']]) {
+				const names = (await analyze(scopes)).map(component => component.name)
+				expect(names, scopes).to.include('gson')
+				expect(names, scopes).not.to.include(ignoredName)
+			}
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
 
 	/** Verifies that a classifier beginning with a scope name is not the scope column. */
 	test('includes provided and system dependencies by default', () => {
@@ -204,25 +275,19 @@ suite('testing Maven scope selection', function () {
 
 	/** Verifies that extra Maven arguments cannot override the default stack selection. */
 	test('ignores a conflicting -Dscope in stack analysis', async () => {
-		// Given a POM with runtime and test dependencies and a deterministic timestamp
-		const clock = useFakeTimers({ now: new Date('2023-08-07T00:00:00.000Z'), toFake: ['Date'] })
-		try {
-			const provider = new Java_maven()
-			const invoke = spy(provider, '_invokeCommand')
-			const opts = { TRUSTIFY_DA_MVN_ARGS: '["-Dscope=test"]' }
+		const provider = new Java_maven()
+		const invoke = spy(provider, '_invokeCommand')
+		const opts = { TRUSTIFY_DA_MVN_ARGS: '["-Dscope=test"]' }
 
-			// When generating both SBOMs with real Maven
-			const defaults = await provider.provideStack(runtimeManifest)
-			const withArgs = await provider.provideStack(runtimeManifest, opts)
+		const result = await provider.provideStack(runtimeManifest, opts)
+		const names = JSON.parse(result.content).components.map(component => component.name)
 
-			// Then the conflicting Maven argument did not change the output or reach Maven
-			expect(JSON.parse(withArgs.content)).to.deep.equal(JSON.parse(defaults.content))
-			const scopeArgs = invoke.getCalls().flatMap(call => call.args[1])
-				.filter(arg => arg.startsWith('-Dscope'))
-			expect(scopeArgs).to.deep.equal([])
-		} finally {
-			clock.restore()
-		}
+		// The defaults still include runtime dependencies and exclude tests.
+		expect(names).to.include('micrometer-registry-prometheus')
+		expect(names).not.to.include('spring-boot-starter-test')
+		const scopeArgs = invoke.getCalls().flatMap(call => call.args[1])
+			.filter(arg => arg.startsWith('-Dscope'))
+		expect(scopeArgs).to.deep.equal([])
 	})
 
 	/** Verifies that version ranges resolve even outside compile scope. */
@@ -258,6 +323,34 @@ suite('testing Maven scope selection', function () {
 				expect(args).to.include('-Dstyle.color=never')
 				expect(args.filter(arg => arg.startsWith('-Dscope'))).to.deep.equal([])
 			}
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a test-scoped artifact cannot overwrite a runtime range's resolved version. */
+	test('resolves a runtime range independently of a test-scoped classifier', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>[3.6.1]</version><scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>3.0.1</version><classifier>test</classifier><scope>test</scope>
+					</dependency>
+				</dependencies>
+			</project>`)
+
+			const result = new Java_maven().provideComponent(manifest)
+			const purls = JSON.parse(result.content).components.map(component => component.purl)
+			expect(purls).to.deep.equal(['pkg:maven/org.apache.kafka/kafka-clients@3.6.1'])
 		} finally {
 			fs.rmSync(tmpDir, { recursive: true, force: true })
 		}
