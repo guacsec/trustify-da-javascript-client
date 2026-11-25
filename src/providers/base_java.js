@@ -52,38 +52,80 @@ export default class Base_Java {
 	}
 
 	/**
-	 * Recursively populates the SBOM instance with the parsed graph
-	 * @param {string} src - Source dependency to start the calculations from
-	 * @param {number} srcDepth - Current depth in the graph for the given source
-	 * @param {Array} lines - Array containing the text files being parsed
+	 * Populates the SBOM instance with the parsed graph, keeping only dependencies
+	 * whose resolved scope is selected.
+	 *
+	 * Verbose trees repeat a dependency as parenthesized omitted rows, labeled
+	 * with the scope of that path rather than the scope Maven resolved, so every
+	 * row is judged by the scope of the dependency's resolved row. Keep original
+	 * edges only where both endpoints are selected and the parent is reachable
+	 * from the project root through selected dependencies.
+	 * @param {string} root - The root line of the dependency tree
+	 * @param {Array} lines - The tree lines below the root
 	 * @param {Sbom} sbom - The SBOM where the dependencies are being added
 	 * @param {Set<string>} includeScopes - The selected Maven dependency scopes
 	 */
-	parseDependencyTree(src, srcDepth, lines, sbom, includeScopes) {
-		if (lines.length === 0) {
-			return;
-		}
-		if ((lines.length === 1 && lines[0].trim() === "")) {
-			return;
-		}
-		const sourceScope = srcDepth === 0 ? null : this.parseCoordinate(src).scope
-		const sourceInScope = srcDepth === 0 || (sourceScope != null && includeScopes.has(sourceScope))
-		let index = 0;
-		let target = lines[index];
-		let targetDepth = this._getDepth(target);
-		while (targetDepth > srcDepth && index < lines.length) {
-			if (targetDepth === srcDepth + 1) {
-				const { scope: targetScope } = this.parseCoordinate(target)
-				if (sourceInScope && targetScope != null && includeScopes.has(targetScope)) {
-					sbom.addDependency(this.parseDep(src), this.parseDep(target))
-				}
-			} else {
-				const parent = lines[index - 1]
-				this.parseDependencyTree(parent, this._getDepth(parent), lines.slice(index), sbom, includeScopes)
+	parseDependencyTree(root, lines, sbom, includeScopes) {
+		const end = lines.findIndex(line => this._getDepth(line) <= 0)
+		const rows = (end === -1 ? lines : lines.slice(0, end)).map(line => {
+			const purl = this.parseDep(line)
+			return {
+				depth: this._getDepth(line),
+				purl,
+				key: purl.toString(),
+				scope: this.parseCoordinate(line).scope,
+				omitted: this._isOmittedLine(line)
 			}
-			target = lines[++index];
-			targetDepth = this._getDepth(target);
+		})
+		const resolvedScopes = new Map(rows.filter(row => !row.omitted).map(row => [row.key, row.scope]))
+
+		const rootPurl = this.parseDep(root)
+		const rootKey = rootPurl.toString()
+		const ancestors = [{ depth: 0, purl: rootPurl, key: rootKey, selected: true }]
+		const childrenByParent = new Map()
+		for (const row of rows) {
+			while (ancestors[ancestors.length - 1].depth >= row.depth) {
+				ancestors.pop()
+			}
+			const scope = resolvedScopes.get(row.key) ?? row.scope
+			row.selected = scope != null && includeScopes.has(scope)
+			row.parent = ancestors[ancestors.length - 1]
+			ancestors.push(row)
+			if (row.selected && row.parent.selected) {
+				const children = childrenByParent.get(row.parent.key) ?? []
+				children.push(row.key)
+				childrenByParent.set(row.parent.key, children)
+			}
 		}
+
+		// Traverse by dependency identity: a duplicate row can supply a valid path
+		// to a dependency whose resolved row sits under an excluded parent.
+		const reachable = new Set([rootKey])
+		const pending = [rootKey]
+		while (pending.length > 0) {
+			for (const child of childrenByParent.get(pending.pop()) ?? []) {
+				if (!reachable.has(child)) {
+					reachable.add(child)
+					pending.push(child)
+				}
+			}
+		}
+		for (const row of rows) {
+			if (row.selected && row.parent.selected && reachable.has(row.parent.key)) {
+				sbom.addDependency(row.parent.purl, row.purl)
+			}
+		}
+	}
+
+	/**
+	 * Whether a dependency-tree line is a parenthesized omitted row (a duplicate
+	 * or conflict loser) rather than the dependency's resolved row.
+	 * @param {string} line - line from a dependency tree
+	 * @returns {boolean}
+	 * @protected
+	 */
+	_isOmittedLine(line) {
+		return line.trim().replace(/^[|+\\\- ]+/, '').startsWith('(')
 	}
 
 	/**

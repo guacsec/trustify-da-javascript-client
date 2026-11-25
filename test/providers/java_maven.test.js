@@ -273,6 +273,80 @@ suite('testing Maven scope selection', function () {
 		expect(JSON.parse(narrowed).components ?? []).to.deep.equal([])
 	})
 
+	/** Verifies that an omitted duplicate row cannot override the scope Maven resolved. */
+	test('filters omitted duplicates by their resolved scope', () => {
+		// Given a compile dependency that a runtime dependency repeats as an omitted runtime row
+		const provider = new Java_maven()
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- io.micrometer:micrometer-core:jar:1.8.5:compile',
+			'\\- io.micrometer:micrometer-registry-prometheus:jar:1.8.5:runtime',
+			'   \\- (io.micrometer:micrometer-core:jar:1.8.5:runtime - omitted for duplicate)'
+		].join(os.EOL)
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' }
+
+		// When generating a runtime-only SBOM
+		const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+		// Then the compile dependency stays out, despite its runtime-labeled duplicate
+		expect(sbom.components.map(component => component.name))
+			.to.have.members(['micrometer-registry-prometheus'])
+	})
+
+	for (const { excluded, selected, opts } of [
+		{ excluded: 'test', selected: 'compile', opts: {} },
+		{ excluded: 'compile', selected: 'runtime', opts: { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' } }
+	]) {
+		/** Verifies that selected dependencies cannot bypass an excluded parent or remain disconnected. */
+		test(`prunes descendants reached only through an excluded ${excluded} parent`, () => {
+			// Given two selected descendants behind an excluded parent and one direct dependency
+			const provider = new Java_maven()
+			const tree = [
+				'org.example:module3:jar:1.0-SNAPSHOT',
+				`+- example:excluded-parent:jar:1.0:${excluded}`,
+				`|  \\- example:selected-child:jar:1.0:${selected}`,
+				`|     \\- example:selected-grandchild:jar:1.0:${selected}`,
+				`\\- example:selected-direct:jar:1.0:${selected}`
+			].join(os.EOL)
+
+			// When generating an SBOM without the parent's scope
+			const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+			// Then only the directly reachable dependency and its original edge remain
+			expect(sbom.components.map(component => component.purl)).to.deep.equal(['pkg:maven/example/selected-direct@1.0'])
+			expect(sbom.dependencies).to.deep.equal([
+				{ ref: 'pkg:maven/org.example/module3@1.0-SNAPSHOT', dependsOn: ['pkg:maven/example/selected-direct@1.0'] },
+				{ ref: 'pkg:maven/example/selected-direct@1.0', dependsOn: [] }
+			])
+		})
+	}
+
+	/** Verifies that an original path through a selected parent keeps a shared dependency reachable. */
+	test('keeps a dependency under its selected parents when its resolved row is not', () => {
+		// Given a compile dependency resolved under a test parent but also omitted under a compile parent
+		const provider = new Java_maven()
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- net.minidev:accessors-smart:jar:1.2:test',
+			'|  \\- org.ow2.asm:asm:jar:5.0.4:compile',
+			'|     \\- example:shared-child:jar:1.0:compile',
+			'\\- io.quarkus:quarkus-core:jar:2.13.5.Final:compile',
+			'   \\- (org.ow2.asm:asm:jar:5.0.4:compile - omitted for duplicate)'
+		].join(os.EOL)
+
+		// When generating an SBOM with the default selection
+		const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], {}, scopedManifest, new Map()))
+
+		// Then the dependency stays under its compile parent and is not promoted to the root
+		const dependsOn = Object.fromEntries(sbom.dependencies.map(dep => [dep.ref, dep.dependsOn]))
+		expect(dependsOn['pkg:maven/org.example/module3@1.0-SNAPSHOT'])
+			.to.deep.equal(['pkg:maven/io.quarkus/quarkus-core@2.13.5.Final'])
+		expect(dependsOn['pkg:maven/io.quarkus/quarkus-core@2.13.5.Final'])
+			.to.deep.equal(['pkg:maven/org.ow2.asm/asm@5.0.4'])
+		expect(dependsOn['pkg:maven/org.ow2.asm/asm@5.0.4'])
+			.to.deep.equal(['pkg:maven/example/shared-child@1.0'])
+	})
+
 	/** Verifies that extra Maven arguments cannot override the default stack selection. */
 	test('ignores a conflicting -Dscope in stack analysis', async () => {
 		const provider = new Java_maven()
@@ -351,6 +425,41 @@ suite('testing Maven scope selection', function () {
 			const result = new Java_maven().provideComponent(manifest)
 			const purls = JSON.parse(result.content).components.map(component => component.purl)
 			expect(purls).to.deep.equal(['pkg:maven/org.apache.kafka/kafka-clients@3.6.1'])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that classified variants of one artifact resolve their ranges independently. */
+	test('resolves ranges for classified variants of the same artifact separately', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			// Given two runtime Kafka variants, distinguished only by classifier, each with its own range
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>[3.6.1]</version><scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>[3.0.1]</version><classifier>test</classifier><scope>runtime</scope>
+					</dependency>
+				</dependencies>
+			</project>`)
+
+			// When running component analysis
+			const result = new Java_maven().provideComponent(manifest)
+
+			// Then each variant keeps the version Maven resolved for its own range
+			const purls = JSON.parse(result.content).components.map(component => component.purl)
+			expect(purls).to.have.members([
+				'pkg:maven/org.apache.kafka/kafka-clients@3.6.1',
+				'pkg:maven/org.apache.kafka/kafka-clients@3.0.1'
+			])
 		} finally {
 			fs.rmSync(tmpDir, { recursive: true, force: true })
 		}

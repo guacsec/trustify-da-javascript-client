@@ -20,7 +20,7 @@ import Base_java, { ecosystem_maven } from "./base_java.js";
 
 /** @typedef {{name: string, version: string}} Package */
 
-/** @typedef {{groupId: string, artifactId: string, version: string, scope: string, ignore: boolean}} Dependency */
+/** @typedef {{groupId: string, artifactId: string, version: string, classifier?: string, scope: string, ignore: boolean}} Dependency */
 
 // Matches the legacy `exhortignore` and new `trustify-da-ignore` markers as whole
 // tokens. The trailing `(?![\w-])` boundary prevents lookalikes such as
@@ -133,8 +133,7 @@ export default class Java_maven extends Base_java {
 		let depTreeCmdArgs = ['-q', 'org.apache.maven.plugins:maven-dependency-plugin:3.6.0:tree',
 			'-Dverbose',
 			'-DoutputType=text', `-DoutputFile=${tmpDepTree}`]
-		// exclude ignored dependencies, exclude format is groupId:artifactId:scope:version.
-		// version and scope are marked as '*' if not specified (we do not use scope yet)
+		// exclude ignored dependencies by groupId:artifactId, across every scope and version
 		let ignoredDeps = new Array()
 		let ignoredArgs = new Array()
 		// Stack ignore markers apply across all scopes, independent of the scan selection.
@@ -269,7 +268,7 @@ export default class Java_maven extends Base_java {
 		const license = this.readLicenseFromManifest(manifestPath);
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
-		this.parseDependencyTree(root, 0, lines.slice(1), sbom, includeScopes);
+		this.parseDependencyTree(root, lines.slice(1), sbom, includeScopes);
 		// Attach Maven artifact hashes as a post-processing step, keeping this
 		// Maven-specific concern out of the shared dependency-tree parser.
 		sbom.attachHashes(hashMap);
@@ -394,6 +393,7 @@ export default class Java_maven extends Base_java {
 					groupId: dep['groupId'],
 					artifactId: dep['artifactId'],
 					version: dep['version'] ? dep['version'].toString() : '*',
+					classifier: dep['classifier'] || '',
 					scope: dep['scope'] || 'compile',
 					ignore: ignore
 				})
@@ -460,20 +460,20 @@ export default class Java_maven extends Base_java {
 			const content = fs.readFileSync(tmpDepTree)
 			const lines = content.toString().split(EOL).filter(l => l.trim() !== '')
 
-			// Scope keeps newly visible depth-1 entries from overwriting another scope's resolution.
+			// Classifier and scope keep variants of one artifact from overwriting each other's resolution.
 			/** @type {Map<string, string>} */
 			const resolvedVersions = new Map()
 			for (const line of lines) {
 				if (this._getDepth(line) === 1) {
 					const coord = this.parseCoordinate(line)
-					resolvedVersions.set(`${coord.groupId}:${coord.artifactId}:${coord.scope}`, this._coordinateToPurl(coord).version)
+					resolvedVersions.set(`${coord.groupId}:${coord.artifactId}:${coord.classifier ?? ''}:${coord.scope}`, coord.version)
 				}
 			}
 
 			// Replace version ranges with resolved concrete versions
 			return dependencies.map(dep => {
 				if (this.#isVersionRange(dep.version)) {
-					const key = `${dep.groupId}:${dep.artifactId}:${dep.scope}`
+					const key = `${dep.groupId}:${dep.artifactId}:${dep.classifier}:${dep.scope}`
 					const resolved = resolvedVersions.get(key)
 					if (resolved) {
 						return { ...dep, version: resolved }
