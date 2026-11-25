@@ -18,6 +18,17 @@ import { getCustomPath, getWrapperPreference, invokeCommand, traverseForWrapper 
  */
 export const ecosystem_maven = 'maven'
 export const ecosystem_gradle = 'gradle'
+
+/** Maven 3 artifact types that resolve to a JAR and their implicit classifiers. */
+const MAVEN_JAR_TYPES = new Map([
+	['ejb', ''],
+	['ejb-client', 'client'],
+	['javadoc', 'javadoc'],
+	['java-source', 'sources'],
+	['maven-plugin', ''],
+	['test-jar', 'tests']
+])
+
 export default class Base_Java {
 	DEP_REGEX = /(([-a-zA-Z0-9._]{2,})|[0-9])/g
 	CONFLICT_REGEX = /.*omitted for conflict with (\S+)\)/
@@ -66,28 +77,31 @@ export default class Base_Java {
 	 * @param {Set<string>} includeScopes - The selected Maven dependency scopes
 	 */
 	parseDependencyTree(root, lines, sbom, includeScopes) {
-		const end = lines.findIndex(line => this._getDepth(line) <= 0)
-		const rows = (end === -1 ? lines : lines.slice(0, end)).map(line => {
+		const parseRow = line => {
+			const coord = this.parseCoordinate(line)
 			const purl = this.parseDep(line)
+			const scopeKey = `${this._mavenArtifactKey(coord)}:${coord.version}`
 			return {
 				depth: this._getDepth(line),
 				purl,
-				key: purl.toString(),
-				scope: this.parseCoordinate(line).scope,
+				scopeKey,
+				key: `${scopeKey}|${purl.toString()}`,
+				scope: coord.scope,
 				omitted: this._isOmittedLine(line)
 			}
-		})
-		const resolvedScopes = new Map(rows.filter(row => !row.omitted).map(row => [row.key, row.scope]))
+		}
+		const end = lines.findIndex(line => this._getDepth(line) <= 0)
+		const rows = (end === -1 ? lines : lines.slice(0, end)).map(parseRow)
+		const resolvedScopes = new Map(rows.filter(row => !row.omitted).map(row => [row.scopeKey, row.scope]))
 
-		const rootPurl = this.parseDep(root)
-		const rootKey = rootPurl.toString()
-		const ancestors = [{ depth: 0, purl: rootPurl, key: rootKey, selected: true }]
+		const rootRow = { ...parseRow(root), depth: 0, selected: true }
+		const ancestors = [rootRow]
 		const childrenByParent = new Map()
 		for (const row of rows) {
 			while (ancestors[ancestors.length - 1].depth >= row.depth) {
 				ancestors.pop()
 			}
-			const scope = resolvedScopes.get(row.key) ?? row.scope
+			const scope = resolvedScopes.get(row.scopeKey) ?? row.scope
 			row.selected = scope != null && includeScopes.has(scope)
 			row.parent = ancestors[ancestors.length - 1]
 			ancestors.push(row)
@@ -98,10 +112,10 @@ export default class Base_Java {
 			}
 		}
 
-		// Traverse by dependency identity: a duplicate row can supply a valid path
-		// to a dependency whose resolved row sits under an excluded parent.
-		const reachable = new Set([rootKey])
-		const pending = [rootKey]
+		// Duplicates can supply alternate paths, but a conflict's legacy PURL
+		// can differ from the winner's. Only follow edges from the same PURL.
+		const reachable = new Set([rootRow.key])
+		const pending = [rootRow.key]
 		while (pending.length > 0) {
 			for (const child of childrenByParent.get(pending.pop()) ?? []) {
 				if (!reachable.has(child)) {
@@ -175,6 +189,21 @@ export default class Base_Java {
 			version = override[1]
 		}
 		return { groupId, artifactId, packaging, classifier, version, scope, overridden }
+	}
+
+	/**
+	 * Match Maven artifacts by extension and classifier before converting them to SBOM PURLs.
+	 * The caller adds the resolved version or scope as needed for its lookup.
+	 * @param {{groupId: string, artifactId: string, packaging?: string, classifier?: string|null}} coord
+	 * @returns {string}
+	 * @protected
+	 */
+	_mavenArtifactKey({ groupId, artifactId, packaging = 'jar', classifier }) {
+		const implicitClassifier = MAVEN_JAR_TYPES.get(packaging)
+		const extension = implicitClassifier === undefined ? packaging : 'jar'
+		// Only an absent POM classifier gets the type default. A tree's null is already resolved.
+		const resolvedClassifier = classifier === undefined ? implicitClassifier : classifier
+		return `${groupId}:${artifactId}:${extension}:${resolvedClassifier ?? ''}`
 	}
 
 	/**

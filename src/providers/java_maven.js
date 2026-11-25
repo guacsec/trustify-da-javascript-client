@@ -20,7 +20,7 @@ import Base_java, { ecosystem_maven } from "./base_java.js";
 
 /** @typedef {{name: string, version: string}} Package */
 
-/** @typedef {{groupId: string, artifactId: string, version: string, classifier?: string, scope: string, ignore: boolean}} Dependency */
+/** @typedef {{groupId: string, artifactId: string, version: string, packaging?: string, classifier?: string, scope: string, ignore: boolean}} Dependency */
 
 // Matches the legacy `exhortignore` and new `trustify-da-ignore` markers as whole
 // tokens. The trailing `(?![\w-])` boundary prevents lookalikes such as
@@ -393,7 +393,8 @@ export default class Java_maven extends Base_java {
 					groupId: dep['groupId'],
 					artifactId: dep['artifactId'],
 					version: dep['version'] ? dep['version'].toString() : '*',
-					classifier: dep['classifier'] || '',
+					packaging: dep['type'] || 'jar',
+					classifier: dep['classifier'],
 					scope: dep['scope'] || 'compile',
 					ignore: ignore
 				})
@@ -460,20 +461,20 @@ export default class Java_maven extends Base_java {
 			const content = fs.readFileSync(tmpDepTree)
 			const lines = content.toString().split(EOL).filter(l => l.trim() !== '')
 
-			// Classifier and scope keep variants of one artifact from overwriting each other's resolution.
+			// Match Maven artifact variants and scopes independently of SBOM PURLs.
 			/** @type {Map<string, string>} */
 			const resolvedVersions = new Map()
 			for (const line of lines) {
 				if (this._getDepth(line) === 1) {
 					const coord = this.parseCoordinate(line)
-					resolvedVersions.set(`${coord.groupId}:${coord.artifactId}:${coord.classifier ?? ''}:${coord.scope}`, coord.version)
+					resolvedVersions.set(`${this._mavenArtifactKey(coord)}:${coord.scope}`, coord.version)
 				}
 			}
 
 			// Replace version ranges with resolved concrete versions
 			return dependencies.map(dep => {
 				if (this.#isVersionRange(dep.version)) {
-					const key = `${dep.groupId}:${dep.artifactId}:${dep.classifier}:${dep.scope}`
+					const key = `${this._mavenArtifactKey(dep)}:${dep.scope}`
 					const resolved = resolvedVersions.get(key)
 					if (resolved) {
 						return { ...dep, version: resolved }

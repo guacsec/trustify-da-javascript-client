@@ -273,24 +273,47 @@ suite('testing Maven scope selection', function () {
 		expect(JSON.parse(narrowed).components ?? []).to.deep.equal([])
 	})
 
-	/** Verifies that an omitted duplicate row cannot override the scope Maven resolved. */
-	test('filters omitted duplicates by their resolved scope', () => {
-		// Given a compile dependency that a runtime dependency repeats as an omitted runtime row
+	/** Verifies that omitted rows use the winning artifact's scope, including aliases and classifiers. */
+	test('filters omitted rows by their resolved scope', () => {
+		// Given compile artifacts repeated as omitted runtime rows
 		const provider = new Java_maven()
 		const tree = [
 			'org.example:module3:jar:1.0-SNAPSHOT',
 			'+- io.micrometer:micrometer-core:jar:1.8.5:compile',
+			'+- org.apache.commons:commons-lang3:test-jar:tests:3.14.0:compile',
+			'+- example:native:jar:linux:2.0:compile',
 			'\\- io.micrometer:micrometer-registry-prometheus:jar:1.8.5:runtime',
-			'   \\- (io.micrometer:micrometer-core:jar:1.8.5:runtime - omitted for duplicate)'
+			'   +- (io.micrometer:micrometer-core:jar:1.8.5:runtime - omitted for duplicate)',
+			'   +- (org.apache.commons:commons-lang3:jar:tests:3.14.0:runtime - omitted for duplicate)',
+			'   \\- (example:native:jar:linux:1.0:runtime - omitted for conflict with 2.0)'
 		].join(os.EOL)
 		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' }
 
 		// When generating a runtime-only SBOM
 		const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
 
-		// Then the compile dependency stays out, despite its runtime-labeled duplicate
+		// Then no runtime-labeled duplicate or conflict pulls a compile artifact into the SBOM
 		expect(sbom.components.map(component => component.name))
 			.to.have.members(['micrometer-registry-prometheus'])
+	})
+
+	/** Verifies that an excluded artifact type cannot overwrite the scope of a selected artifact. */
+	test('keeps the compile JAR when the same coordinates have a test POM', () => {
+		// Given a real Maven tree with two artifact types that use the same SBOM PURL
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- com.google.code.gson:gson:jar:2.9.1:compile',
+			'\\- com.google.code.gson:gson:pom:2.9.1:test'
+		].join(os.EOL)
+
+		// When generating a compile-only SBOM
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile' }
+		const sbom = JSON.parse(new Java_maven().createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+		// Then the compile JAR and its direct edge remain
+		const gson = 'pkg:maven/com.google.code.gson/gson@2.9.1'
+		expect(sbom.components?.map(component => component.purl)).to.deep.equal([gson])
+		expect(sbom.dependencies[0].dependsOn).to.deep.equal([gson])
 	})
 
 	for (const { excluded, selected, opts } of [
@@ -345,6 +368,33 @@ suite('testing Maven scope selection', function () {
 			.to.deep.equal(['pkg:maven/org.ow2.asm/asm@5.0.4'])
 		expect(dependsOn['pkg:maven/org.ow2.asm/asm@5.0.4'])
 			.to.deep.equal(['pkg:maven/example/shared-child@1.0'])
+	})
+
+	/** Verifies that a legacy conflict PURL does not make a distinct classified branch reachable. */
+	test('prunes a disconnected branch behind a classified conflict', () => {
+		// Given an omitted conflict under a selected parent and a classified winner under an excluded parent
+		const tree = [
+			'example:root:jar:1.0',
+			'+- example:test-parent:jar:1.0:test',
+			'|  \\- example:native:jar:linux:2.0:compile',
+			'|     \\- example:child:jar:1.0:compile',
+			'\\- example:compile-parent:jar:1.0:compile',
+			'   \\- (example:native:jar:linux:1.0:compile - omitted for conflict with 2.0)'
+		].join(os.EOL)
+
+		// When generating a compile-only SBOM
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile' }
+		const sbom = JSON.parse(new Java_maven().createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+		// Then the conflict keeps its legacy PURL without retaining or reparenting the classified winner's child
+		const parent = 'pkg:maven/example/compile-parent@1.0'
+		const native = 'pkg:maven/example/native@2.0'
+		expect(sbom.components.map(component => component.purl)).to.have.members([parent, native])
+		expect(sbom.dependencies).to.have.deep.members([
+			{ ref: 'pkg:maven/example/root@1.0', dependsOn: [parent] },
+			{ ref: parent, dependsOn: [native] },
+			{ ref: native, dependsOn: [] }
+		])
 	})
 
 	/** Verifies that extra Maven arguments cannot override the default stack selection. */
@@ -459,6 +509,66 @@ suite('testing Maven scope selection', function () {
 			expect(purls).to.have.members([
 				'pkg:maven/org.apache.kafka/kafka-clients@3.6.1',
 				'pkg:maven/org.apache.kafka/kafka-clients@3.0.1'
+			])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a type-implied Maven classifier does not prevent range resolution. */
+	test('resolves a version range for a test JAR with an implicit classifier', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			// Given a non-test-scope dependency whose type implies the classifier "tests"
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies><dependency>
+					<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+					<version>[3.14.0]</version><type>test-jar</type>
+				</dependency></dependencies>
+			</project>`)
+
+			// When Maven resolves the range during component analysis
+			const result = new Java_maven().provideComponent(manifest)
+
+			// Then the report contains the concrete version, not the range
+			expect(JSON.parse(result.content).components.map(component => component.purl))
+				.to.deep.equal(['pkg:maven/org.apache.commons/commons-lang3@3.14.0'])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that an explicit empty classifier suppresses the type's implicit classifier. */
+	test('resolves a test JAR range with an explicitly empty classifier', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			// Given an unclassified test-jar and a distinct jar with the tests classifier
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+						<version>[3.13.0]</version><type>test-jar</type><classifier/>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+						<version>3.14.0</version><classifier>tests</classifier>
+					</dependency>
+				</dependencies>
+			</project>`)
+
+			// When Maven resolves the range during component analysis
+			const result = new Java_maven().provideComponent(manifest)
+
+			// Then the ranged artifact keeps its own resolved version
+			expect(JSON.parse(result.content).components.map(component => component.purl)).to.have.members([
+				'pkg:maven/org.apache.commons/commons-lang3@3.13.0',
+				'pkg:maven/org.apache.commons/commons-lang3@3.14.0'
 			])
 		} finally {
 			fs.rmSync(tmpDir, { recursive: true, force: true })
