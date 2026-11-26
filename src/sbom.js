@@ -29,6 +29,13 @@ export default class Sbom {
 	}
 
 	/**
+	 * @return {Array<string>} PURLs of every component currently in the sbom, including the root
+	 */
+	getComponentPurls() {
+		return this.sbomModel.components.map(component => component.purl)
+	}
+
+	/**
 	 * This method gets an array of dependencies to be ignored, and remove all of them from sbom
 	 * @param {Array} dependencies to be removed from sbom
 	 * @return {Sbom} without ignored dependencies

@@ -18,6 +18,17 @@ import { getCustomPath, getWrapperPreference, invokeCommand, traverseForWrapper 
  */
 export const ecosystem_maven = 'maven'
 export const ecosystem_gradle = 'gradle'
+
+/** Maven 3 artifact types that resolve to a JAR and their implicit classifiers. */
+const MAVEN_JAR_TYPES = new Map([
+	['ejb', ''],
+	['ejb-client', 'client'],
+	['javadoc', 'javadoc'],
+	['java-source', 'sources'],
+	['maven-plugin', ''],
+	['test-jar', 'tests']
+])
+
 export default class Base_Java {
 	DEP_REGEX = /(([-a-zA-Z0-9._]{2,})|[0-9])/g
 	CONFLICT_REGEX = /.*omitted for conflict with (\S+)\)/
@@ -52,38 +63,83 @@ export default class Base_Java {
 	}
 
 	/**
-	 * Recursively populates the SBOM instance with the parsed graph
-	 * @param {string} src - Source dependency to start the calculations from
-	 * @param {number} srcDepth - Current depth in the graph for the given source
-	 * @param {Array} lines - Array containing the text files being parsed
+	 * Populates the SBOM instance with the parsed graph, keeping only dependencies
+	 * whose resolved scope is selected.
+	 *
+	 * Verbose trees repeat a dependency as parenthesized omitted rows, labeled
+	 * with the scope of that path rather than the scope Maven resolved, so every
+	 * row is judged by the scope of the dependency's resolved row. Keep original
+	 * edges only where both endpoints are selected and the parent is reachable
+	 * from the project root through selected dependencies.
+	 * @param {string} root - The root line of the dependency tree
+	 * @param {Array} lines - The tree lines below the root
 	 * @param {Sbom} sbom - The SBOM where the dependencies are being added
+	 * @param {Set<string>} includeScopes - The selected Maven dependency scopes
 	 */
-	parseDependencyTree(src, srcDepth, lines, sbom) {
-		if (lines.length === 0) {
-			return;
-		}
-		if ((lines.length === 1 && lines[0].trim() === "")) {
-			return;
-		}
-		let index = 0;
-		let target = lines[index];
-		let targetDepth = this._getDepth(target);
-		while (targetDepth > srcDepth && index < lines.length) {
-			if (targetDepth === srcDepth + 1) {
-				let from = this.parseDep(src);
-				let to = this.parseDep(target);
-				let matchedScope = target.match(/:compile|:provided|:runtime|:test|:system|:import/g)
-				let matchedScopeSrc = src.match(/:compile|:provided|:runtime|:test|:system|:import/g)
-				// only add dependency to sbom if it's not with test scope or if it's root
-				if ((matchedScope && matchedScope[0] !== ":test" && (matchedScopeSrc && matchedScopeSrc[0] !== ":test")) || (srcDepth === 0 && matchedScope && matchedScope[0] !== ":test")) {
-					sbom.addDependency(from, to)
-				}
-			} else {
-				this.parseDependencyTree(lines[index - 1], this._getDepth(lines[index - 1]), lines.slice(index), sbom)
+	parseDependencyTree(root, lines, sbom, includeScopes) {
+		const parseRow = line => {
+			const coord = this.parseCoordinate(line)
+			const purl = this.parseDep(line)
+			const scopeKey = `${this._mavenArtifactKey(coord)}:${coord.version}`
+			return {
+				depth: this._getDepth(line),
+				purl,
+				scopeKey,
+				key: `${scopeKey}|${purl.toString()}`,
+				scope: coord.scope,
+				omitted: this._isOmittedLine(line)
 			}
-			target = lines[++index];
-			targetDepth = this._getDepth(target);
 		}
+		const end = lines.findIndex(line => this._getDepth(line) <= 0)
+		const rows = (end === -1 ? lines : lines.slice(0, end)).map(parseRow)
+		const resolvedScopes = new Map(rows.filter(row => !row.omitted).map(row => [row.scopeKey, row.scope]))
+
+		const rootRow = { ...parseRow(root), depth: 0, selected: true }
+		const ancestors = [rootRow]
+		const childrenByParent = new Map()
+		for (const row of rows) {
+			while (ancestors[ancestors.length - 1].depth >= row.depth) {
+				ancestors.pop()
+			}
+			const scope = resolvedScopes.get(row.scopeKey) ?? row.scope
+			row.selected = scope != null && includeScopes.has(scope)
+			row.parent = ancestors[ancestors.length - 1]
+			ancestors.push(row)
+			if (row.selected && row.parent.selected) {
+				const children = childrenByParent.get(row.parent.key) ?? []
+				children.push(row.key)
+				childrenByParent.set(row.parent.key, children)
+			}
+		}
+
+		// Duplicates can supply alternate paths, but a conflict's legacy PURL
+		// can differ from the winner's. Only follow edges from the same PURL.
+		const reachable = new Set([rootRow.key])
+		const pending = [rootRow.key]
+		while (pending.length > 0) {
+			for (const child of childrenByParent.get(pending.pop()) ?? []) {
+				if (!reachable.has(child)) {
+					reachable.add(child)
+					pending.push(child)
+				}
+			}
+		}
+		for (const row of rows) {
+			if (row.selected && row.parent.selected && reachable.has(row.parent.key)) {
+				sbom.addDependency(row.parent.purl, row.purl)
+			}
+		}
+	}
+
+	/**
+	 * Whether a dependency-tree line is a parenthesized omitted row (a duplicate
+	 * or conflict loser) rather than the dependency's resolved row.
+	 * @param {string} line - line from a dependency tree
+	 * @returns {boolean}
+	 * @protected
+	 */
+	_isOmittedLine(line) {
+		return line.trim().replace(/^[|+\\\- ]+/, '').startsWith('(')
 	}
 
 	/**
@@ -133,6 +189,21 @@ export default class Base_Java {
 			version = override[1]
 		}
 		return { groupId, artifactId, packaging, classifier, version, scope, overridden }
+	}
+
+	/**
+	 * Match Maven artifacts by extension and classifier before converting them to SBOM PURLs.
+	 * The caller adds the resolved version or scope as needed for its lookup.
+	 * @param {{groupId: string, artifactId: string, packaging?: string, classifier?: string|null}} coord
+	 * @returns {string}
+	 * @protected
+	 */
+	_mavenArtifactKey({ groupId, artifactId, packaging = 'jar', classifier }) {
+		const implicitClassifier = MAVEN_JAR_TYPES.get(packaging)
+		const extension = implicitClassifier === undefined ? packaging : 'jar'
+		// Only an absent POM classifier gets the type default. A tree's null is already resolved.
+		const resolvedClassifier = classifier === undefined ? implicitClassifier : classifier
+		return `${groupId}:${artifactId}:${extension}:${resolvedClassifier ?? ''}`
 	}
 
 	/**

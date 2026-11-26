@@ -110,7 +110,7 @@ export function getWrapperPreference(name, opts = {}) {
  * @throws {Error} If the selection is empty or contains an unsupported scope.
  */
 export function getMavenIncludeScopes(opts = {}) {
-	const value = getCustom('TRUSTIFY_DA_MVN_INCLUDE_SCOPES', 'compile,provided,runtime,system', opts)
+	const value = getCustom('TRUSTIFY_DA_MVN_INCLUDE_SCOPES', 'compile,provided,system', opts)
 	const scopes = new Set(value?.split(',').map(scope => scope.trim()).filter(Boolean))
 	if (!scopes.size) {
 		throw new Error('Maven include scopes rejected: at least one scope is required')

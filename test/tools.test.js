@@ -90,10 +90,10 @@ suite('testing the various tools and utility functions', () => {
 			expect(scopes).to.deep.equal(new Set(['runtime']))
 		})
 
-		/** Verifies the four default Maven scopes when no setting is provided. */
+		/** Verifies the legacy Maven scopes when no selection is provided. */
 		test('uses the default Maven scopes', () => {
 			expect(getMavenIncludeScopes())
-				.to.deep.equal(new Set(['compile', 'provided', 'runtime', 'system']))
+				.to.deep.equal(new Set(['compile', 'provided', 'system']))
 		})
 
 		/** Verifies test scope can be included explicitly. */

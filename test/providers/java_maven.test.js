@@ -141,6 +141,464 @@ suite('testing the java-maven data provider', async () => {
 	})
 });
 
+suite('testing Maven scope selection', function () {
+	this.timeout(40000)
+	const fixtures = 'test/providers/tst_manifests/maven'
+	const runtimeManifest = `${fixtures}/poms_deps_with_no_ignore_long/pom.xml`
+	const scopedManifest = `${fixtures}/pom_with_multiple_modules/module3/pom.xml`
+
+	for (const { scopes, included, excluded } of [
+		{ scopes: 'compile,runtime', included: 'gson', excluded: 'javax.servlet-api' },
+		{ scopes: 'test', included: 'assertj-core', excluded: 'gson' }
+	]) {
+		/** Verifies that the requested scope set determines which components appear. */
+		test(`honors the ${scopes} scope selection`, async () => {
+			// Given a POM with compile, provided, and test dependencies
+			const provider = new Java_maven()
+			const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: scopes }
+
+			// When generating a stack SBOM with the selected scopes
+			const result = await provider.provideStack(scopedManifest, opts)
+
+			// Then only the selected dependencies are represented
+			const names = JSON.parse(result.content).components.map(component => component.name)
+			expect(names).to.include(included)
+			expect(names).not.to.include(excluded)
+		})
+	}
+
+	/** Verifies that a runtime-only scan still honors an ignore marker on a compile declaration. */
+	test('honors compile ignore markers in runtime-only analysis', async () => {
+		// Given compile and runtime declarations of Kafka, plus an unrelated runtime dependency
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const manifest = path.join(tmpDir, 'pom.xml')
+			const pom = `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>scopes</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>3.0.1</version><scope>compile</scope>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>3.0.1</version><classifier>test</classifier><scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>com.google.code.gson</groupId><artifactId>gson</artifactId>
+						<version>2.9.0</version><scope>runtime</scope>
+					</dependency>
+				</dependencies>
+			</project>`
+			const provider = new Java_maven()
+			const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' }
+
+			// When scanning runtime scope, before and after marking the compile declaration
+			fs.writeFileSync(manifest, pom)
+			const unmarked = await provider.provideStack(manifest, opts)
+			fs.writeFileSync(manifest, pom.replace('<scope>compile</scope>', '<scope>compile</scope><!-- trustify-da-ignore -->'))
+			const marked = await provider.provideStack(manifest, opts)
+
+			// Then the marker excludes Kafka by group/artifact without affecting Gson
+			expect(JSON.parse(unmarked.content).components.map(component => component.purl))
+				.to.include('pkg:maven/org.apache.kafka/kafka-clients@3.0.1-test')
+			const names = JSON.parse(marked.content).components.map(component => component.name)
+			expect(names).to.include('gson')
+			expect(names).not.to.include('kafka-clients')
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a test-scope ignore marker is honored whether or not test scope is selected. */
+	test('honors test ignore markers with and without test scope selected', async () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const manifest = path.join(tmpDir, 'pom.xml')
+			const pom = fs.readFileSync(scopedManifest, 'utf8').replace('</dependencies>', `
+				<dependency>
+					<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+					<version>3.0.1</version><scope>compile</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+					<version>3.0.1</version><classifier>test</classifier><scope>test</scope>
+				</dependency>
+			</dependencies>`)
+			const provider = new Java_maven()
+			const analyze = async scopes => {
+				const result = await provider.provideStack(manifest, { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: scopes })
+				return JSON.parse(result.content).components
+			}
+
+			fs.writeFileSync(manifest, pom)
+			const unmarked = await analyze('compile,test')
+			expect(unmarked.map(component => component.purl)).to.include('pkg:maven/org.apache.kafka/kafka-clients@3.0.1')
+			expect(unmarked.map(component => component.name)).to.include('assertj-core')
+
+			// Use a standalone test dependency for the selected-test case.
+			fs.writeFileSync(manifest, pom
+				.replace('<artifactId>assertj-core</artifactId>', '<artifactId>assertj-core</artifactId><!-- trustify-da-ignore -->')
+				.replace('<classifier>test</classifier><scope>test</scope>',
+					'<classifier>test</classifier><scope>test</scope><!-- trustify-da-ignore -->'))
+			for (const [scopes, ignoredName] of [['compile', 'kafka-clients'], ['compile,test', 'assertj-core']]) {
+				const names = (await analyze(scopes)).map(component => component.name)
+				expect(names, scopes).to.include('gson')
+				expect(names, scopes).not.to.include(ignoredName)
+			}
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a classifier beginning with a scope name is not the scope column. */
+	test('includes provided and system dependencies by default', () => {
+		// Given a tree whose system dependency has a classifier beginning with "test"
+		const provider = new Java_maven()
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- example:provided-library:jar:1.0:provided',
+			'\\- example:local-library:jar:test-fixture:1.0:system'
+		].join(os.EOL)
+
+		// When generating default and narrowed SBOMs from the same tree
+		const defaults = provider.createSbomFileFromTextFormat(tree, [], {}, scopedManifest, new Map())
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile,runtime' }
+		const narrowed = provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map())
+
+		// Then the default includes both dependencies, while the narrowed set excludes both
+		expect(JSON.parse(defaults).components.map(component => component.name))
+			.to.have.members(['provided-library', 'local-library'])
+		expect(JSON.parse(narrowed).components ?? []).to.deep.equal([])
+	})
+
+	/** Verifies that omitted rows use the winning artifact's scope, including aliases and classifiers. */
+	test('filters omitted rows by their resolved scope', () => {
+		// Given compile artifacts repeated as omitted runtime rows
+		const provider = new Java_maven()
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- io.micrometer:micrometer-core:jar:1.8.5:compile',
+			'+- org.apache.commons:commons-lang3:test-jar:tests:3.14.0:compile',
+			'+- example:native:jar:linux:2.0:compile',
+			'\\- io.micrometer:micrometer-registry-prometheus:jar:1.8.5:runtime',
+			'   +- (io.micrometer:micrometer-core:jar:1.8.5:runtime - omitted for duplicate)',
+			'   +- (org.apache.commons:commons-lang3:jar:tests:3.14.0:runtime - omitted for duplicate)',
+			'   \\- (example:native:jar:linux:1.0:runtime - omitted for conflict with 2.0)'
+		].join(os.EOL)
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' }
+
+		// When generating a runtime-only SBOM
+		const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+		// Then no runtime-labeled duplicate or conflict pulls a compile artifact into the SBOM
+		expect(sbom.components.map(component => component.name))
+			.to.have.members(['micrometer-registry-prometheus'])
+	})
+
+	/** Verifies that an excluded artifact type cannot overwrite the scope of a selected artifact. */
+	test('keeps the compile JAR when the same coordinates have a test POM', () => {
+		// Given a real Maven tree with two artifact types that use the same SBOM PURL
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- com.google.code.gson:gson:jar:2.9.1:compile',
+			'\\- com.google.code.gson:gson:pom:2.9.1:test'
+		].join(os.EOL)
+
+		// When generating a compile-only SBOM
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile' }
+		const sbom = JSON.parse(new Java_maven().createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+		// Then the compile JAR and its direct edge remain
+		const gson = 'pkg:maven/com.google.code.gson/gson@2.9.1'
+		expect(sbom.components?.map(component => component.purl)).to.deep.equal([gson])
+		expect(sbom.dependencies[0].dependsOn).to.deep.equal([gson])
+	})
+
+	for (const { excluded, selected, opts } of [
+		{ excluded: 'test', selected: 'compile', opts: {} },
+		{ excluded: 'compile', selected: 'runtime', opts: { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'runtime' } }
+	]) {
+		/** Verifies that selected dependencies cannot bypass an excluded parent or remain disconnected. */
+		test(`prunes descendants reached only through an excluded ${excluded} parent`, () => {
+			// Given two selected descendants behind an excluded parent and one direct dependency
+			const provider = new Java_maven()
+			const tree = [
+				'org.example:module3:jar:1.0-SNAPSHOT',
+				`+- example:excluded-parent:jar:1.0:${excluded}`,
+				`|  \\- example:selected-child:jar:1.0:${selected}`,
+				`|     \\- example:selected-grandchild:jar:1.0:${selected}`,
+				`\\- example:selected-direct:jar:1.0:${selected}`
+			].join(os.EOL)
+
+			// When generating an SBOM without the parent's scope
+			const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+			// Then only the directly reachable dependency and its original edge remain
+			expect(sbom.components.map(component => component.purl)).to.deep.equal(['pkg:maven/example/selected-direct@1.0'])
+			expect(sbom.dependencies).to.deep.equal([
+				{ ref: 'pkg:maven/org.example/module3@1.0-SNAPSHOT', dependsOn: ['pkg:maven/example/selected-direct@1.0'] },
+				{ ref: 'pkg:maven/example/selected-direct@1.0', dependsOn: [] }
+			])
+		})
+	}
+
+	/** Verifies that an original path through a selected parent keeps a shared dependency reachable. */
+	test('keeps a dependency under its selected parents when its resolved row is not', () => {
+		// Given a compile dependency resolved under a test parent but also omitted under a compile parent
+		const provider = new Java_maven()
+		const tree = [
+			'org.example:module3:jar:1.0-SNAPSHOT',
+			'+- net.minidev:accessors-smart:jar:1.2:test',
+			'|  \\- org.ow2.asm:asm:jar:5.0.4:compile',
+			'|     \\- example:shared-child:jar:1.0:compile',
+			'\\- io.quarkus:quarkus-core:jar:2.13.5.Final:compile',
+			'   \\- (org.ow2.asm:asm:jar:5.0.4:compile - omitted for duplicate)'
+		].join(os.EOL)
+
+		// When generating an SBOM with the default selection
+		const sbom = JSON.parse(provider.createSbomFileFromTextFormat(tree, [], {}, scopedManifest, new Map()))
+
+		// Then the dependency stays under its compile parent and is not promoted to the root
+		const dependsOn = Object.fromEntries(sbom.dependencies.map(dep => [dep.ref, dep.dependsOn]))
+		expect(dependsOn['pkg:maven/org.example/module3@1.0-SNAPSHOT'])
+			.to.deep.equal(['pkg:maven/io.quarkus/quarkus-core@2.13.5.Final'])
+		expect(dependsOn['pkg:maven/io.quarkus/quarkus-core@2.13.5.Final'])
+			.to.deep.equal(['pkg:maven/org.ow2.asm/asm@5.0.4'])
+		expect(dependsOn['pkg:maven/org.ow2.asm/asm@5.0.4'])
+			.to.deep.equal(['pkg:maven/example/shared-child@1.0'])
+	})
+
+	/** Verifies that a legacy conflict PURL does not make a distinct classified branch reachable. */
+	test('prunes a disconnected branch behind a classified conflict', () => {
+		// Given an omitted conflict under a selected parent and a classified winner under an excluded parent
+		const tree = [
+			'example:root:jar:1.0',
+			'+- example:test-parent:jar:1.0:test',
+			'|  \\- example:native:jar:linux:2.0:compile',
+			'|     \\- example:child:jar:1.0:compile',
+			'\\- example:compile-parent:jar:1.0:compile',
+			'   \\- (example:native:jar:linux:1.0:compile - omitted for conflict with 2.0)'
+		].join(os.EOL)
+
+		// When generating a compile-only SBOM
+		const opts = { TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile' }
+		const sbom = JSON.parse(new Java_maven().createSbomFileFromTextFormat(tree, [], opts, scopedManifest, new Map()))
+
+		// Then the conflict keeps its legacy PURL without retaining or reparenting the classified winner's child
+		const parent = 'pkg:maven/example/compile-parent@1.0'
+		const native = 'pkg:maven/example/native@2.0'
+		expect(sbom.components.map(component => component.purl)).to.have.members([parent, native])
+		expect(sbom.dependencies).to.have.deep.members([
+			{ ref: 'pkg:maven/example/root@1.0', dependsOn: [parent] },
+			{ ref: parent, dependsOn: [native] },
+			{ ref: native, dependsOn: [] }
+		])
+	})
+
+	/** Verifies that extra Maven arguments cannot override the default stack selection. */
+	test('ignores a conflicting -Dscope in stack analysis', async () => {
+		const provider = new Java_maven()
+		const invoke = spy(provider, '_invokeCommand')
+		const opts = { TRUSTIFY_DA_MVN_ARGS: '["-Dscope=test"]' }
+
+		const result = await provider.provideStack(runtimeManifest, opts)
+		const names = JSON.parse(result.content).components.map(component => component.name)
+
+		// The defaults retain compile dependencies without adding runtime or test dependencies.
+		expect(names).to.include('spring-boot-starter-web')
+		expect(names).not.to.include('micrometer-registry-prometheus')
+		expect(names).not.to.include('spring-boot-starter-test')
+		const scopeArgs = invoke.getCalls().flatMap(call => call.args[1])
+			.filter(arg => arg.startsWith('-Dscope'))
+		expect(scopeArgs).to.deep.equal([])
+	})
+
+	/** Verifies that version ranges resolve even outside compile scope. */
+	test('resolves a runtime version range without forwarding -Dscope', () => {
+		// Given the version-range fixture with its ranged dependency set to runtime scope
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const pom = fs.readFileSync(`${fixtures}/pom_deps_with_version_range/pom.xml`, 'utf8')
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, pom.replace('<artifactId>log4j</artifactId>',
+				'<artifactId>log4j</artifactId><scope>runtime</scope>'))
+			const provider = new Java_maven()
+			const invoke = spy(provider, '_invokeCommand')
+
+			// When running component analysis with and without a conflicting scope argument
+			const defaults = provider.provideComponent(manifest)
+			invoke.resetHistory()
+			const result = provider.provideComponent(manifest, {
+				TRUSTIFY_DA_MVN_ARGS: '["-Dscope=test","-Dstyle.color=never"]'
+			})
+
+			// Then the range is resolved and only the unrelated property reaches Maven
+			const purls = JSON.parse(result.content).components.map(component => component.purl)
+			const defaultPurls = JSON.parse(defaults.content).components.map(component => component.purl)
+			expect(purls).to.include('pkg:maven/log4j/log4j@1.2.17')
+			expect(defaultPurls).to.deep.equal(purls)
+			const commandArgs = invoke.getCalls().map(call => call.args[1])
+				.filter(args => args[0] === '-q')
+			expect(commandArgs.map(args => args[1])).to.deep.equal([
+				'help:effective-pom', 'org.apache.maven.plugins:maven-dependency-plugin:3.6.0:tree'
+			])
+			for (const args of commandArgs) {
+				expect(args).to.include('-Dstyle.color=never')
+				expect(args.filter(arg => arg.startsWith('-Dscope'))).to.deep.equal([])
+			}
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a test-scoped artifact cannot overwrite a runtime range's resolved version. */
+	test('resolves a runtime range independently of a test-scoped classifier', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>[3.6.1]</version><scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>3.0.1</version><classifier>test</classifier><scope>test</scope>
+					</dependency>
+				</dependencies>
+			</project>`)
+
+			const result = new Java_maven().provideComponent(manifest)
+			const purls = JSON.parse(result.content).components.map(component => component.purl)
+			expect(purls).to.deep.equal(['pkg:maven/org.apache.kafka/kafka-clients@3.6.1'])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that classified variants of one artifact resolve their ranges independently. */
+	test('resolves ranges for classified variants of the same artifact separately', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			// Given two runtime Kafka variants, distinguished only by classifier, each with its own range
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>[3.6.1]</version><scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId>
+						<version>[3.0.1]</version><classifier>test</classifier><scope>runtime</scope>
+					</dependency>
+				</dependencies>
+			</project>`)
+
+			// When running component analysis
+			const result = new Java_maven().provideComponent(manifest)
+
+			// Then each variant keeps the version Maven resolved for its own range
+			const purls = JSON.parse(result.content).components.map(component => component.purl)
+			expect(purls).to.have.members([
+				'pkg:maven/org.apache.kafka/kafka-clients@3.6.1',
+				'pkg:maven/org.apache.kafka/kafka-clients@3.0.1'
+			])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that a type-implied Maven classifier does not prevent range resolution. */
+	test('resolves a version range for a test JAR with an implicit classifier', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			// Given a non-test-scope dependency whose type implies the classifier "tests"
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies><dependency>
+					<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+					<version>[3.14.0]</version><type>test-jar</type>
+				</dependency></dependencies>
+			</project>`)
+
+			// When Maven resolves the range during component analysis
+			const result = new Java_maven().provideComponent(manifest)
+
+			// Then the report contains the concrete version, not the range
+			expect(JSON.parse(result.content).components.map(component => component.purl))
+				.to.deep.equal(['pkg:maven/org.apache.commons/commons-lang3@3.14.0'])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that an explicit empty classifier suppresses the type's implicit classifier. */
+	test('resolves a test JAR range with an explicitly empty classifier', () => {
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-scope-test-'))
+		try {
+			// Given an unclassified test-jar and a distinct jar with the tests classifier
+			const manifest = path.join(tmpDir, 'pom.xml')
+			fs.writeFileSync(manifest, `<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.example</groupId><artifactId>ranges</artifactId><version>1.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+						<version>[3.13.0]</version><type>test-jar</type><classifier/>
+					</dependency>
+					<dependency>
+						<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+						<version>3.14.0</version><classifier>tests</classifier>
+					</dependency>
+				</dependencies>
+			</project>`)
+
+			// When Maven resolves the range during component analysis
+			const result = new Java_maven().provideComponent(manifest)
+
+			// Then the ranged artifact keeps its own resolved version
+			expect(JSON.parse(result.content).components.map(component => component.purl)).to.have.members([
+				'pkg:maven/org.apache.commons/commons-lang3@3.13.0',
+				'pkg:maven/org.apache.commons/commons-lang3@3.14.0'
+			])
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true })
+		}
+	})
+
+	/** Verifies that batch analysis sends the same selected dependency graph as single analysis. */
+	test('applies the selected scopes to batch SBOMs', async () => {
+		// Given the actual workspace discovery and providers, replacing only the backend call
+		const client = await esmock('../../src/index.js', {
+			'../../src/analysis.js': { default: { requestStackBatch: async sboms => sboms } }
+		})
+		const provider = new Java_maven()
+		const opts = {
+			TRUSTIFY_DA_BACKEND_URL: 'http://localhost:9999',
+			TRUSTIFY_DA_MVN_INCLUDE_SCOPES: 'compile,runtime'
+		}
+
+		// When analyzing the same Maven project individually and in batch
+		const single = JSON.parse((await provider.provideStack(scopedManifest, opts)).content)
+		const batch = await client.stackAnalysisBatch(path.dirname(scopedManifest), false, opts)
+
+		// Then batch sends only the dependencies selected by the single analysis
+		const batchSbom = batch['pkg:maven/org.example/module3@1.0-SNAPSHOT']
+		expect(batchSbom?.dependencies).to.deep.equal(single.dependencies)
+		expect(batchSbom.components.map(component => component.name)).not.to.include('javax.servlet-api')
+	})
+})
+
 suite('testing the java-maven data provider with modules', () => {
 	suiteSetup(() => clock = useFakeTimers({ now: new Date('2023-08-07T00:00:00.000Z'), toFake: ['Date'] }));
 	suiteTeardown(() => clock.restore());
@@ -400,6 +858,45 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 			expect(warnSpy.firstCall.args[0]).to.equal(
 				'Maven hash: 1 of 2 artifacts could not be read from the local .m2 cache; SBOM will be generated without hashes for those components.'
 			)
+		} finally {
+			warnSpy.restore()
+		}
+	})
+
+	/** Verifies that stack analysis reads jars only for components kept by the scope selection. */
+	test('verify stack analysis hashes only dependencies in the selected scopes', async () => {
+		// Given a Maven tree with a cached compile jar and an uncached test-scoped jar
+		const depTree = [
+			'com.example:root:pom:1.0.0',
+			'+- log4j:log4j:jar:1.2.17:compile',
+			'\\- com.example:test-only-lib:jar:9.9.9:test'
+		].join(os.EOL)
+		const mockInvokeCommand = (bin, args) => {
+			const outputArg = args.find(arg => arg.startsWith('-DoutputFile='))
+			if (args.some(arg => arg.endsWith(':tree')) && outputArg) {
+				fs.writeFileSync(outputArg.slice('-DoutputFile='.length), depTree)
+			}
+			return ''
+		}
+		const MockedJavaMaven = await esmock('../../src/providers/java_maven.js', {
+			'../../src/providers/base_java.js': await esmock('../../src/providers/base_java.js', {
+				'../../src/tools.js': { invokeCommand: mockInvokeCommand }
+			})
+		})
+		const warnSpy = spy(console, 'warn')
+		try {
+			// When generating a stack SBOM with the default scope selection
+			const result = await new MockedJavaMaven().provideStack(
+				'test/providers/tst_manifests/maven/pom_deps_with_no_ignore/pom.xml',
+				{ 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo }
+			)
+
+			// Then the compile jar is hashed and the excluded test jar is never read
+			const components = JSON.parse(result.content).components
+			expect(components.find(c => c.name === 'log4j').hashes)
+				.to.deep.equal([{ alg: 'SHA-256', content: expectedDigest }])
+			expect(components.map(c => c.name)).not.to.include('test-only-lib')
+			expect(warnSpy.called).to.equal(false)
 		} finally {
 			warnSpy.restore()
 		}
