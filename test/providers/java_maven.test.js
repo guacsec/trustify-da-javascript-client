@@ -406,8 +406,9 @@ suite('testing Maven scope selection', function () {
 		const result = await provider.provideStack(runtimeManifest, opts)
 		const names = JSON.parse(result.content).components.map(component => component.name)
 
-		// The defaults still include runtime dependencies and exclude tests.
-		expect(names).to.include('micrometer-registry-prometheus')
+		// The defaults retain compile dependencies without adding runtime or test dependencies.
+		expect(names).to.include('spring-boot-starter-web')
+		expect(names).not.to.include('micrometer-registry-prometheus')
 		expect(names).not.to.include('spring-boot-starter-test')
 		const scopeArgs = invoke.getCalls().flatMap(call => call.args[1])
 			.filter(arg => arg.startsWith('-Dscope'))
