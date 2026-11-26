@@ -863,6 +863,45 @@ suite('testing the java-maven SHA-256 hash computation', () => {
 		}
 	})
 
+	/** Verifies that stack analysis reads jars only for components kept by the scope selection. */
+	test('verify stack analysis hashes only dependencies in the selected scopes', async () => {
+		// Given a Maven tree with a cached compile jar and an uncached test-scoped jar
+		const depTree = [
+			'com.example:root:pom:1.0.0',
+			'+- log4j:log4j:jar:1.2.17:compile',
+			'\\- com.example:test-only-lib:jar:9.9.9:test'
+		].join(os.EOL)
+		const mockInvokeCommand = (bin, args) => {
+			const outputArg = args.find(arg => arg.startsWith('-DoutputFile='))
+			if (args.some(arg => arg.endsWith(':tree')) && outputArg) {
+				fs.writeFileSync(outputArg.slice('-DoutputFile='.length), depTree)
+			}
+			return ''
+		}
+		const MockedJavaMaven = await esmock('../../src/providers/java_maven.js', {
+			'../../src/providers/base_java.js': await esmock('../../src/providers/base_java.js', {
+				'../../src/tools.js': { invokeCommand: mockInvokeCommand }
+			})
+		})
+		const warnSpy = spy(console, 'warn')
+		try {
+			// When generating a stack SBOM with the default scope selection
+			const result = await new MockedJavaMaven().provideStack(
+				'test/providers/tst_manifests/maven/pom_deps_with_no_ignore/pom.xml',
+				{ 'TRUSTIFY_DA_MVN_REPO': tmpM2Repo }
+			)
+
+			// Then the compile jar is hashed and the excluded test jar is never read
+			const components = JSON.parse(result.content).components
+			expect(components.find(c => c.name === 'log4j').hashes)
+				.to.deep.equal([{ alg: 'SHA-256', content: expectedDigest }])
+			expect(components.map(c => c.name)).not.to.include('test-only-lib')
+			expect(warnSpy.called).to.equal(false)
+		} finally {
+			warnSpy.restore()
+		}
+	})
+
 	/** Verifies that no coverage warning is emitted when every attempted artifact is hashed. */
 	test('verify _buildMavenHashMap stays silent when all artifacts are hashed', async () => {
 		// Given a tree whose only artifact (log4j) exists in the mock repo

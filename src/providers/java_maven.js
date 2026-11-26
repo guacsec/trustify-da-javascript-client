@@ -159,10 +159,11 @@ export default class Java_maven extends Base_java {
 			console.error("Dependency tree that will be used as input for creating the BOM =>" + EOL + EOL + content.toString())
 		}
 		const depTreeContent = content.toString()
-		const hashMap = await this._buildMavenHashMap(depTreeContent, opts)
-		const sbom = this.createSbomFileFromTextFormat(
-			depTreeContent, ignoredDeps, opts, manifest, hashMap, includeScopes
-		)
+		const sbomModel = this._buildSbomFromTextFormat(depTreeContent, manifest, includeScopes)
+		// Hash only the components kept by the scope selection, not the full Maven tree.
+		const hashMap = await this._buildMavenHashMap(depTreeContent, opts, new Set(sbomModel.getComponentPurls()))
+		sbomModel.attachHashes(hashMap)
+		const sbom = sbomModel.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts)
 		// delete temp file and directory
 		fs.rmSync(tmpDir, { recursive: true, force: true })
 		// return dependency graph as string
@@ -183,9 +184,10 @@ export default class Java_maven extends Base_java {
 	 *
 	 * @param {string} depTreeText Raw dependency tree text from mvn dependency:tree
 	 * @param {{}} [opts={}] Options bag (may contain TRUSTIFY_DA_MVN_REPO)
+	 * @param {Set<string>} [selectedPurls] When given, only artifacts with these PURLs are hashed
 	 * @returns {Promise<Map<string, Array<{alg: string, content: string}>>>}
 	 */
-	async _buildMavenHashMap(depTreeText, opts = {}) {
+	async _buildMavenHashMap(depTreeText, opts = {}, selectedPurls) {
 		const m2Repo = getCustom('TRUSTIFY_DA_MVN_REPO', path.join(os.homedir(), '.m2', 'repository'), opts)
 		const hashMap = new Map()
 		const lines = depTreeText.split(EOL)
@@ -211,6 +213,7 @@ export default class Java_maven extends Base_java {
 			// Key by the exact PURL parseDep() produces, so the lookup in
 			// parseDependencyTree (hashMap.get(to.toString())) always hits.
 			const purl = this._coordinateToPurl(coord).toString()
+			if (selectedPurls && !selectedPurls.has(purl)) { continue }
 			// The same artifact recurs across dependency-tree branches — notably in
 			// multi-module reactor builds, where every module re-lists shared deps.
 			// The digest is deterministic per PURL, so skip the redundant file read
@@ -261,6 +264,20 @@ export default class Java_maven extends Base_java {
 	createSbomFileFromTextFormat(
 		textGraphList, ignoredDeps, opts, manifestPath, hashMap, includeScopes = getMavenIncludeScopes(opts)
 	) {
+		const sbom = this._buildSbomFromTextFormat(textGraphList, manifestPath, includeScopes);
+		// Attach Maven artifact hashes as a post-processing step, keeping this
+		// Maven-specific concern out of the shared dependency-tree parser.
+		sbom.attachHashes(hashMap);
+		return sbom.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts);
+	}
+
+	/**
+	 * @param {String} textGraphList Text graph String of the manifest
+	 * @param {String} manifestPath Path to the pom.xml manifest
+	 * @param {Set<string>} includeScopes The resolved Maven dependency scopes
+	 * @return {Sbom} sbom with the selected dependencies, before hashes and ignores are applied
+	 */
+	_buildSbomFromTextFormat(textGraphList, manifestPath, includeScopes) {
 		let lines = textGraphList.split(EOL);
 		// get root component
 		let root = lines[0];
@@ -269,10 +286,7 @@ export default class Java_maven extends Base_java {
 		let sbom = new Sbom();
 		sbom.addRoot(rootPurl, license);
 		this.parseDependencyTree(root, lines.slice(1), sbom, includeScopes);
-		// Attach Maven artifact hashes as a post-processing step, keeping this
-		// Maven-specific concern out of the shared dependency-tree parser.
-		sbom.attachHashes(hashMap);
-		return sbom.filterIgnoredDeps(ignoredDeps).getAsJsonString(opts);
+		return sbom;
 	}
 
 	/**
